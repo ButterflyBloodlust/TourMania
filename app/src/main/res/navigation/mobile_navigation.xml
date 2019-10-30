@@ -40,4 +40,10 @@
         android:name="com.hal9000.tourmania.ui.send.SendFragment"
         android:label="@string/menu_send"
         tools:layout="@layout/fragment_send" />
+
+    <fragment
+        android:id="@+id/createTourFragment"
+        android:name="com.hal9000.tourmania.ui.CreateTourFragment"
+        android:label="@string/title_create_tour"
+        tools:layout="@layout/fragment_create_tour" />
 </navigation>

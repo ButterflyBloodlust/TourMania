@@ -42,10 +42,22 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_below="@id/tour_title"
-            android:textColor="#343434"
+            android:textColor="#040404"
             android:layout_marginTop="1dip"
             android:layout_toRightOf="@+id/tour_list_image"
+            android:text="tour_rating"
             android:textSize="21sp"/>
+
+        <RatingBar
+            android:id="@+id/tour_rating_bar"
+            style="?android:attr/ratingBarStyleSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/tour_rating"
+            android:layout_toRightOf="@+id/tour_list_image"
+            android:layout_marginTop="1dp"
+            android:numStars="5"
+            android:stepSize=".5" />
 
         <!-- android:layout_centerVertical="true" -->
     </RelativeLayout>
