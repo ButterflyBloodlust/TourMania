@@ -1,4 +1,4 @@
-package com.hal9000.tourmania.ui;
+package com.hal9000.tourmania.ui.create_tour;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
