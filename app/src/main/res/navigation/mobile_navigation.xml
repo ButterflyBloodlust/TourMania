@@ -12,10 +12,10 @@
         tools:layout="@layout/fragment_home" />
 
     <fragment
-        android:id="@+id/nav_gallery"
-        android:name="com.hal9000.tourmania.ui.gallery.GalleryFragment"
-        android:label="@string/menu_gallery"
-        tools:layout="@layout/fragment_gallery" />
+        android:id="@+id/nav_my_tours"
+        android:name="com.hal9000.tourmania.ui.my_tours.MyToursFragment"
+        android:label="@string/menu_my_tours"
+        tools:layout="@layout/fragment_my_tours" />
 
     <fragment
         android:id="@+id/nav_slideshow"

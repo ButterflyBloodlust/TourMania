@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="4dp"
+    app:cardElevation="4dp">
+
+    <RelativeLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:minHeight="80dp"
+        android:gravity="center_vertical"
+        android:padding="5dip" >
+
+        <!--  ListRow Left side Thumbnail image -->
+
+        <ImageView
+            android:id="@+id/tour_list_image"
+            android:layout_width="70dp"
+            android:layout_height="70dp"
+            android:padding="3dip"
+            android:layout_alignParentLeft="true"
+            android:layout_marginRight="5dip"
+            android:src="@drawable/ic_menu_gallery">
+        </ImageView>
+
+        <TextView
+            android:id="@+id/tour_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignTop="@+id/tour_list_image"
+            android:layout_toRightOf="@+id/tour_list_image"
+            android:textColor="#040404"
+            android:typeface="sans"
+            android:textSize="21sp" />
+
+        <TextView
+            android:id="@+id/tour_rating"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/tour_title"
+            android:textColor="#343434"
+            android:layout_marginTop="1dip"
+            android:layout_toRightOf="@+id/tour_list_image"
+            android:textSize="21sp"/>
+
+        <!-- android:layout_centerVertical="true" -->
+    </RelativeLayout>
+</androidx.cardview.widget.CardView>
