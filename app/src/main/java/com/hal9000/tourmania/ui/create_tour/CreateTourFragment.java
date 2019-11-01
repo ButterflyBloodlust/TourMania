@@ -10,6 +10,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,6 +23,7 @@ import com.mapbox.android.core.permissions.PermissionsManager;
 import com.mapbox.mapboxsdk.Mapbox;
 import com.mapbox.mapboxsdk.location.LocationComponent;
 import com.mapbox.mapboxsdk.location.LocationComponentActivationOptions;
+import com.mapbox.mapboxsdk.location.OnCameraTrackingChangedListener;
 import com.mapbox.mapboxsdk.location.modes.CameraMode;
 import com.mapbox.mapboxsdk.location.modes.RenderMode;
 import com.mapbox.mapboxsdk.maps.MapView;
@@ -31,7 +33,7 @@ import com.mapbox.mapboxsdk.maps.Style;
 
 import java.util.List;
 
-public class CreateTourFragment extends Fragment implements PermissionsListener {
+public class CreateTourFragment extends Fragment implements PermissionsListener, OnCameraTrackingChangedListener {
 
     private CreateTourViewModel createTourViewModel;
 
@@ -42,6 +44,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener 
     private MapView mapView;
     private PermissionsManager permissionsManager;
     private MapboxMap mapboxMap;
+    private boolean isInTrackingMode;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -82,7 +85,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener 
 
     @SuppressWarnings( {"MissingPermission"})
     private void enableLocationComponent(@NonNull Style loadedMapStyle) {
-        FragmentActivity fragmentActivity = requireActivity();
+        final FragmentActivity fragmentActivity = requireActivity();
         // Check if permissions are enabled and if not request
         if (PermissionsManager.areLocationPermissionsGranted(fragmentActivity)) {
 
@@ -91,20 +94,52 @@ public class CreateTourFragment extends Fragment implements PermissionsListener 
 
             // Activate with options
             locationComponent.activateLocationComponent(
-                    LocationComponentActivationOptions.builder(fragmentActivity, loadedMapStyle).build());
+                    LocationComponentActivationOptions.builder(fragmentActivity, loadedMapStyle)
+                            //.locationComponentOptions(locationComponentOptions)
+                            .build());
 
             // Enable to make component visible
             locationComponent.setLocationComponentEnabled(true);
 
             // Set the component's camera mode
-            locationComponent.setCameraMode(CameraMode.TRACKING);
+            locationComponent.setCameraMode(CameraMode.NONE);//, 0L, 12d, null, null, null);
 
             // Set the component's render mode
             locationComponent.setRenderMode(RenderMode.COMPASS);
+
+            // Add the camera tracking listener. Fires if the map camera is manually moved.
+            locationComponent.addOnCameraTrackingChangedListener(this);
+
+            fragmentActivity.findViewById(R.id.back_to_camera_tracking_mode).setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if (!isInTrackingMode) {
+                        isInTrackingMode = true;
+                        LocationComponent locationComponent = mapboxMap.getLocationComponent();
+                        locationComponent.setCameraMode(CameraMode.TRACKING, 750L, 16d, null, null, null);
+                        //locationComponent.zoomWhileTracking(16f);
+                        Toast.makeText(requireContext(), getString(R.string.tracking_enabled),
+                                Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(requireContext(), getString(R.string.tracking_already_enabled),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
         } else {
             permissionsManager = new PermissionsManager(this);
             permissionsManager.requestLocationPermissions(fragmentActivity);
         }
+    }
+
+    @Override
+    public void onCameraTrackingDismissed() {
+        isInTrackingMode = false;
+    }
+
+    @Override
+    public void onCameraTrackingChanged(int currentMode) {
+        // Empty on purpose
     }
 
     @Override

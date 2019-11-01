@@ -18,5 +18,7 @@
     <string name="create_tour_title_hint_text">Title</string>
     <string name="user_location_permission_explanation">This application needs location permission to automatically center map on your position.</string>
     <string name="user_location_permission_not_granted">Location permission was not granted.</string>
+    <string name="tracking_enabled">Tracking enabled</string>
+    <string name="tracking_already_enabled">Tracking already enabled</string>
 
 </resources>
