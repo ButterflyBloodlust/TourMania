@@ -47,7 +47,6 @@ import com.mapbox.mapboxsdk.style.sources.GeoJsonOptions;
 import java.util.List;
 
 import static com.mapbox.mapboxsdk.style.layers.Property.TEXT_ANCHOR_BOTTOM;
-import static com.mapbox.mapboxsdk.style.layers.Property.TEXT_ANCHOR_TOP;
 import static com.mapbox.mapboxsdk.style.layers.Property.TEXT_JUSTIFY_AUTO;
 
 public class CreateTourFragment extends Fragment implements PermissionsListener, OnCameraTrackingChangedListener {
@@ -89,7 +88,6 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
             }
         };
         requireActivity().getOnBackPressedDispatcher().addCallback(this, callback);
-
         // The callback can be enabled or disabled here or in handleOnBackPressed()
     }
 
@@ -155,13 +153,14 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                         symbolManager.setIconAllowOverlap(true);
                         //symbolManager.setTextAllowOverlap(true);
                         symbolManager.setTextOptional(true);
-                        symbolManager.setTextVariableAnchor(new String[]{TEXT_ANCHOR_BOTTOM, TEXT_ANCHOR_TOP});
+                        symbolManager.setTextTranslate(new Float[]{0f, -44f});
+                        symbolManager.setIconTranslate(new Float[]{0f, -20f});
+                        symbolManager.setTextVariableAnchor(new String[]{TEXT_ANCHOR_BOTTOM});
 
                         // DEBUG ANNOTATION
                         SymbolOptions symbolOptions = new SymbolOptions()
                                 .withLatLng(new LatLng(10, 10))
                                 .withIconImage(ID_ICON_MARKER)
-                                .withTextOffset(new Float[]{0f, -1.5f})
                                 .withTextField("Annotation text");
                         symbolManager.create(symbolOptions);
                     }
@@ -174,8 +173,6 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                         SymbolOptions symbolOptions = new SymbolOptions()
                                 .withLatLng(point)
                                 .withIconImage(ID_ICON_MARKER)
-                                .withTextOffset(new Float[]{0f, -1.5f})
-                                .withIconOffset(new Float[]{0f, -20f})
                                 .withTextField("Annotation text")
                                 .withTextJustify(TEXT_JUSTIFY_AUTO);
                         symbolManager.create(symbolOptions);
@@ -249,6 +246,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
             // Add the camera tracking listener. Fires if the map camera is manually moved.
             locationComponent.addOnCameraTrackingChangedListener(this);
 
+            // Set up floating action button
             fragmentActivity.findViewById(R.id.back_to_camera_tracking_mode).setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
