@@ -1,9 +1,13 @@
 package com.hal9000.tourmania.ui.create_tour;
 
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProviders;
 
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -21,6 +25,7 @@ import com.hal9000.tourmania.R;
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
 import com.mapbox.mapboxsdk.Mapbox;
+import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.location.LocationComponent;
 import com.mapbox.mapboxsdk.location.LocationComponentActivationOptions;
 import com.mapbox.mapboxsdk.location.OnCameraTrackingChangedListener;
@@ -30,8 +35,20 @@ import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
 import com.mapbox.mapboxsdk.maps.Style;
+import com.mapbox.mapboxsdk.plugins.annotation.OnSymbolClickListener;
+import com.mapbox.mapboxsdk.plugins.annotation.OnSymbolLongClickListener;
+import com.mapbox.mapboxsdk.plugins.annotation.Symbol;
+import com.mapbox.mapboxsdk.plugins.annotation.SymbolManager;
+import com.mapbox.mapboxsdk.plugins.annotation.SymbolOptions;
+import com.mapbox.mapboxsdk.style.sources.GeoJsonOptions;
 
 import java.util.List;
+
+import static com.mapbox.mapboxsdk.style.layers.Property.TEXT_ANCHOR_BOTTOM;
+import static com.mapbox.mapboxsdk.style.layers.Property.TEXT_ANCHOR_LEFT;
+import static com.mapbox.mapboxsdk.style.layers.Property.TEXT_ANCHOR_RIGHT;
+import static com.mapbox.mapboxsdk.style.layers.Property.TEXT_ANCHOR_TOP;
+import static com.mapbox.mapboxsdk.style.layers.Property.TEXT_JUSTIFY_AUTO;
 
 public class CreateTourFragment extends Fragment implements PermissionsListener, OnCameraTrackingChangedListener {
 
@@ -42,9 +59,14 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
     }
 
     private MapView mapView;
+    private SymbolManager symbolManager;
     private PermissionsManager permissionsManager;
     private MapboxMap mapboxMap;
     private boolean isInTrackingMode;
+
+    private static final String ID_ICON_MARKER = "place-marker-red-24";
+    private static final String ID_ICON_SELECTED = "place-marker-yellow-24";
+    private static final double ICON_MARKER_SCALE = 2d;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -72,11 +94,76 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
             @Override
             public void onMapReady(@NonNull MapboxMap mapboxMap) {
                 CreateTourFragment.this.mapboxMap = mapboxMap;
+
                 mapboxMap.setStyle(Style.MAPBOX_STREETS, new Style.OnStyleLoaded() {
                     @Override
                     public void onStyleLoaded(@NonNull Style style) {
+
+                        // Add custom markers to style
+                        Drawable markerIconDrawable = ContextCompat.getDrawable(requireActivity(), R.drawable.ic_place_red_24dp);
+                        Bitmap bitmap = Bitmap.createBitmap((int)(markerIconDrawable.getIntrinsicWidth() * ICON_MARKER_SCALE),
+                                (int)(markerIconDrawable.getIntrinsicHeight() * ICON_MARKER_SCALE), Bitmap.Config.ARGB_8888);
+                        Canvas canvas = new Canvas(bitmap);
+                        markerIconDrawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+                        markerIconDrawable.draw(canvas);
+                        style.addImage(ID_ICON_MARKER, bitmap);
+
+                        // Add custom markers to style
+                        markerIconDrawable = ContextCompat.getDrawable(requireActivity(), R.drawable.ic_place_yellow_24dp);
+                        bitmap = Bitmap.createBitmap((int)(markerIconDrawable.getIntrinsicWidth() * ICON_MARKER_SCALE),
+                                (int)(markerIconDrawable.getIntrinsicHeight() * ICON_MARKER_SCALE), Bitmap.Config.ARGB_8888);
+                        canvas = new Canvas(bitmap);
+                        markerIconDrawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+                        markerIconDrawable.draw(canvas);
+                        style.addImage(ID_ICON_SELECTED, bitmap);
+
                         // Map is set up and the style has loaded. Now you can add data or make other map adjustments
                         enableLocationComponent(style);
+
+                        // create symbol manager
+                        GeoJsonOptions geoJsonOptions = new GeoJsonOptions().withTolerance(0.4f);
+                        symbolManager = new SymbolManager(mapView, CreateTourFragment.this.mapboxMap, style, null, geoJsonOptions);
+
+                        symbolManager.addClickListener(new OnSymbolClickListener() {
+                            @Override
+                            public void onAnnotationClick(Symbol symbol) {
+                                Toast.makeText(requireContext(),String.format("Symbol clicked %s", symbol.getId()),Toast.LENGTH_SHORT).show();
+                                //Log.d("crashTest", symbolManager.getAnnotations().toString());
+                            }
+                        });
+
+                        // set non data driven properties
+                        symbolManager.setIconAllowOverlap(true);
+                        //symbolManager.setTextAllowOverlap(true);
+                        symbolManager.setTextOptional(true);
+                        symbolManager.setTextVariableAnchor(new String[]{TEXT_ANCHOR_BOTTOM, TEXT_ANCHOR_TOP});
+
+                        // DEBUG ANNOTATION
+                        SymbolOptions symbolOptions = new SymbolOptions()
+                                .withLatLng(new LatLng(10, 10))
+                                .withIconImage(ID_ICON_SELECTED)
+                                .withTextOffset(new Float[]{0f, -1.5f})
+                                .withTextField("Annotation text");
+                        symbolManager.create(symbolOptions);
+                    }
+                });
+
+                mapboxMap.addOnMapLongClickListener(new MapboxMap.OnMapLongClickListener() {
+                    @Override
+                    public boolean onMapLongClick(@NonNull LatLng point) {
+                        //Log.d("crashTest", "onMapLongClick()");
+                        SymbolOptions symbolOptions = new SymbolOptions()
+                                .withLatLng(point)
+                                .withIconImage(ID_ICON_SELECTED)
+                                .withTextOffset(new Float[]{0f, -1.5f})
+                                .withTextField("Annotation text")
+                                .withTextJustify(TEXT_JUSTIFY_AUTO);
+                        symbolManager.create(symbolOptions);
+
+                        //PointF pointF = CreateTourFragment.this.mapboxMap.getProjection().toScreenLocation(point);
+                        //Toast.makeText(requireContext(), String.format("User clicked at: %s\n%s", point.toString(), pointF.toString()), Toast.LENGTH_LONG).show();
+
+                        return false;   // returning false allows annotation's OnSymbolLongClickListener to be called (not very useful, since annotations' listeners are after onMapLongClick
                     }
                 });
             }
