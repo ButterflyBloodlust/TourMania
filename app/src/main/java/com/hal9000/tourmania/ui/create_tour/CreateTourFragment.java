@@ -1,5 +1,6 @@
 package com.hal9000.tourmania.ui.create_tour;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.Observer;
@@ -13,11 +14,13 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.Navigation;
 
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -36,7 +39,6 @@ import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
 import com.mapbox.mapboxsdk.maps.Style;
 import com.mapbox.mapboxsdk.plugins.annotation.OnSymbolClickListener;
-import com.mapbox.mapboxsdk.plugins.annotation.OnSymbolLongClickListener;
 import com.mapbox.mapboxsdk.plugins.annotation.Symbol;
 import com.mapbox.mapboxsdk.plugins.annotation.SymbolManager;
 import com.mapbox.mapboxsdk.plugins.annotation.SymbolOptions;
@@ -45,8 +47,6 @@ import com.mapbox.mapboxsdk.style.sources.GeoJsonOptions;
 import java.util.List;
 
 import static com.mapbox.mapboxsdk.style.layers.Property.TEXT_ANCHOR_BOTTOM;
-import static com.mapbox.mapboxsdk.style.layers.Property.TEXT_ANCHOR_LEFT;
-import static com.mapbox.mapboxsdk.style.layers.Property.TEXT_ANCHOR_RIGHT;
 import static com.mapbox.mapboxsdk.style.layers.Property.TEXT_ANCHOR_TOP;
 import static com.mapbox.mapboxsdk.style.layers.Property.TEXT_JUSTIFY_AUTO;
 
@@ -64,9 +64,34 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
     private MapboxMap mapboxMap;
     private boolean isInTrackingMode;
 
+    private View annotationInfoView;
+    private long viewStubVisibleId = -1;
+    private Symbol selectedSymbol = null;
+
     private static final String ID_ICON_MARKER = "place-marker-red-24";
-    private static final String ID_ICON_SELECTED = "place-marker-yellow-24";
+    private static final String ID_ICON_MARKER_SELECTED = "place-marker-yellow-24";
     private static final double ICON_MARKER_SCALE = 2d;
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        // This callback will only be called when MyFragment is at least Started.
+        OnBackPressedCallback callback = new OnBackPressedCallback(true /* enabled by default */) {
+            @Override
+            public void handleOnBackPressed() {
+                // Handle the back button event
+                if (viewStubVisibleId != -1) {
+                    hideAnnotationInfoView();
+                }
+                else
+                    Navigation.findNavController(requireView()).popBackStack();
+            }
+        };
+        requireActivity().getOnBackPressedDispatcher().addCallback(this, callback);
+
+        // The callback can be enabled or disabled here or in handleOnBackPressed()
+    }
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -74,13 +99,6 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
         createTourViewModel =
                 ViewModelProviders.of(this).get(CreateTourViewModel.class);
         View root = inflater.inflate(R.layout.fragment_create_tour, container, false);
-        final TextView textView = root.findViewById(R.id.text_create_tour);
-        createTourViewModel.getText().observe(this, new Observer<String>() {
-            @Override
-            public void onChanged(@Nullable String s) {
-                textView.setText(s);
-            }
-        });
         return root;
     }
 
@@ -115,7 +133,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                         canvas = new Canvas(bitmap);
                         markerIconDrawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
                         markerIconDrawable.draw(canvas);
-                        style.addImage(ID_ICON_SELECTED, bitmap);
+                        style.addImage(ID_ICON_MARKER_SELECTED, bitmap);
 
                         // Map is set up and the style has loaded. Now you can add data or make other map adjustments
                         enableLocationComponent(style);
@@ -127,7 +145,8 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                         symbolManager.addClickListener(new OnSymbolClickListener() {
                             @Override
                             public void onAnnotationClick(Symbol symbol) {
-                                Toast.makeText(requireContext(),String.format("Symbol clicked %s", symbol.getId()),Toast.LENGTH_SHORT).show();
+                                toggleAnnotationInfoView(symbol);
+                                //Toast.makeText(requireContext(),String.format("Symbol clicked %s", symbol.getId()),Toast.LENGTH_SHORT).show();
                                 //Log.d("crashTest", symbolManager.getAnnotations().toString());
                             }
                         });
@@ -141,7 +160,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                         // DEBUG ANNOTATION
                         SymbolOptions symbolOptions = new SymbolOptions()
                                 .withLatLng(new LatLng(10, 10))
-                                .withIconImage(ID_ICON_SELECTED)
+                                .withIconImage(ID_ICON_MARKER)
                                 .withTextOffset(new Float[]{0f, -1.5f})
                                 .withTextField("Annotation text");
                         symbolManager.create(symbolOptions);
@@ -154,8 +173,9 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                         //Log.d("crashTest", "onMapLongClick()");
                         SymbolOptions symbolOptions = new SymbolOptions()
                                 .withLatLng(point)
-                                .withIconImage(ID_ICON_SELECTED)
+                                .withIconImage(ID_ICON_MARKER)
                                 .withTextOffset(new Float[]{0f, -1.5f})
+                                .withIconOffset(new Float[]{0f, -20f})
                                 .withTextField("Annotation text")
                                 .withTextJustify(TEXT_JUSTIFY_AUTO);
                         symbolManager.create(symbolOptions);
@@ -168,6 +188,38 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                 });
             }
         });
+    }
+
+    private void toggleAnnotationInfoView(Symbol symbol) {
+        if (annotationInfoView == null) {
+            annotationInfoView = requireView().findViewById(R.id.layoutMarkerInfoView);
+            ImageButton buttonDeleteAnnotation = annotationInfoView.findViewById(R.id.buttonDeleteAnnotation);
+            buttonDeleteAnnotation.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    symbolManager.delete(selectedSymbol);
+                    hideAnnotationInfoView();
+                }
+            });
+        }
+        if (viewStubVisibleId == symbol.getId()) {
+            hideAnnotationInfoView();
+        }
+        else {
+            TextView textViewInViewStub = annotationInfoView.findViewById(R.id.textViewAnnotationText);
+            selectedSymbol = symbol;
+            viewStubVisibleId = symbol.getId();
+            textViewInViewStub.setText(symbol.getTextField());   // String.format("%d", viewStubVisibleId)
+            annotationInfoView.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void hideAnnotationInfoView() {
+        if (annotationInfoView != null) {
+            annotationInfoView.setVisibility(View.GONE);
+            viewStubVisibleId = -1;
+            selectedSymbol = null;
+        }
     }
 
     @SuppressWarnings( {"MissingPermission"})

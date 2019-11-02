@@ -6,25 +6,12 @@
     android:layout_height="match_parent"
     tools:context=".ui.create_tour.CreateTourFragment">
 
-    <TextView
-        android:id="@+id/text_create_tour"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="8dp"
-        android:textAlignment="center"
-        android:textSize="20sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/text_input_layout_create_tour"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="@string/create_tour_title_hint_text"
-        app:layout_constraintTop_toBottomOf="@+id/text_create_tour">
+        app:layout_constraintTop_toTopOf="parent">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/text_input_edit_text_create_tour"
@@ -47,9 +34,55 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="@dimen/fab_margin"
-        app:layout_constraintBottom_toBottomOf="@+id/mapView"
+        app:layout_constraintBottom_toTopOf="@+id/layoutMarkerInfoView"
         app:layout_constraintEnd_toEndOf="@+id/mapView"
         app:srcCompat="@drawable/ic_my_location_black_24dp"
         app:fabSize="normal" />
+
+    <androidx.cardview.widget.CardView
+        android:id="@+id/layoutMarkerInfoView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="8dp"
+        app:cardCornerRadius="4dp"
+        app:cardElevation="4dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        android:visibility="gone">
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/layoutMarkerInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#303030">
+            <TextView
+                android:id="@+id/textViewAnnotationText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:textSize="18sp"
+                android:textColor="#ffffff"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="5dp"
+                android:layout_marginBottom="5dp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@+id/buttonDeleteAnnotation"
+                app:layout_constraintStart_toStartOf="parent"/>
+
+            <ImageButton
+                android:id="@+id/buttonDeleteAnnotation"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:layout_marginEnd="8dp"
+                android:layout_marginBottom="5dp"
+                android:background="?android:selectableItemBackground"
+                android:contentDescription="Delete map marker"
+                android:src="@drawable/ic_delete_white_50dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.cardview.widget.CardView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
