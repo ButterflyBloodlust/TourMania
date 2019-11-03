@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="4dp"
+    android:layout_marginBottom="4dp"
+    android:layout_marginStart="8dp"
+    android:layout_marginEnd="8dp"
+    app:cardCornerRadius="4dp"
+    app:cardElevation="4dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:minHeight="80dp"
+        android:gravity="center_vertical"
+        android:padding="5dip" >
+
+        <!--  ListRow Left side Thumbnail image -->
+
+        <ImageView
+            android:id="@+id/tour_list_image"
+            android:layout_width="150dp"
+            android:layout_height="110dp"
+            android:padding="3dip"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            android:layout_marginRight="5dip"
+            android:src="@drawable/ic_menu_gallery">
+        </ImageView>
+
+        <EditText
+            android:id="@+id/tour_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_alignTop="@+id/tour_list_image"
+            android:layout_toRightOf="@+id/tour_list_image"
+            android:inputType="text"
+            android:textColor="#ffffff"
+            android:textSize="18sp"
+            android:typeface="sans"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/tour_list_image"
+            app:layout_constraintTop_toTopOf="parent"
+            android:imeOptions="actionDone"/>
+
+        <ImageButton
+            android:id="@+id/buttonMoreImages"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginBottom="5dp"
+            android:background="?android:selectableItemBackground"
+            android:contentDescription="Show associated waypoint images"
+            android:src="@drawable/ic_collections_white_26dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toEndOf="@id/tour_list_image"
+            app:layout_constraintEnd_toStartOf="@+id/buttonDeleteWaypoint" />
+
+        <ImageButton
+            android:id="@+id/buttonDeleteWaypoint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginBottom="5dp"
+            android:background="?android:selectableItemBackground"
+            android:contentDescription="Delete waypoint"
+            android:src="@drawable/ic_delete_white_26dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toEndOf="@id/buttonMoreImages"
+            app:layout_constraintEnd_toStartOf="@+id/buttonShowWaypointLocation" />
+
+        <ImageButton
+            android:id="@+id/buttonShowWaypointLocation"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginBottom="5dp"
+            android:background="?android:selectableItemBackground"
+            android:contentDescription="Show location on map"
+            android:src="@drawable/ic_my_location_white_26dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- android:layout_centerVertical="true" -->
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.cardview.widget.CardView>

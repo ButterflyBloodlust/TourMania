@@ -15,6 +15,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -102,6 +103,14 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
     public void onViewCreated (@NonNull View view, Bundle savedInstanceState) {
         Mapbox.getInstance(requireActivity(), getString(R.string.mapbox_access_token));
 
+        // Set up tour waypoints list floating action button
+        view.findViewById(R.id.fab_edit_annotated_places).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Navigation.findNavController(view).navigate(R.id.tourWaypointsListFragment, null);
+            }
+        });
+
         mapView = (MapView) view.findViewById(R.id.mapView);
         mapView.onCreate(savedInstanceState);
         mapView.getMapAsync(new OnMapReadyCallback() {
@@ -143,7 +152,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                             public void onAnnotationClick(Symbol symbol) {
                                 toggleAnnotationInfoView(symbol);
                                 //Toast.makeText(requireContext(),String.format("Symbol clicked %s", symbol.getId()),Toast.LENGTH_SHORT).show();
-                                //Log.d("crashTest", symbolManager.getAnnotations().toString());
+                                //Log.d("crashTest", "symbolManager.ClickListener");
                             }
                         });
 
@@ -244,7 +253,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
             // Add the camera tracking listener. Fires if the map camera is manually moved.
             locationComponent.addOnCameraTrackingChangedListener(this);
 
-            // Set up floating action button
+            // Set up localization tracking floating action button
             fragmentActivity.findViewById(R.id.fab_camera_tracking_mode).setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
@@ -334,6 +343,12 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
         mapView.onStop();
     }
 
+    private void resetAnnotationViewStatus() {
+        annotationInfoView = null;
+        viewStubVisibleId = -1;
+        selectedSymbol = null;
+    }
+
     @Override
     public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
@@ -348,6 +363,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
 
     @Override
     public void onDestroyView() {
+        resetAnnotationViewStatus();
         super.onDestroyView();
         mapView.onDestroy();
     }

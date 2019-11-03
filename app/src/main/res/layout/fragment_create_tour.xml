@@ -36,7 +36,7 @@
         android:layout_margin="@dimen/fab_margin"
         app:layout_constraintBottom_toTopOf="@+id/fab_camera_tracking_mode"
         app:layout_constraintEnd_toEndOf="@+id/mapView"
-        app:srcCompat="@drawable/ic_menu_gallery"
+        app:srcCompat="@drawable/ic_view_list_black_24dp"
         app:fabSize="normal" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton

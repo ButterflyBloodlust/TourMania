@@ -20,5 +20,6 @@
     <string name="user_location_permission_not_granted">Location permission was not granted.</string>
     <string name="tracking_enabled">Tracking enabled</string>
     <string name="tracking_already_enabled">Tracking already enabled</string>
+    <string name="title_tour_waypoints_list">Tour Waypoints</string>
 
 </resources>
