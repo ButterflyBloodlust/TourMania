@@ -3,7 +3,6 @@ package com.hal9000.tourmania.ui.create_tour;
 import androidx.activity.OnBackPressedCallback;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProviders;
 
 import android.graphics.Bitmap;
@@ -16,7 +15,6 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
 
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -247,7 +245,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
             locationComponent.addOnCameraTrackingChangedListener(this);
 
             // Set up floating action button
-            fragmentActivity.findViewById(R.id.back_to_camera_tracking_mode).setOnClickListener(new View.OnClickListener() {
+            fragmentActivity.findViewById(R.id.fab_camera_tracking_mode).setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
                     if (!isInTrackingMode) {

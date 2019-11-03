@@ -30,7 +30,17 @@
         app:layout_constraintTop_toBottomOf="@+id/text_input_layout_create_tour" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/back_to_camera_tracking_mode"
+        android:id="@+id/fab_edit_annotated_places"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="@dimen/fab_margin"
+        app:layout_constraintBottom_toTopOf="@+id/fab_camera_tracking_mode"
+        app:layout_constraintEnd_toEndOf="@+id/mapView"
+        app:srcCompat="@drawable/ic_menu_gallery"
+        app:fabSize="normal" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_camera_tracking_mode"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="@dimen/fab_margin"
@@ -55,15 +65,17 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="#303030">
-            <TextView
+            <EditText
                 android:id="@+id/textViewAnnotationText"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:textSize="18sp"
                 android:textColor="#ffffff"
+                android:inputType="text"
                 android:layout_marginStart="8dp"
                 android:layout_marginTop="5dp"
                 android:layout_marginBottom="5dp"
+                android:hint="Marker title"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toStartOf="@+id/buttonDeleteAnnotation"
