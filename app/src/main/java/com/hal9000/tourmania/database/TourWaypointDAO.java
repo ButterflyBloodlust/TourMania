@@ -1,4 +1,6 @@
-package com.hal9000.tourmania.model;
+package com.hal9000.tourmania.database;
+
+import com.hal9000.tourmania.model.TourWaypoint;
 
 import java.util.List;
 

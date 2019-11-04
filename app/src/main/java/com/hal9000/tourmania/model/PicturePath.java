@@ -3,13 +3,15 @@ package com.hal9000.tourmania.model;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.ForeignKey;
+import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
 @Entity(tableName = "PicturePaths",
         foreignKeys = @ForeignKey(entity = TourWaypoint.class,
         parentColumns = "id",
         childColumns = "tour_wp_id",
-        onDelete = ForeignKey.CASCADE))
+        onDelete = ForeignKey.CASCADE),
+        indices=@Index(value="tour_wp_id"))
 
 public class PicturePath {
 
@@ -23,7 +25,7 @@ public class PicturePath {
     @ColumnInfo(name = "tour_wp_id")
     private int tourWpId;
 
-    PicturePath(String picPath, int tourWpId) {
+    public PicturePath(String picPath, int tourWpId) {
         this.setPicPath(picPath);
         this.setTourWpId(tourWpId);
     }
@@ -31,11 +33,11 @@ public class PicturePath {
     public int getId() {
         return id;
     }
-/*
+
     public void setId(int id) {
         this.id = id;
     }
-*/
+
     public String getPicPath() {
         return picPath;
     }

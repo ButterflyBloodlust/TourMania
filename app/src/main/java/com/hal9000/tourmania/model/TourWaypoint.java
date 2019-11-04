@@ -23,7 +23,7 @@ public class TourWaypoint {
     @ColumnInfo(name = "main_img_path")
     private String mainImgPath;
 
-    TourWaypoint(double latitude, double longtitude, String title, String mainImgPath) {
+    public TourWaypoint(double latitude, double longtitude, String title, String mainImgPath) {
         this.setLatitude(latitude);
         this.setLongtitude(longtitude);
         this.setTitle(title);
@@ -33,11 +33,11 @@ public class TourWaypoint {
     public int getTourWpId() {
         return tourWpId;
     }
-/*
+
     public void setTourWpId(int tourWpId) {
         this.tourWpId = tourWpId;
     }
-*/
+
     public double getLatitude() {
         return latitude;
     }
