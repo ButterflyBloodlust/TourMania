@@ -9,13 +9,23 @@
         android:id="@+id/nav_home"
         android:name="com.hal9000.tourmania.ui.home.HomeFragment"
         android:label="@string/menu_home"
-        tools:layout="@layout/fragment_home" />
+        tools:layout="@layout/fragment_home" >
+        <action
+            android:id="@+id/action_nav_home_to_nav_nested_create_tour"
+            app:destination="@id/nav_nested_create_tour"
+            app:popUpTo="@+id/createTourFragment" />
+    </fragment>
 
     <fragment
         android:id="@+id/nav_my_tours"
         android:name="com.hal9000.tourmania.ui.my_tours.MyToursFragment"
         android:label="@string/menu_my_tours"
-        tools:layout="@layout/fragment_my_tours" />
+        tools:layout="@layout/fragment_my_tours" >
+        <action
+            android:id="@+id/action_nav_my_tours_to_nav_nested_create_tour"
+            app:destination="@id/nav_nested_create_tour"
+            app:popUpTo="@+id/createTourFragment" />
+    </fragment>
 
     <fragment
         android:id="@+id/nav_slideshow"
@@ -41,14 +51,18 @@
         android:label="@string/menu_send"
         tools:layout="@layout/fragment_send" />
 
-    <fragment
-        android:id="@+id/createTourFragment"
-        android:name="com.hal9000.tourmania.ui.create_tour.CreateTourFragment"
-        android:label="@string/title_create_tour"
-        tools:layout="@layout/fragment_create_tour" />
-    <fragment
-        android:id="@+id/tourWaypointsListFragment"
-        android:name="com.hal9000.tourmania.ui.tour_waypoints_list.TourWaypointsListFragment"
-        android:label="@string/title_tour_waypoints_list"
-        tools:layout="@layout/fragment_tour_waypoints_list" />
+    <navigation
+        android:id="@+id/nav_nested_create_tour"
+        app:startDestination="@id/createTourFragment" >
+        <fragment
+            android:id="@+id/createTourFragment"
+            android:name="com.hal9000.tourmania.ui.create_tour.CreateTourFragment"
+            android:label="@string/title_create_tour"
+            tools:layout="@layout/fragment_create_tour" />
+        <fragment
+            android:id="@+id/tourWaypointsListFragment"
+            android:name="com.hal9000.tourmania.ui.tour_waypoints_list.TourWaypointsListFragment"
+            android:label="@string/title_tour_waypoints_list"
+            tools:layout="@layout/fragment_tour_waypoints_list" />
+    </navigation>
 </navigation>

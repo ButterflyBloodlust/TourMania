@@ -1,5 +1,6 @@
 package com.hal9000.tourmania.ui.tour_waypoints_list;
 
+import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelProviders;
 
 import android.os.Bundle;
@@ -7,6 +8,8 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelStoreOwner;
+import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -17,6 +20,7 @@ import android.view.ViewGroup;
 import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.TourWaypointsAdapter;
 import com.hal9000.tourmania.ui.create_tour.CreateTourSharedViewModel;
+import com.hal9000.tourmania.ui.create_tour.CreateTourSharedViewModelFactory;
 
 public class TourWaypointsListFragment extends Fragment {
 
@@ -35,10 +39,18 @@ public class TourWaypointsListFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_tour_waypoints_list, container, false);
-        mViewModel = ViewModelProviders.of(requireActivity()).get(CreateTourSharedViewModel.class);
+        //mViewModel = ViewModelProviders.of(requireActivity()).get(CreateTourSharedViewModel.class);
         fillDataset(100);
-        createRecyclerView(root);
         return root;
+    }
+
+    @Override
+    public void onViewCreated (@NonNull View view, Bundle savedInstanceState) {
+        // Scope ViewModel to nested nav graph.
+        ViewModelStoreOwner owner = Navigation.findNavController(view).getViewModelStoreOwner(R.id.nav_nested_create_tour);
+        CreateTourSharedViewModelFactory factory = new CreateTourSharedViewModelFactory();
+        mViewModel = new ViewModelProvider(owner, factory).get(CreateTourSharedViewModel.class);
+        createRecyclerView(view);
     }
 
     @Override

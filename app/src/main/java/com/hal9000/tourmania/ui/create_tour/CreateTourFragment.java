@@ -4,6 +4,8 @@ import androidx.activity.OnBackPressedCallback;
 import androidx.collection.LongSparseArray;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
+import androidx.lifecycle.ViewModel;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelProviders;
 
 import android.graphics.Bitmap;
@@ -14,6 +16,7 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelStoreOwner;
 import androidx.navigation.Navigation;
 
 import android.util.Log;
@@ -90,8 +93,11 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                 if (selectedSymbolId != -1) {
                     hideAnnotationInfoView();
                 }
-                else
+                else {
+                    //if (createTourSharedViewModel != null)
+                    //    createTourSharedViewModel.onCleared();
                     Navigation.findNavController(requireView()).popBackStack();
+                }
             }
         };
         requireActivity().getOnBackPressedDispatcher().addCallback(this, callback);
@@ -101,14 +107,19 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        createTourSharedViewModel =
-                ViewModelProviders.of(requireActivity()).get(CreateTourSharedViewModel.class);
         View root = inflater.inflate(R.layout.fragment_create_tour, container, false);
+        //createTourSharedViewModel = ViewModelProviders.of(requireActivity()).get(CreateTourSharedViewModel.class);
         return root;
     }
 
     @Override
     public void onViewCreated (@NonNull View view, Bundle savedInstanceState) {
+
+        // Scope ViewModel to nested nav graph.
+        ViewModelStoreOwner owner = Navigation.findNavController(view).getViewModelStoreOwner(R.id.nav_nested_create_tour);
+        CreateTourSharedViewModelFactory factory = new CreateTourSharedViewModelFactory();
+        createTourSharedViewModel = new ViewModelProvider(owner, factory).get(CreateTourSharedViewModel.class);
+
         Mapbox.getInstance(requireActivity(), getString(R.string.mapbox_access_token));
 
         // Set up tour waypoints list fragment floating action button
@@ -398,7 +409,8 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
     @Override
     public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
-        mapView.onSaveInstanceState(outState);
+        if (mapView != null)
+            mapView.onSaveInstanceState(outState);
     }
 
     @Override

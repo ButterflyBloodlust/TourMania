@@ -18,7 +18,7 @@ public class CreateTourSharedViewModel extends ViewModel {
     private ArrayList<TourWpWithPicPaths> tourWaypointList = new ArrayList<TourWpWithPicPaths>();
 
     public CreateTourSharedViewModel() {
-        //Log.d("crashTest", "CreateTourSharedViewModel.CreateTourSharedViewModel()");
+        Log.d("crashTest", "CreateTourSharedViewModel.CreateTourSharedViewModel()");
     }
 
     public ArrayList<TourWpWithPicPaths> getTourWaypointList() {
