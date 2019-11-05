@@ -22,6 +22,9 @@ import androidx.navigation.Navigation;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
@@ -105,9 +108,32 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
     }
 
     @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.create_tour_toolbar_menu, menu);
+        super.onCreateOptionsMenu(menu, inflater);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.action_save_route:
+                saveRouteToDb();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    private void saveRouteToDb() {
+        //Log.d("crashTest", "saveRouteToDb()");
+    }
+
+    @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_create_tour, container, false);
+        setHasOptionsMenu(true);
         //createTourSharedViewModel = ViewModelProviders.of(requireActivity()).get(CreateTourSharedViewModel.class);
         return root;
     }
