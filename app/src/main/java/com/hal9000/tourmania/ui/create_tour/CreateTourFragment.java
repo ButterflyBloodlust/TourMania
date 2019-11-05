@@ -222,6 +222,12 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                                     .withTextJustify(TEXT_JUSTIFY_AUTO);
                             symbolOptionsList.add(symbolOptions);
                         }
+                        // Mark selected annotation if aplicable
+                        int choosenLocateWaypointIndex = createTourSharedViewModel.getChoosenLocateWaypointIndex();
+                        if (choosenLocateWaypointIndex != -1) {
+                            symbolOptionsList.get(choosenLocateWaypointIndex).withIconImage(ID_ICON_MARKER_SELECTED);
+                        }
+                        // Register restored annotations
                         if (symbolOptionsList.size() > 0)
                             symbolManager.create(symbolOptionsList);
                     }

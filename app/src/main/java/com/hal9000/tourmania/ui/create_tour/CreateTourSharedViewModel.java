@@ -2,20 +2,16 @@ package com.hal9000.tourmania.ui.create_tour;
 
 import android.util.Log;
 
-import com.hal9000.tourmania.model.TourWaypoint;
 import com.hal9000.tourmania.model.TourWpWithPicPaths;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
 
-import androidx.lifecycle.LiveData;
-import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 public class CreateTourSharedViewModel extends ViewModel {
 
     private ArrayList<TourWpWithPicPaths> tourWaypointList = new ArrayList<TourWpWithPicPaths>();
+    private int choosenLocateWaypointIndex = -1;
 
     public CreateTourSharedViewModel() {
         Log.d("crashTest", "CreateTourSharedViewModel.CreateTourSharedViewModel()");
@@ -25,6 +21,18 @@ public class CreateTourSharedViewModel extends ViewModel {
         return tourWaypointList;
     }
 
+    public int getChoosenLocateWaypointIndex() {
+        return choosenLocateWaypointIndex;
+    }
+
+    public void setChoosenLocateWaypointIndex(int choosenLocateWaypointIndex) {
+        this.choosenLocateWaypointIndex = choosenLocateWaypointIndex;
+    }
+
+    public void removeChoosenLocateWaypointIndex() {
+        choosenLocateWaypointIndex = -1;
+    }
+
     /*
     public void notifyTourWpsChanged() {
         // In case of advanced operations on observed lists in the future, replace with dedicated methods to work on list within ViewModel.
@@ -32,11 +40,12 @@ public class CreateTourSharedViewModel extends ViewModel {
     }
     */
 
-
+    /*
     @Override
     public void onCleared() {
         super.onCleared();
         Log.d("crashTest", "CreateTourSharedViewModel.onCleared()");
     }
+    */
 
 }

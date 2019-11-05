@@ -6,6 +6,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 import com.hal9000.tourmania.model.TourWpWithPicPaths;
@@ -16,6 +17,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 public class TourWaypointsAdapter extends RecyclerView.Adapter<TourWaypointsAdapter.MyViewHolder> {
     private ArrayList<TourWpWithPicPaths> mDataset;
+    private TourWaypointsOnClickListener locateWaypointOnClickListener;
 
     // Provide a reference to the views for each data item
     // Complex data items may need more than one view per item, and
@@ -23,15 +25,21 @@ public class TourWaypointsAdapter extends RecyclerView.Adapter<TourWaypointsAdap
     public static class MyViewHolder extends RecyclerView.ViewHolder {
         // each data item is just a string in this case
         public EditText titleEditText;
+        public ImageButton buttonDeleteWaypoint;
+        public ImageButton buttonShowWaypointLocation;
         public MyViewHolder(View v) {
             super(v);
             titleEditText = v.findViewById(R.id.tour_title);
+            buttonDeleteWaypoint = v.findViewById(R.id.buttonDeleteWaypoint);
+            buttonShowWaypointLocation = v.findViewById(R.id.buttonShowWaypointLocation);
         }
     }
 
     // Provide a suitable constructor (depends on the kind of dataset)
-    public TourWaypointsAdapter(ArrayList<TourWpWithPicPaths> myDataset) {
+    public TourWaypointsAdapter(ArrayList<TourWpWithPicPaths> myDataset,
+                                TourWaypointsOnClickListener locateWaypointOnClickListener) {
         mDataset = myDataset;
+        this.locateWaypointOnClickListener = locateWaypointOnClickListener;
     }
 
     // Create new views (invoked by the layout manager)
@@ -63,11 +71,31 @@ public class TourWaypointsAdapter extends RecyclerView.Adapter<TourWaypointsAdap
                 return false;   // don't consume action (allow propagation)
             }
         });
+
+        holder.buttonDeleteWaypoint.setOnClickListener(new ImageButton.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mDataset.remove(position);
+                notifyItemRemoved(position);
+            }
+        });
+
+        holder.buttonShowWaypointLocation.setOnClickListener(new ImageButton.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                locateWaypointOnClickListener.onClick(v, position);
+            }
+        });
     }
 
     // Return the size of your dataset (invoked by the layout manager)
     @Override
     public int getItemCount() {
         return mDataset.size();
+    }
+
+    // Callback interface for parent activity / fragment
+    public interface TourWaypointsOnClickListener {
+        public void onClick(View v, int position);
     }
 }

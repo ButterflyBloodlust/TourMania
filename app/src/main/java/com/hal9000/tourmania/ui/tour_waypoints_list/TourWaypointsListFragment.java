@@ -1,7 +1,6 @@
 package com.hal9000.tourmania.ui.tour_waypoints_list;
 
 import androidx.lifecycle.ViewModelProvider;
-import androidx.lifecycle.ViewModelProviders;
 
 import android.os.Bundle;
 
@@ -40,7 +39,7 @@ public class TourWaypointsListFragment extends Fragment {
                              @Nullable Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_tour_waypoints_list, container, false);
         //mViewModel = ViewModelProviders.of(requireActivity()).get(CreateTourSharedViewModel.class);
-        fillDataset(100);
+        //fillDataset(100);
         return root;
     }
 
@@ -74,7 +73,14 @@ public class TourWaypointsListFragment extends Fragment {
         recyclerView.setLayoutManager(layoutManager);
 
         // specify an adapter (see also next example)
-        mAdapter = new TourWaypointsAdapter(mViewModel.getTourWaypointList());
+        mAdapter = new TourWaypointsAdapter(mViewModel.getTourWaypointList(),
+                new TourWaypointsAdapter.TourWaypointsOnClickListener() {
+            @Override
+            public void onClick(View v, int position) {
+                mViewModel.setChoosenLocateWaypointIndex(position);
+                Navigation.findNavController(requireView()).popBackStack();
+            }
+        });
         recyclerView.setAdapter(mAdapter);
     }
 
