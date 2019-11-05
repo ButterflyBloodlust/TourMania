@@ -1,6 +1,7 @@
 package com.hal9000.tourmania.ui.create_tour;
 
 import androidx.activity.OnBackPressedCallback;
+import androidx.collection.LongSparseArray;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.ViewModelProviders;
@@ -16,14 +17,19 @@ import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
 
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.hal9000.tourmania.R;
+import com.hal9000.tourmania.model.TourWaypoint;
+import com.hal9000.tourmania.model.TourWpWithPicPaths;
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
 import com.mapbox.mapboxsdk.Mapbox;
@@ -43,6 +49,8 @@ import com.mapbox.mapboxsdk.plugins.annotation.SymbolManager;
 import com.mapbox.mapboxsdk.plugins.annotation.SymbolOptions;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonOptions;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import static com.mapbox.mapboxsdk.style.layers.Property.TEXT_ANCHOR_BOTTOM;
@@ -50,7 +58,7 @@ import static com.mapbox.mapboxsdk.style.layers.Property.TEXT_JUSTIFY_AUTO;
 
 public class CreateTourFragment extends Fragment implements PermissionsListener, OnCameraTrackingChangedListener {
 
-    private CreateTourViewModel createTourViewModel;
+    private CreateTourSharedViewModel createTourSharedViewModel;
 
     public static CreateTourFragment newInstance() {
         return new CreateTourFragment();
@@ -63,7 +71,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
     private boolean isInTrackingMode;
 
     private View annotationInfoView;
-    private long viewStubVisibleId = -1;
+    private long selectedSymbolId = -1;
     private Symbol selectedSymbol = null;
 
     private static final String ID_ICON_MARKER = "place-marker-red-24";
@@ -79,7 +87,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
             @Override
             public void handleOnBackPressed() {
                 // Handle the back button event
-                if (viewStubVisibleId != -1) {
+                if (selectedSymbolId != -1) {
                     hideAnnotationInfoView();
                 }
                 else
@@ -93,8 +101,8 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        createTourViewModel =
-                ViewModelProviders.of(this).get(CreateTourViewModel.class);
+        createTourSharedViewModel =
+                ViewModelProviders.of(requireActivity()).get(CreateTourSharedViewModel.class);
         View root = inflater.inflate(R.layout.fragment_create_tour, container, false);
         return root;
     }
@@ -103,7 +111,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
     public void onViewCreated (@NonNull View view, Bundle savedInstanceState) {
         Mapbox.getInstance(requireActivity(), getString(R.string.mapbox_access_token));
 
-        // Set up tour waypoints list floating action button
+        // Set up tour waypoints list fragment floating action button
         view.findViewById(R.id.fab_edit_annotated_places).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -122,7 +130,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                     @Override
                     public void onStyleLoaded(@NonNull Style style) {
 
-                        // Add custom markers to style
+                        // Add custom marker to style
                         Drawable markerIconDrawable = ContextCompat.getDrawable(requireActivity(), R.drawable.ic_place_red_24dp);
                         Bitmap bitmap = Bitmap.createBitmap((int)(markerIconDrawable.getIntrinsicWidth() * ICON_MARKER_SCALE),
                                 (int)(markerIconDrawable.getIntrinsicHeight() * ICON_MARKER_SCALE), Bitmap.Config.ARGB_8888);
@@ -131,7 +139,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                         markerIconDrawable.draw(canvas);
                         style.addImage(ID_ICON_MARKER, bitmap);
 
-                        // Add custom markers to style
+                        // Add custom marker to style
                         markerIconDrawable = ContextCompat.getDrawable(requireActivity(), R.drawable.ic_place_yellow_24dp);
                         bitmap = Bitmap.createBitmap((int)(markerIconDrawable.getIntrinsicWidth() * ICON_MARKER_SCALE),
                                 (int)(markerIconDrawable.getIntrinsicHeight() * ICON_MARKER_SCALE), Bitmap.Config.ARGB_8888);
@@ -156,7 +164,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                             }
                         });
 
-                        // set non data driven properties
+                        // set symbolManager / annotations' properties
                         symbolManager.setIconAllowOverlap(true);
                         //symbolManager.setTextAllowOverlap(true);
                         symbolManager.setTextOptional(true);
@@ -164,32 +172,63 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                         symbolManager.setIconTranslate(new Float[]{0f, -20f});
                         symbolManager.setTextVariableAnchor(new String[]{TEXT_ANCHOR_BOTTOM});
 
+                        /*
                         // DEBUG ANNOTATION
                         SymbolOptions symbolOptions = new SymbolOptions()
                                 .withLatLng(new LatLng(10, 10))
                                 .withIconImage(ID_ICON_MARKER)
                                 .withTextField("Annotation text");
                         symbolManager.create(symbolOptions);
+                        */
+
+                        // Add an annotation on long click on the map
+                        CreateTourFragment.this.mapboxMap.addOnMapLongClickListener(new MapboxMap.OnMapLongClickListener() {
+                            @Override
+                            public boolean onMapLongClick(@NonNull LatLng point) {
+                                //Log.d("crashTest", "onMapLongClick()");
+                                SymbolOptions symbolOptions = new SymbolOptions()
+                                        .withLatLng(point)
+                                        .withIconImage(ID_ICON_MARKER)
+                                        .withTextField("")
+                                        .withTextJustify(TEXT_JUSTIFY_AUTO);
+                                symbolManager.create(symbolOptions);
+
+                                //PointF pointF = CreateTourFragment.this.mapboxMap.getProjection().toScreenLocation(point);
+                                //Toast.makeText(requireContext(), String.format("User clicked at: %s\n%s", point.toString(), pointF.toString()), Toast.LENGTH_LONG).show();
+
+                                return false;   // action not consumed - returning false allows annotation's OnSymbolLongClickListener to be called (not very useful, since annotations' listeners are after onMapLongClick
+                            }
+                        });
+
+                        // Restore annotations from ViewModel
+                        ArrayList<TourWpWithPicPaths> tourWpWithPicPathsLinkedList = createTourSharedViewModel.getTourWaypointList();
+                        List<SymbolOptions> symbolOptionsList = new LinkedList<>();
+                        for (TourWpWithPicPaths tourWpWithPicPaths : tourWpWithPicPathsLinkedList) {
+                            SymbolOptions symbolOptions = new SymbolOptions()
+                                    .withLatLng(new LatLng(tourWpWithPicPaths.tourWaypoint.getLatitude(), tourWpWithPicPaths.tourWaypoint.getLongtitude()))
+                                    .withIconImage(ID_ICON_MARKER)
+                                    .withTextField(tourWpWithPicPaths.tourWaypoint.getTitle())
+                                    .withTextJustify(TEXT_JUSTIFY_AUTO);
+                            symbolOptionsList.add(symbolOptions);
+                        }
+                        if (symbolOptionsList.size() > 0)
+                            symbolManager.create(symbolOptionsList);
                     }
                 });
+            }
+        });
 
-                mapboxMap.addOnMapLongClickListener(new MapboxMap.OnMapLongClickListener() {
-                    @Override
-                    public boolean onMapLongClick(@NonNull LatLng point) {
-                        //Log.d("crashTest", "onMapLongClick()");
-                        SymbolOptions symbolOptions = new SymbolOptions()
-                                .withLatLng(point)
-                                .withIconImage(ID_ICON_MARKER)
-                                .withTextField("Annotation text")
-                                .withTextJustify(TEXT_JUSTIFY_AUTO);
-                        symbolManager.create(symbolOptions);
-
-                        //PointF pointF = CreateTourFragment.this.mapboxMap.getProjection().toScreenLocation(point);
-                        //Toast.makeText(requireContext(), String.format("User clicked at: %s\n%s", point.toString(), pointF.toString()), Toast.LENGTH_LONG).show();
-
-                        return false;   // returning false allows annotation's OnSymbolLongClickListener to be called (not very useful, since annotations' listeners are after onMapLongClick
+        // Handle annotation label updates.
+        ((EditText)view.findViewById(R.id.textViewAnnotationText)).setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if (actionId == EditorInfo.IME_ACTION_DONE) {
+                    if (selectedSymbol != null) {
+                        selectedSymbol.setTextField(v.getText().toString());
+                        symbolManager.update(selectedSymbol);
                     }
-                });
+                }
+                return false;   // don't consume action (allow propagation)
             }
         });
     }
@@ -206,14 +245,14 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                 }
             });
         }
-        if (viewStubVisibleId == symbol.getId()) {
+        if (selectedSymbolId == symbol.getId()) {
             hideAnnotationInfoView();
         }
         else {
             TextView textViewInViewStub = annotationInfoView.findViewById(R.id.textViewAnnotationText);
             selectedSymbol = symbol;
-            viewStubVisibleId = symbol.getId();
-            textViewInViewStub.setText(symbol.getTextField());   // String.format("%d", viewStubVisibleId)
+            selectedSymbolId = symbol.getId();
+            textViewInViewStub.setText(symbol.getTextField());   // String.format("%d", selectedSymbolId)
             annotationInfoView.setVisibility(View.VISIBLE);
         }
     }
@@ -221,7 +260,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
     private void hideAnnotationInfoView() {
         if (annotationInfoView != null) {
             annotationInfoView.setVisibility(View.GONE);
-            viewStubVisibleId = -1;
+            selectedSymbolId = -1;
             selectedSymbol = null;
         }
     }
@@ -312,13 +351,6 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
     }
 
     @Override
-    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-        createTourViewModel = ViewModelProviders.of(this).get(CreateTourViewModel.class);
-        // TODO: Use the ViewModel
-    }
-
-    @Override
     @SuppressWarnings( {"MissingPermission"})
     public void onStart() {
         super.onStart();
@@ -341,11 +373,25 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
     public void onStop() {
         super.onStop();
         mapView.onStop();
+
+        // Store annotations in ViewModel
+        LongSparseArray<Symbol> annotations = symbolManager.getAnnotations();
+        ArrayList<TourWpWithPicPaths> tourWpWithPicPathsLinkedList = createTourSharedViewModel.getTourWaypointList();
+        tourWpWithPicPathsLinkedList.clear();
+        int annotationsSize = annotations.size();
+        tourWpWithPicPathsLinkedList.ensureCapacity(annotationsSize);
+        for (int i = 0; i < annotationsSize; i++) {
+            Symbol symbol = annotations.valueAt(i);
+            TourWpWithPicPaths tourWpWithPicPaths = new TourWpWithPicPaths();
+            LatLng latLng = symbol.getLatLng();
+            tourWpWithPicPaths.tourWaypoint = new TourWaypoint(latLng.getLatitude(), latLng.getLongitude(), symbol.getTextField(), null);
+            tourWpWithPicPathsLinkedList.add(tourWpWithPicPaths);
+        }
     }
 
     private void resetAnnotationViewStatus() {
         annotationInfoView = null;
-        viewStubVisibleId = -1;
+        selectedSymbolId = -1;
         selectedSymbol = null;
     }
 

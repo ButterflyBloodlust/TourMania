@@ -7,8 +7,8 @@ import androidx.room.Relation;
 
 public class TourWpWithPicPaths {
     @Embedded
-    public TourWaypoint plant;
+    public TourWaypoint tourWaypoint;
 
     @Relation(parentColumn = "id", entityColumn = "tour_wp_id")
-    public List<PicturePath> gardenPlantings;
+    public List<PicturePath> picturePaths;
 }

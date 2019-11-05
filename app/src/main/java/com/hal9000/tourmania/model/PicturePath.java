@@ -25,9 +25,9 @@ public class PicturePath {
     @ColumnInfo(name = "tour_wp_id")
     private int tourWpId;
 
-    public PicturePath(String picPath, int tourWpId) {
+    public PicturePath(String picPath) {
         this.setPicPath(picPath);
-        this.setTourWpId(tourWpId);
+        //this.setTourWpId(tourWpId);
     }
 
     public int getId() {

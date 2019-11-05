@@ -16,10 +16,11 @@ import android.view.ViewGroup;
 
 import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.TourWaypointsAdapter;
+import com.hal9000.tourmania.ui.create_tour.CreateTourSharedViewModel;
 
 public class TourWaypointsListFragment extends Fragment {
 
-    private TourWaypointsListViewModel mViewModel;
+    private CreateTourSharedViewModel mViewModel;
 
     private RecyclerView recyclerView;
     private RecyclerView.Adapter mAdapter;
@@ -34,6 +35,7 @@ public class TourWaypointsListFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_tour_waypoints_list, container, false);
+        mViewModel = ViewModelProviders.of(requireActivity()).get(CreateTourSharedViewModel.class);
         fillDataset(100);
         createRecyclerView(root);
         return root;
@@ -42,8 +44,6 @@ public class TourWaypointsListFragment extends Fragment {
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        mViewModel = ViewModelProviders.of(this).get(TourWaypointsListViewModel.class);
-        // TODO: Use the ViewModel
     }
 
     private void fillDataset(int arrSize) {
@@ -62,7 +62,7 @@ public class TourWaypointsListFragment extends Fragment {
         recyclerView.setLayoutManager(layoutManager);
 
         // specify an adapter (see also next example)
-        mAdapter = new TourWaypointsAdapter(myDataset);
+        mAdapter = new TourWaypointsAdapter(mViewModel.getTourWaypointList());
         recyclerView.setAdapter(mAdapter);
     }
 

@@ -37,5 +37,5 @@ public interface PicturePathDAO {
 
     @Transaction
     @Query("SELECT * FROM TourWaypoints WHERE id IN (SELECT DISTINCT(tour_wp_id) FROM PicturePaths)")
-    LiveData<List<TourWpWithPicPaths>> getTourWpsWithPaths();
+    LiveData<List<TourWpWithPicPaths>> getTourWpsWithPicPaths();
 }
