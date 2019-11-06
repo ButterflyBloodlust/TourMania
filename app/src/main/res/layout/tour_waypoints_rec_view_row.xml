@@ -17,7 +17,7 @@
         android:orientation="horizontal"
         android:minHeight="80dp"
         android:gravity="center_vertical"
-        android:padding="5dip" >
+        android:padding="3dip" >
 
         <!--  ListRow Left side Thumbnail image -->
 
@@ -25,12 +25,12 @@
             android:id="@+id/tour_list_image"
             android:layout_width="150dp"
             android:layout_height="110dp"
-            android:padding="3dip"
+            android:paddingStart="3dip"
+            android:paddingEnd="3dip"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            android:layout_marginRight="5dip"
-            android:src="@drawable/ic_menu_gallery">
+            android:layout_marginRight="5dip" >
         </ImageView>
 
         <EditText

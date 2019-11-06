@@ -238,9 +238,9 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                         });
 
                         // Restore annotations from ViewModel
-                        ArrayList<TourWpWithPicPaths> tourWpWithPicPathsLinkedList = createTourSharedViewModel.getTourWaypointList();
+                        ArrayList<TourWpWithPicPaths> tourWpWithPicPathsArrayList = createTourSharedViewModel.getTourWaypointList();
                         List<SymbolOptions> symbolOptionsList = new LinkedList<>();
-                        for (TourWpWithPicPaths tourWpWithPicPaths : tourWpWithPicPathsLinkedList) {
+                        for (TourWpWithPicPaths tourWpWithPicPaths : tourWpWithPicPathsArrayList) {
                             SymbolOptions symbolOptions = new SymbolOptions()
                                     .withLatLng(new LatLng(tourWpWithPicPaths.tourWaypoint.getLatitude(), tourWpWithPicPaths.tourWaypoint.getLongtitude()))
                                     .withIconImage(ID_ICON_MARKER)
@@ -283,6 +283,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
             buttonDeleteAnnotation.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    createTourSharedViewModel.getTourWaypointList().remove((int)(selectedSymbol.getId()));
                     symbolManager.delete(selectedSymbol);
                     hideAnnotationInfoView();
                 }
@@ -420,13 +421,23 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
         // Store annotations in ViewModel
         LongSparseArray<Symbol> annotations = symbolManager.getAnnotations();
         ArrayList<TourWpWithPicPaths> tourWpWithPicPathsLinkedList = createTourSharedViewModel.getTourWaypointList();
-        tourWpWithPicPathsLinkedList.clear();
         int annotationsSize = annotations.size();
+        int tourWpWithPicPathsLinkedListInitialSize = tourWpWithPicPathsLinkedList.size();
         tourWpWithPicPathsLinkedList.ensureCapacity(annotationsSize);
-        for (int i = 0; i < annotationsSize; i++) {
+        for (int i = 0; i < tourWpWithPicPathsLinkedListInitialSize; i++) {
             Symbol symbol = annotations.valueAt(i);
-            TourWpWithPicPaths tourWpWithPicPaths = new TourWpWithPicPaths();
             LatLng latLng = symbol.getLatLng();
+
+            TourWpWithPicPaths tourWpWithPicPaths = tourWpWithPicPathsLinkedList.get(i);
+            tourWpWithPicPaths.tourWaypoint.setLatitude(latLng.getLatitude());
+            tourWpWithPicPaths.tourWaypoint.setLongtitude(latLng.getLongitude());
+            tourWpWithPicPaths.tourWaypoint.setTitle(symbol.getTextField());
+        }
+        for (int i = tourWpWithPicPathsLinkedList.size(); i < annotationsSize; i++) {
+            Symbol symbol = annotations.valueAt(i);
+            LatLng latLng = symbol.getLatLng();
+
+            TourWpWithPicPaths tourWpWithPicPaths = new TourWpWithPicPaths();
             tourWpWithPicPaths.tourWaypoint = new TourWaypoint(latLng.getLatitude(), latLng.getLongitude(), symbol.getTextField(), null);
             tourWpWithPicPathsLinkedList.add(tourWpWithPicPaths);
         }
