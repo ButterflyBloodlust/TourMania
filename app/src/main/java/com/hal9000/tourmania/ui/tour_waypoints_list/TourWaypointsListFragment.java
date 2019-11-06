@@ -14,6 +14,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelStoreOwner;
 import androidx.navigation.Navigation;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -31,12 +32,14 @@ import com.hal9000.tourmania.ui.create_tour.CreateTourSharedViewModelFactory;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 
+import static androidx.recyclerview.widget.ItemTouchHelper.Callback.makeMovementFlags;
+
 public class TourWaypointsListFragment extends Fragment {
 
     private CreateTourSharedViewModel mViewModel;
 
     private RecyclerView recyclerView;
-    private RecyclerView.Adapter mAdapter;
+    private TourWaypointsAdapter mAdapter;
     private RecyclerView.LayoutManager layoutManager;
     private String[] myDataset;
 
@@ -114,6 +117,10 @@ public class TourWaypointsListFragment extends Fragment {
                     }
                 });
         recyclerView.setAdapter(mAdapter);
+        ItemTouchHelper.Callback callback =
+                new SimpleItemTouchHelperCallback(mAdapter);
+        ItemTouchHelper touchHelper = new ItemTouchHelper(callback);
+        touchHelper.attachToRecyclerView(recyclerView);
     }
 
     @Override
@@ -126,5 +133,4 @@ public class TourWaypointsListFragment extends Fragment {
             mAdapter.notifyItemChanged(adapterPostion);
         }
     }
-
 }

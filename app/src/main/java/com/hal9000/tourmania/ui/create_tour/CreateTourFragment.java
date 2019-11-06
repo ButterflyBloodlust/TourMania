@@ -18,8 +18,12 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelStoreOwner;
 import androidx.navigation.Navigation;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 import android.util.Log;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -38,6 +42,11 @@ import com.hal9000.tourmania.model.TourWaypoint;
 import com.hal9000.tourmania.model.TourWpWithPicPaths;
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
+import com.mapbox.api.directions.v5.DirectionsCriteria;
+import com.mapbox.api.directions.v5.models.DirectionsResponse;
+import com.mapbox.api.directions.v5.models.DirectionsRoute;
+import com.mapbox.api.directions.v5.models.RouteOptions;
+import com.mapbox.geojson.Point;
 import com.mapbox.mapboxsdk.Mapbox;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.location.LocationComponent;
@@ -54,6 +63,12 @@ import com.mapbox.mapboxsdk.plugins.annotation.Symbol;
 import com.mapbox.mapboxsdk.plugins.annotation.SymbolManager;
 import com.mapbox.mapboxsdk.plugins.annotation.SymbolOptions;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonOptions;
+import com.mapbox.services.android.navigation.ui.v5.NavigationViewOptions;
+import com.mapbox.services.android.navigation.ui.v5.route.NavigationMapRoute;
+import com.mapbox.services.android.navigation.v5.navigation.MapboxNavigationOptions;
+import com.mapbox.services.android.navigation.v5.navigation.NavigationRoute;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -75,6 +90,9 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
     private PermissionsManager permissionsManager;
     private MapboxMap mapboxMap;
     private boolean isInTrackingMode;
+    private DirectionsRoute currentRoute;
+    private static final String TAG = "DirectionsAPI";
+    private NavigationMapRoute navigationMapRoute;
 
     private View annotationInfoView;
     private long selectedSymbolId = -1;
@@ -153,6 +171,66 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
             @Override
             public void onClick(View view) {
                 Navigation.findNavController(view).navigate(R.id.tourWaypointsListFragment, null);
+            }
+        });
+
+        // Set up route generation floating action button
+        view.findViewById(R.id.fab_generate_route).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                LongSparseArray<Symbol> annotations = symbolManager.getAnnotations();
+                int annotationsSize = annotations.size();
+
+                if (annotationsSize < 2) {
+                    Toast toast = Toast.makeText(requireContext(),"Drawing a route requires\nat least 2 waypoints", Toast.LENGTH_LONG);
+                    TextView v = (TextView) toast.getView().findViewById(android.R.id.message);
+                    if( v != null) v.setGravity(Gravity.CENTER);
+                    toast.show();
+                    return;
+                }
+
+                NavigationRoute.Builder builder = NavigationRoute.builder(requireContext())
+                        .accessToken(Mapbox.getAccessToken())
+                        .profile(DirectionsCriteria.PROFILE_WALKING)
+                        .origin(Point.fromLngLat(annotations.valueAt(0).getLatLng().getLongitude(), annotations.valueAt(0).getLatLng().getLatitude()))
+                        .destination(Point.fromLngLat(annotations.valueAt(annotationsSize - 1).getLatLng().getLongitude(), annotations.valueAt(annotationsSize - 1).getLatLng().getLatitude()));
+
+
+                for (int i = 1; i < annotationsSize - 1; i++) {
+                    builder.addWaypoint(Point.fromLngLat(annotations.valueAt(i).getLatLng().getLongitude(), annotations.valueAt(i).getLatLng().getLatitude()));
+                }
+
+
+                builder.build()
+                        .getRoute(new Callback<DirectionsResponse>() {
+                            @Override
+                            public void onResponse(@NotNull Call<DirectionsResponse> call, @NotNull Response<DirectionsResponse> response) {
+                                // You can get the generic HTTP info about the response
+                                //Log.d(TAG, "Response code: " + response.code());
+                                if (response.body() == null) {
+                                    //Log.e(TAG, "No routes found, make sure you set the right user and access token.");
+                                    return;
+                                } else if (response.body().routes().size() < 1) {
+                                    //Log.e(TAG, "No routes found");
+                                    return;
+                                }
+
+                                currentRoute = response.body().routes().get(0);
+
+                                // Draw the route on the map
+                                if (navigationMapRoute != null) {
+                                    navigationMapRoute.removeRoute();
+                                } else {
+                                    navigationMapRoute = new NavigationMapRoute(null, mapView, mapboxMap, R.style.NavigationMapRoute);
+                                }
+                                navigationMapRoute.addRoute(currentRoute);
+                            }
+
+                            @Override
+                            public void onFailure(@NotNull Call<DirectionsResponse> call, @NotNull Throwable throwable) {
+                                //Log.e(TAG, "Error: " + throwable.getMessage());
+                            }
+                        });
             }
         });
 
@@ -250,8 +328,9 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                         }
                         // Mark selected annotation if aplicable
                         int choosenLocateWaypointIndex = createTourSharedViewModel.getChoosenLocateWaypointIndex();
-                        if (choosenLocateWaypointIndex != -1) {
+                        if (choosenLocateWaypointIndex != -1 ) {
                             symbolOptionsList.get(choosenLocateWaypointIndex).withIconImage(ID_ICON_MARKER_SELECTED);
+                            createTourSharedViewModel.removeChoosenLocateWaypointIndex();
                         }
                         // Register restored annotations
                         if (symbolOptionsList.size() > 0)
@@ -283,7 +362,8 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
             buttonDeleteAnnotation.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    createTourSharedViewModel.getTourWaypointList().remove((int)(selectedSymbol.getId()));
+                    if ((int)(selectedSymbol.getId()) < createTourSharedViewModel.getTourWaypointList().size())
+                        createTourSharedViewModel.getTourWaypointList().remove((int)(selectedSymbol.getId()));
                     symbolManager.delete(selectedSymbol);
                     hideAnnotationInfoView();
                 }
@@ -416,7 +496,11 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
     @Override
     public void onStop() {
         super.onStop();
+        if (navigationMapRoute != null)
+            navigationMapRoute.onStop();
+        navigationMapRoute = null;
         mapView.onStop();
+        isInTrackingMode = false;
 
         // Store annotations in ViewModel
         LongSparseArray<Symbol> annotations = symbolManager.getAnnotations();

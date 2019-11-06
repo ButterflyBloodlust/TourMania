@@ -30,6 +30,16 @@
         app:layout_constraintTop_toBottomOf="@+id/text_input_layout_create_tour" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_generate_route"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="@dimen/fab_margin"
+        app:layout_constraintBottom_toTopOf="@+id/fab_edit_annotated_places"
+        app:layout_constraintEnd_toEndOf="@+id/mapView"
+        app:srcCompat="@drawable/ic_directions_walk_black_24dp"
+        app:fabSize="normal" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_edit_annotated_places"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

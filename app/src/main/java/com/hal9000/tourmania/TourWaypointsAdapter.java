@@ -1,5 +1,6 @@
 package com.hal9000.tourmania;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -8,6 +9,7 @@ import android.net.Uri;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
@@ -17,32 +19,39 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.hal9000.tourmania.model.TourWpWithPicPaths;
+import com.hal9000.tourmania.ui.tour_waypoints_list.ItemTouchHelperAdapter;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 
 import androidx.recyclerview.widget.RecyclerView;
 
-public class TourWaypointsAdapter extends RecyclerView.Adapter<TourWaypointsAdapter.MyViewHolder> {
+public class TourWaypointsAdapter extends RecyclerView.Adapter<TourWaypointsAdapter.MyViewHolder> implements ItemTouchHelperAdapter {
     private ArrayList<TourWpWithPicPaths> mDataset;
     private TourWaypointsOnClickListener callbackOnClickListener;
+    public boolean dragButtonPressed = false;
 
     // Provide a reference to the views for each data item
     // Complex data items may need more than one view per item, and
     // you provide access to all the views for a data item in a view holder
     public static class MyViewHolder extends RecyclerView.ViewHolder {
-        // each data item is just a string in this case
         public EditText titleEditText;
-        public ImageButton buttonDeleteWaypoint;
+        public ImageButton buttonMoreImages;
+        public ImageButton buttonDragRow;
         public ImageButton buttonShowWaypointLocation;
         public ImageView tourWpImage;
+
         public MyViewHolder(View v) {
             super(v);
             titleEditText = v.findViewById(R.id.tour_title);
-            buttonDeleteWaypoint = v.findViewById(R.id.buttonDeleteWaypoint);
+            buttonDragRow = v.findViewById(R.id.buttonDragRow);
             buttonShowWaypointLocation = v.findViewById(R.id.buttonShowWaypointLocation);
             tourWpImage = v.findViewById(R.id.tour_list_image);
+            buttonMoreImages = v.findViewById(R.id.buttonMoreImages);
         }
     }
 
@@ -54,9 +63,9 @@ public class TourWaypointsAdapter extends RecyclerView.Adapter<TourWaypointsAdap
     }
 
     // Create new views (invoked by the layout manager)
+    @NotNull
     @Override
-    public TourWaypointsAdapter.MyViewHolder onCreateViewHolder(ViewGroup parent,
-                                                        int viewType) {
+    public TourWaypointsAdapter.MyViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         // create a new view
         View v = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.tour_waypoints_rec_view_row, parent, false);
@@ -66,8 +75,9 @@ public class TourWaypointsAdapter extends RecyclerView.Adapter<TourWaypointsAdap
     }
 
     // Replace the contents of a view (invoked by the layout manager)
+    @SuppressLint("ClickableViewAccessibility")
     @Override
-    public void onBindViewHolder(MyViewHolder holder, final int position) {
+    public void onBindViewHolder(final MyViewHolder holder, int position) {
         // - get element from your dataset at this position
         // - replace the contents of the view with that element
         holder.titleEditText.setText(mDataset.get(position).tourWaypoint.getTitle());
@@ -92,31 +102,31 @@ public class TourWaypointsAdapter extends RecyclerView.Adapter<TourWaypointsAdap
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                 if (actionId == EditorInfo.IME_ACTION_DONE) {
-                    mDataset.get(position).tourWaypoint.setTitle(v.getText().toString());
+                    mDataset.get(holder.getAdapterPosition()).tourWaypoint.setTitle(v.getText().toString());
                 }
                 return false;   // don't consume action (allow propagation)
             }
         });
-
-        holder.buttonDeleteWaypoint.setOnClickListener(new ImageButton.OnClickListener() {
+        holder.titleEditText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
-            public void onClick(View v) {
-                mDataset.remove(position);
-                notifyItemRemoved(position);
+            public void onFocusChange(View v, boolean hasFocus) {
+                if (!hasFocus && holder.getAdapterPosition() >= 0) {
+                    mDataset.get(holder.getAdapterPosition()).tourWaypoint.setTitle(((TextView)v).getText().toString());
+                }
             }
         });
 
         holder.buttonShowWaypointLocation.setOnClickListener(new ImageButton.OnClickListener() {
             @Override
             public void onClick(View v) {
-                callbackOnClickListener.locateWaypointOnClick(v, position);
+                callbackOnClickListener.locateWaypointOnClick(v, holder.getAdapterPosition());
             }
         });
 
         holder.tourWpImage.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
-                callbackOnClickListener.pickPictureMainOnLongClick(position);
+                callbackOnClickListener.pickPictureMainOnLongClick(holder.getAdapterPosition());
                 return false;
             }
         });
@@ -124,9 +134,20 @@ public class TourWaypointsAdapter extends RecyclerView.Adapter<TourWaypointsAdap
         holder.tourWpImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String mainImgPath = mDataset.get(position).tourWaypoint.getMainImgPath();
+                String mainImgPath = mDataset.get(holder.getAdapterPosition()).tourWaypoint.getMainImgPath();
                 if (mainImgPath != null)
                     callbackOnClickListener.getContext().startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(mainImgPath)));
+            }
+        });
+
+        holder.buttonDragRow.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_DOWN)
+                    dragButtonPressed = true;
+                else if (event.getAction() == MotionEvent.ACTION_UP)
+                    dragButtonPressed = false;
+                return false;
             }
         });
     }
@@ -139,8 +160,32 @@ public class TourWaypointsAdapter extends RecyclerView.Adapter<TourWaypointsAdap
 
     // Callback interface for parent activity / fragment
     public interface TourWaypointsOnClickListener {
-        public void locateWaypointOnClick(View v, int position);
-        public void pickPictureMainOnLongClick(int position);
-        public Context getContext();
+        void locateWaypointOnClick(View v, int position);
+        void pickPictureMainOnLongClick(int position);
+        Context getContext();
+    }
+
+    @Override
+    public void onItemDismiss(int position) {
+        mDataset.remove(position);
+        notifyItemRemoved(position);
+    }
+
+    @Override
+    public void onItemMove(int fromPosition, int toPosition) {
+        if (fromPosition < toPosition) {
+            for (int i = fromPosition; i < toPosition; i++) {
+                Collections.swap(mDataset, i, i + 1);
+            }
+        } else {
+            for (int i = fromPosition; i > toPosition; i--) {
+                Collections.swap(mDataset, i, i - 1);
+            }
+        }
+        notifyItemMoved(fromPosition, toPosition);
+    }
+
+    public boolean isDragButtonPressed() {
+        return dragButtonPressed;
     }
 }
