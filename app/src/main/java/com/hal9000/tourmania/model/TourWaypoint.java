@@ -1,11 +1,19 @@
 package com.hal9000.tourmania.model;
 
+import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
+import androidx.room.ForeignKey;
+import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
-@Entity(tableName = "TourWaypoints")
-public class TourWaypoint {
+@Entity(tableName = "TourWaypoints",
+        foreignKeys = @ForeignKey(entity = Tour.class,
+                parentColumns = "id",
+                childColumns = "tour_id",
+                onDelete = ForeignKey.CASCADE),
+        indices=@Index(value="tour_id"))
+public class TourWaypoint implements Comparable<TourWaypoint>{
 
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
@@ -22,6 +30,12 @@ public class TourWaypoint {
 
     @ColumnInfo(name = "main_img_path")
     private String mainImgPath;
+
+    @ColumnInfo(name = "tour_id")
+    private int tourId;
+
+    @ColumnInfo(name = "wp_order")
+    private int wpOrder;
 
     public TourWaypoint(double latitude, double longtitude, String title, String mainImgPath) {
         this.setLatitude(latitude);
@@ -68,5 +82,22 @@ public class TourWaypoint {
 
     public void setMainImgPath(String mainImgPath) {
         this.mainImgPath = mainImgPath;
+    }
+
+    public int getTourId() { return tourId; }
+
+    public void setTourId(int tourId) { this.tourId = tourId; }
+
+    public int getWpOrder() {
+        return wpOrder;
+    }
+
+    public void setWpOrder(int wpOrder) {
+        this.wpOrder = wpOrder;
+    }
+
+    @Override
+    public int compareTo(@NonNull TourWaypoint o) {
+        return this.wpOrder - o.wpOrder;
     }
 }

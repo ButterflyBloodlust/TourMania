@@ -2,6 +2,8 @@ package com.hal9000.tourmania;
 
 import android.content.Context;
 
+import com.hal9000.tourmania.database.AppDatabase;
+
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
@@ -16,12 +18,14 @@ import static org.junit.Assert.*;
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
  */
 @RunWith(AndroidJUnit4.class)
-public class ExampleInstrumentedTest {
+public class ClearDbInstrumentedTest {
     @Test
-    public void useAppContext() {
+    public void clearDb() {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         assertEquals("com.hal9000.tourmania", appContext.getPackageName());
+
+        AppDatabase.getInstance(appContext).clearAllTables();
     }
 }

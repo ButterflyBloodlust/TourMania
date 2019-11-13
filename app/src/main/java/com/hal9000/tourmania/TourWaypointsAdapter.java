@@ -116,6 +116,7 @@ public class TourWaypointsAdapter extends RecyclerView.Adapter<TourWaypointsAdap
             }
         });
 
+        // Handle show location button
         holder.buttonShowWaypointLocation.setOnClickListener(new ImageButton.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -123,6 +124,7 @@ public class TourWaypointsAdapter extends RecyclerView.Adapter<TourWaypointsAdap
             }
         });
 
+        // Handle adding tour waypoint images
         holder.tourWpImage.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
@@ -131,6 +133,7 @@ public class TourWaypointsAdapter extends RecyclerView.Adapter<TourWaypointsAdap
             }
         });
 
+        // Handle displaying tour waypoint images
         holder.tourWpImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -140,6 +143,7 @@ public class TourWaypointsAdapter extends RecyclerView.Adapter<TourWaypointsAdap
             }
         });
 
+        // Handle row drag button (sets a flag when pressed and is furhter handled in ItemItemTouchHelperCallback)
         holder.buttonDragRow.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {

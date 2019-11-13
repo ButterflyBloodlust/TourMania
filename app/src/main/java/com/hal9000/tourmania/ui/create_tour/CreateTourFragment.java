@@ -1,6 +1,7 @@
 package com.hal9000.tourmania.ui.create_tour;
 
 import androidx.activity.OnBackPressedCallback;
+import androidx.appcompat.app.AlertDialog;
 import androidx.collection.LongSparseArray;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
@@ -8,9 +9,14 @@ import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelProviders;
 
+import android.app.Activity;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -31,14 +37,19 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.hal9000.tourmania.R;
+import com.hal9000.tourmania.database.AppDatabase;
+import com.hal9000.tourmania.model.Tour;
 import com.hal9000.tourmania.model.TourWaypoint;
+import com.hal9000.tourmania.model.TourWithWpWithPaths;
 import com.hal9000.tourmania.model.TourWpWithPicPaths;
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
@@ -70,6 +81,8 @@ import com.mapbox.services.android.navigation.v5.navigation.NavigationRoute;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -101,6 +114,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
     private static final String ID_ICON_MARKER = "place-marker-red-24";
     private static final String ID_ICON_MARKER_SELECTED = "place-marker-yellow-24";
     private static final double ICON_MARKER_SCALE = 2d;
+    private static int PICK_IMAGE_REQUEST_CODE = 100;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -126,7 +140,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
     }
 
     @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+    public void onCreateOptionsMenu(@NonNull Menu menu, MenuInflater inflater) {
         inflater.inflate(R.menu.create_tour_toolbar_menu, menu);
         super.onCreateOptionsMenu(menu, inflater);
     }
@@ -136,15 +150,60 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
         // Handle item selection
         switch (item.getItemId()) {
             case R.id.action_save_route:
-                saveRouteToDb();
+                new AlertDialog.Builder(requireContext())
+                        .setIcon(android.R.drawable.ic_dialog_alert)
+                        .setTitle("Save the tour and exit")
+                        .setMessage("Are you sure you want to save the tour and exit tour creation screen?")
+                        .setPositiveButton("Yes", new DialogInterface.OnClickListener()
+                        {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                createTourSharedViewModel.saveTourToDb(requireContext());
+                                //finish();
+                            }
+                        })
+                        .setNegativeButton("No", null)
+                        .show();
                 return true;
+            case R.id.action_add_tour_image:
+                Intent intent = new Intent();
+                intent.setType("image/*");
+                intent.setAction(Intent.ACTION_GET_CONTENT);
+                startActivityForResult(Intent.createChooser(intent, "Select image"), PICK_IMAGE_REQUEST_CODE);
             default:
                 return super.onOptionsItemSelected(item);
         }
     }
 
-    private void saveRouteToDb() {
-        //Log.d("crashTest", "saveRouteToDb()");
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if( requestCode == PICK_IMAGE_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+            Uri tourImgUri = data.getData();
+            if (tourImgUri != null) {
+                createTourSharedViewModel.getTour().setTourImgPath(tourImgUri.toString());
+                try {
+                    setTourImage(tourImgUri);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+            }
+            else {
+                ((ImageView)requireView().findViewById(R.id.tour_image)).setImageResource(R.drawable.ic_menu_gallery);
+            }
+
+        }
+    }
+
+    private void setTourImage(Uri tourImgUri) throws FileNotFoundException {
+        InputStream inStream = requireContext().getContentResolver().openInputStream(tourImgUri);
+        Bitmap bmp = BitmapFactory.decodeStream(inStream);
+        ImageView tourImageView = (ImageView)requireView().findViewById(R.id.tour_image);
+        int viewHeight = tourImageView.getHeight();
+        tourImageView.setAdjustViewBounds(true);
+        tourImageView.setImageBitmap(bmp);
+        tourImageView.setMaxWidth(bmp.getWidth() * viewHeight / bmp.getHeight());
     }
 
     @Override
@@ -301,12 +360,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                             @Override
                             public boolean onMapLongClick(@NonNull LatLng point) {
                                 //Log.d("crashTest", "onMapLongClick()");
-                                SymbolOptions symbolOptions = new SymbolOptions()
-                                        .withLatLng(point)
-                                        .withIconImage(ID_ICON_MARKER)
-                                        .withTextField("")
-                                        .withTextJustify(TEXT_JUSTIFY_AUTO);
-                                symbolManager.create(symbolOptions);
+                                addWaypoint(point);
 
                                 //PointF pointF = CreateTourFragment.this.mapboxMap.getProjection().toScreenLocation(point);
                                 //Toast.makeText(requireContext(), String.format("User clicked at: %s\n%s", point.toString(), pointF.toString()), Toast.LENGTH_LONG).show();
@@ -346,13 +400,66 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                 if (actionId == EditorInfo.IME_ACTION_DONE) {
                     if (selectedSymbol != null) {
-                        selectedSymbol.setTextField(v.getText().toString());
+                        String waypointTitle = v.getText().toString();
+                        selectedSymbol.setTextField(waypointTitle);
                         symbolManager.update(selectedSymbol);
+                        createTourSharedViewModel.getTourWaypointList().get((int)selectedSymbol.getId()).tourWaypoint.setTitle(waypointTitle);
                     }
                 }
                 return false;   // don't consume action (allow propagation)
             }
         });
+
+        // Handle annotation label updates.
+        ((EditText)view.findViewById(R.id.text_input_edit_text_create_tour)).setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if (actionId == EditorInfo.IME_ACTION_DONE) {
+                    createTourSharedViewModel.getTour().setTitle(v.getText().toString());
+                }
+                return false;   // don't consume action (allow propagation)
+            }
+        });
+
+        // Handle displaying tour waypoint images
+        final ImageView tourImageView = (ImageView)requireView().findViewById(R.id.tour_image);
+        tourImageView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String tourImgPath = createTourSharedViewModel.getTour().getTourImgPath();
+                if (tourImgPath != null)
+                    requireContext().startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(tourImgPath)));
+            }
+        });
+
+        // Delay loading tour image (if present) until it's ImageView has non zero height / width
+        final String tourImgPath = createTourSharedViewModel.getTour().getTourImgPath();
+        if (tourImgPath != null) {
+            tourImageView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                @Override
+                public void onGlobalLayout() {
+                    tourImageView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                    try {
+                        setTourImage(Uri.parse(tourImgPath));
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+        }
+    }
+
+    private void addWaypoint(@NonNull LatLng point) {
+        SymbolOptions symbolOptions = new SymbolOptions()
+                .withLatLng(point)
+                .withIconImage(ID_ICON_MARKER)
+                .withTextField("")
+                .withTextJustify(TEXT_JUSTIFY_AUTO);
+        Symbol symbol = symbolManager.create(symbolOptions);
+
+        TourWpWithPicPaths tourWpWithPicPaths = new TourWpWithPicPaths();
+        tourWpWithPicPaths.tourWaypoint = new TourWaypoint(point.getLatitude(), point.getLongitude(), symbol.getTextField(), null);
+        createTourSharedViewModel.getTourWaypointList().add(tourWpWithPicPaths);
     }
 
     private void toggleAnnotationInfoView(Symbol symbol) {

@@ -7,4 +7,9 @@
         android:title="@string/action_save_route"
         android:icon="@drawable/ic_save_white_50dp"
         app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_add_tour_image"
+        android:orderInCategory="190"
+        android:title="@string/action_add_tour_image"
+        app:showAsAction="never" />
 </menu>

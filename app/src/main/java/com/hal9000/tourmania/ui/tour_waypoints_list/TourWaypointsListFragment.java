@@ -5,8 +5,6 @@ import androidx.lifecycle.ViewModelProvider;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -18,7 +16,6 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,11 +25,6 @@ import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.TourWaypointsAdapter;
 import com.hal9000.tourmania.ui.create_tour.CreateTourSharedViewModel;
 import com.hal9000.tourmania.ui.create_tour.CreateTourSharedViewModelFactory;
-
-import java.io.FileNotFoundException;
-import java.io.InputStream;
-
-import static androidx.recyclerview.widget.ItemTouchHelper.Callback.makeMovementFlags;
 
 public class TourWaypointsListFragment extends Fragment {
 
@@ -118,7 +110,7 @@ public class TourWaypointsListFragment extends Fragment {
                 });
         recyclerView.setAdapter(mAdapter);
         ItemTouchHelper.Callback callback =
-                new SimpleItemTouchHelperCallback(mAdapter);
+                new ItemTouchHelperCallback(mAdapter);
         ItemTouchHelper touchHelper = new ItemTouchHelper(callback);
         touchHelper.attachToRecyclerView(recyclerView);
     }

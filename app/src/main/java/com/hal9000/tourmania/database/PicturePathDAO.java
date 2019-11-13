@@ -18,10 +18,10 @@ import androidx.room.Update;
 public interface PicturePathDAO {
 
     @Query("SELECT * FROM PicturePaths")
-    LiveData<List<PicturePath>> getPicPaths();
+    List<PicturePath> getPicPaths();
 
     @Query("SELECT * FROM PicturePaths WHERE id = :picPathId")
-    LiveData<PicturePath> getPicPath(int picPathId);
+    PicturePath getPicPath(int picPathId);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertPicPath(PicturePath picturePath);
@@ -35,7 +35,8 @@ public interface PicturePathDAO {
     @Delete
     void deletePicPath(PicturePath picturePath);
 
+    //@Query("SELECT * FROM TourWaypoints WHERE id IN (SELECT DISTINCT(tour_wp_id) FROM PicturePaths)")
     @Transaction
-    @Query("SELECT * FROM TourWaypoints WHERE id IN (SELECT DISTINCT(tour_wp_id) FROM PicturePaths)")
-    LiveData<List<TourWpWithPicPaths>> getTourWpsWithPicPaths();
+    @Query("SELECT * FROM TourWaypoints")
+    List<TourWpWithPicPaths> getTourWpsWithPicPaths();
 }

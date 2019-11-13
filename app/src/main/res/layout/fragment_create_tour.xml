@@ -8,10 +8,15 @@
 
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/text_input_layout_create_tour"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
         android:hint="@string/create_tour_title_hint_text"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintHeight_default="wrap"
+        app:layout_constraintWidth_default="spread"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/tour_image"
+        app:layout_constraintBottom_toTopOf="@+id/mapView"
+        app:layout_constraintStart_toStartOf="parent">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/text_input_edit_text_create_tour"
@@ -21,6 +26,17 @@
             android:imeOptions="actionDone" />
 
     </com.google.android.material.textfield.TextInputLayout>
+
+    <ImageView
+        android:id="@+id/tour_image"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:srcCompat="@drawable/ic_menu_gallery"
+        app:layout_constraintWidth_default="wrap"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/mapView"
+        app:layout_constraintStart_toEndOf="@+id/text_input_layout_create_tour"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <com.mapbox.mapboxsdk.maps.MapView
         android:id="@+id/mapView"

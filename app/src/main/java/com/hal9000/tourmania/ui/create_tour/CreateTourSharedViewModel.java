@@ -1,15 +1,23 @@
 package com.hal9000.tourmania.ui.create_tour;
 
+import android.content.Context;
 import android.util.Log;
 
+import com.hal9000.tourmania.database.AppDatabase;
+import com.hal9000.tourmania.model.Tour;
+import com.hal9000.tourmania.model.TourWaypoint;
+import com.hal9000.tourmania.model.TourWithWpWithPaths;
 import com.hal9000.tourmania.model.TourWpWithPicPaths;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 
 import androidx.lifecycle.ViewModel;
 
 public class CreateTourSharedViewModel extends ViewModel {
 
+    private Tour tour = new Tour();
     private ArrayList<TourWpWithPicPaths> tourWaypointList = new ArrayList<TourWpWithPicPaths>();
     private int choosenLocateWaypointIndex = -1;
 
@@ -31,6 +39,37 @@ public class CreateTourSharedViewModel extends ViewModel {
 
     public void removeChoosenLocateWaypointIndex() {
         choosenLocateWaypointIndex = -1;
+    }
+
+    public Tour getTour() {
+        return tour;
+    }
+
+    public void saveTourToDb(final Context context) {
+        // Currently does NOT handle additional waypoint pics (PicturePath / TourWpWithPicPaths)
+        //Log.d("crashTest", "saveTourToDb()");
+        AppDatabase.databaseWriteExecutor.execute(new Runnable() {
+            public void run() {
+                //Log.d("crashTest", "run()");
+                AppDatabase appDatabase = AppDatabase.getInstance(context);
+                long tourId = appDatabase.tourDAO().insertTour(getTour());
+                getTour().setTourId((int)tourId);
+                LinkedList<TourWaypoint> tourWps = new LinkedList<>();
+                for (int i = 0; i < tourWaypointList.size(); i++) {
+                    TourWaypoint tourWaypoint = tourWaypointList.get(i).tourWaypoint;
+                    tourWaypoint.setTourId((int)tourId);
+                    tourWaypoint.setWpOrder(i);
+                    tourWps.addLast(tourWaypoint);
+                }
+                long[] wpsIds = appDatabase.tourWaypointDAO().insertTourWps(tourWps);
+                for (int i = 0; i < wpsIds.length; i++) {
+                    tourWaypointList.get(i).tourWaypoint.setTourWpId((int)wpsIds[i]);
+                }
+                //List<Tour> toursWithTourWps = AppDatabase.getInstance(requireContext()).tourDAO().getTours();
+                List<TourWithWpWithPaths> toursWithTourWps = appDatabase.tourWaypointDAO().getToursWithTourWps();
+                Log.d("crashTest", Integer.toString(toursWithTourWps.size()));
+            }
+        });
     }
 
     /*

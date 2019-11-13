@@ -9,11 +9,11 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import static androidx.recyclerview.widget.ItemTouchHelper.ACTION_STATE_DRAG;
 
-public class SimpleItemTouchHelperCallback extends ItemTouchHelper.Callback {
+public class ItemTouchHelperCallback extends ItemTouchHelper.Callback {
 
     private final TourWaypointsAdapter mAdapter;
 
-    public SimpleItemTouchHelperCallback(TourWaypointsAdapter adapter) {
+    public ItemTouchHelperCallback(TourWaypointsAdapter adapter) {
         mAdapter = adapter;
     }
 
