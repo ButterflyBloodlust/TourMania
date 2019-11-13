@@ -71,7 +71,7 @@ public class MyToursFragment extends Fragment {
 
     private Future loadToursFromRoomDb() {
         // Currently does NOT handle additional waypoint pics (PicturePath / TourWpWithPicPaths)
-        Log.d("crashTest", "loadToursFromRoomDb()");
+        //Log.d("crashTest", "loadToursFromRoomDb()");
         return AppDatabase.databaseWriteExecutor.submit(new Runnable() {
             public void run() {
                 //Log.d("crashTest", "run()");
@@ -79,7 +79,7 @@ public class MyToursFragment extends Fragment {
                 //List<Tour> toursWithTourWps = AppDatabase.getInstance(requireContext()).tourDAO().getTours();
                 toursWithTourWps = appDatabase.tourWaypointDAO().getToursWithTourWps();
 
-                Log.d("crashTest", Integer.toString(toursWithTourWps.size()));
+                //Log.d("crashTest", Integer.toString(toursWithTourWps.size()));
             }
         });
     }

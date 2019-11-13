@@ -13,25 +13,25 @@
             android:icon="@drawable/ic_menu_gallery"
             android:title="@string/menu_my_tours" />
         <item
-            android:id="@+id/nav_slideshow"
-            android:icon="@drawable/ic_menu_slideshow"
-            android:title="@string/menu_slideshow" />
+            android:id="@+id/nav_fav_tours"
+            android:icon="@drawable/ic_menu_send"
+            android:title="@string/menu_fav_tours" />
         <item
-            android:id="@+id/nav_tools"
+            android:id="@+id/nav_tour_guides"
+            android:icon="@drawable/ic_menu_slideshow"
+            android:title="@string/menu_tour_guides" />
+        <item
+            android:id="@+id/nav_join_tour"
             android:icon="@drawable/ic_menu_manage"
-            android:title="@string/menu_tools" />
+            android:title="@string/menu_join_tour" />
     </group>
 
-    <item android:title="Communicate">
+    <item android:title="User account">
         <menu>
             <item
                 android:id="@+id/nav_share"
                 android:icon="@drawable/ic_menu_share"
                 android:title="@string/menu_share" />
-            <item
-                android:id="@+id/nav_send"
-                android:icon="@drawable/ic_menu_send"
-                android:title="@string/menu_send" />
         </menu>
     </item>
 

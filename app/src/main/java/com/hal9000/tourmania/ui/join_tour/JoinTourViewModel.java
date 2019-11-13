@@ -1,16 +1,16 @@
-package com.hal9000.tourmania.ui.slideshow;
+package com.hal9000.tourmania.ui.join_tour;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
-public class SlideshowViewModel extends ViewModel {
+public class JoinTourViewModel extends ViewModel {
 
     private MutableLiveData<String> mText;
 
-    public SlideshowViewModel() {
+    public JoinTourViewModel() {
         mText = new MutableLiveData<>();
-        mText.setValue("This is slideshow fragment");
+        mText.setValue("This is join_tour fragment");
     }
 
     public LiveData<String> getText() {

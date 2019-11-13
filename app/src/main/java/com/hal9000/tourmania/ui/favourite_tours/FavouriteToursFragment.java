@@ -1,4 +1,4 @@
-package com.hal9000.tourmania.ui.send;
+package com.hal9000.tourmania.ui.favourite_tours;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -14,17 +14,17 @@ import androidx.lifecycle.ViewModelProviders;
 
 import com.hal9000.tourmania.R;
 
-public class SendFragment extends Fragment {
+public class FavouriteToursFragment extends Fragment {
 
-    private SendViewModel sendViewModel;
+    private FavouriteToursViewModel favouriteToursViewModel;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
-        sendViewModel =
-                ViewModelProviders.of(this).get(SendViewModel.class);
-        View root = inflater.inflate(R.layout.fragment_send, container, false);
-        final TextView textView = root.findViewById(R.id.text_send);
-        sendViewModel.getText().observe(this, new Observer<String>() {
+        favouriteToursViewModel =
+                ViewModelProviders.of(this).get(FavouriteToursViewModel.class);
+        View root = inflater.inflate(R.layout.fragment_fav_tours, container, false);
+        final TextView textView = root.findViewById(R.id.text_fav_tours);
+        favouriteToursViewModel.getText().observe(this, new Observer<String>() {
             @Override
             public void onChanged(@Nullable String s) {
                 textView.setText(s);

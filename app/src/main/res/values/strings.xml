@@ -11,10 +11,10 @@
 
     <string name="menu_home">Home</string>
     <string name="menu_my_tours">My Tours</string>
-    <string name="menu_slideshow">Slideshow</string>
-    <string name="menu_tools">Tools</string>
+    <string name="menu_tour_guides">Tour Guides</string>
+    <string name="menu_join_tour">Join a Tour</string>
     <string name="menu_share">Share</string>
-    <string name="menu_send">Send</string>
+    <string name="menu_fav_tours">Favourite Tours</string>
 
     <string name="title_create_tour">Create Tour</string>
     <string name="create_tour_title_hint_text">Title</string>

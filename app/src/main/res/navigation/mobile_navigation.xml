@@ -28,16 +28,16 @@
     </fragment>
 
     <fragment
-        android:id="@+id/nav_slideshow"
-        android:name="com.hal9000.tourmania.ui.slideshow.SlideshowFragment"
-        android:label="@string/menu_slideshow"
-        tools:layout="@layout/fragment_slideshow" />
+        android:id="@+id/nav_tour_guides"
+        android:name="com.hal9000.tourmania.ui.tour_guides.TourGuidesFragment"
+        android:label="@string/menu_tour_guides"
+        tools:layout="@layout/fragment_tour_guides" />
 
     <fragment
-        android:id="@+id/nav_tools"
-        android:name="com.hal9000.tourmania.ui.tools.ToolsFragment"
-        android:label="@string/menu_tools"
-        tools:layout="@layout/fragment_tools" />
+        android:id="@+id/nav_join_tour"
+        android:name="com.hal9000.tourmania.ui.join_tour.JoinTourFragment"
+        android:label="@string/menu_join_tour"
+        tools:layout="@layout/fragment_join_tour" />
 
     <fragment
         android:id="@+id/nav_share"
@@ -46,10 +46,10 @@
         tools:layout="@layout/fragment_share" />
 
     <fragment
-        android:id="@+id/nav_send"
-        android:name="com.hal9000.tourmania.ui.send.SendFragment"
-        android:label="@string/menu_send"
-        tools:layout="@layout/fragment_send" />
+        android:id="@+id/nav_fav_tours"
+        android:name="com.hal9000.tourmania.ui.favourite_tours.FavouriteToursFragment"
+        android:label="@string/menu_fav_tours"
+        tools:layout="@layout/fragment_fav_tours" />
 
     <navigation
         android:id="@+id/nav_nested_create_tour"

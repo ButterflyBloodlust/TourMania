@@ -1,4 +1,4 @@
-package com.hal9000.tourmania.ui.tools;
+package com.hal9000.tourmania.ui.join_tour;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -14,17 +14,17 @@ import androidx.lifecycle.ViewModelProviders;
 
 import com.hal9000.tourmania.R;
 
-public class ToolsFragment extends Fragment {
+public class JoinTourFragment extends Fragment {
 
-    private ToolsViewModel toolsViewModel;
+    private JoinTourViewModel joinTourViewModel;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
-        toolsViewModel =
-                ViewModelProviders.of(this).get(ToolsViewModel.class);
-        View root = inflater.inflate(R.layout.fragment_tools, container, false);
-        final TextView textView = root.findViewById(R.id.text_tools);
-        toolsViewModel.getText().observe(this, new Observer<String>() {
+        joinTourViewModel =
+                ViewModelProviders.of(this).get(JoinTourViewModel.class);
+        View root = inflater.inflate(R.layout.fragment_join_tour, container, false);
+        final TextView textView = root.findViewById(R.id.text_join_tour);
+        joinTourViewModel.getText().observe(this, new Observer<String>() {
             @Override
             public void onChanged(@Nullable String s) {
                 textView.setText(s);

@@ -1,4 +1,4 @@
-package com.hal9000.tourmania.ui.slideshow;
+package com.hal9000.tourmania.ui.tour_guides;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -14,17 +14,17 @@ import androidx.lifecycle.ViewModelProviders;
 
 import com.hal9000.tourmania.R;
 
-public class SlideshowFragment extends Fragment {
+public class TourGuidesFragment extends Fragment {
 
-    private SlideshowViewModel slideshowViewModel;
+    private TourGuidesViewModel tourGuidesViewModel;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
-        slideshowViewModel =
-                ViewModelProviders.of(this).get(SlideshowViewModel.class);
-        View root = inflater.inflate(R.layout.fragment_slideshow, container, false);
-        final TextView textView = root.findViewById(R.id.text_slideshow);
-        slideshowViewModel.getText().observe(this, new Observer<String>() {
+        tourGuidesViewModel =
+                ViewModelProviders.of(this).get(TourGuidesViewModel.class);
+        View root = inflater.inflate(R.layout.fragment_tour_guides, container, false);
+        final TextView textView = root.findViewById(R.id.text_tour_guides);
+        tourGuidesViewModel.getText().observe(this, new Observer<String>() {
             @Override
             public void onChanged(@Nullable String s) {
                 textView.setText(s);
