@@ -86,6 +86,8 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import static com.mapbox.mapboxsdk.style.layers.Property.TEXT_ANCHOR_BOTTOM;
 import static com.mapbox.mapboxsdk.style.layers.Property.TEXT_JUSTIFY_AUTO;
@@ -158,8 +160,17 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                         {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
-                                createTourSharedViewModel.saveTourToDb(requireContext());
-                                //finish();
+                                Toast savinToast = Toast.makeText(requireContext(),"Saving ...",Toast.LENGTH_SHORT);
+                                savinToast.show();
+                                Future future = createTourSharedViewModel.saveTourToDb(requireContext());
+                                try {
+                                    future.get();
+                                } catch (ExecutionException | InterruptedException e) {
+                                    //e.printStackTrace();
+                                }
+                                savinToast.cancel();
+                                Toast.makeText(requireContext(),"Tour saved",Toast.LENGTH_SHORT).show();
+                                Navigation.findNavController(requireView()).popBackStack();
                             }
                         })
                         .setNegativeButton("No", null)

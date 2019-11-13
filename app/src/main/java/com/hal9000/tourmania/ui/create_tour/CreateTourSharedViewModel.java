@@ -12,6 +12,7 @@ import com.hal9000.tourmania.model.TourWpWithPicPaths;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.Future;
 
 import androidx.lifecycle.ViewModel;
 
@@ -45,10 +46,10 @@ public class CreateTourSharedViewModel extends ViewModel {
         return tour;
     }
 
-    public void saveTourToDb(final Context context) {
+    public Future saveTourToDb(final Context context) {
         // Currently does NOT handle additional waypoint pics (PicturePath / TourWpWithPicPaths)
         //Log.d("crashTest", "saveTourToDb()");
-        AppDatabase.databaseWriteExecutor.execute(new Runnable() {
+        return AppDatabase.databaseWriteExecutor.submit(new Runnable() {
             public void run() {
                 //Log.d("crashTest", "run()");
                 AppDatabase appDatabase = AppDatabase.getInstance(context);
@@ -66,8 +67,8 @@ public class CreateTourSharedViewModel extends ViewModel {
                     tourWaypointList.get(i).tourWaypoint.setTourWpId((int)wpsIds[i]);
                 }
                 //List<Tour> toursWithTourWps = AppDatabase.getInstance(requireContext()).tourDAO().getTours();
-                List<TourWithWpWithPaths> toursWithTourWps = appDatabase.tourWaypointDAO().getToursWithTourWps();
-                Log.d("crashTest", Integer.toString(toursWithTourWps.size()));
+                //List<TourWithWpWithPaths> toursWithTourWps = appDatabase.tourWaypointDAO().getToursWithTourWps();
+                //Log.d("crashTest", Integer.toString(toursWithTourWps.size()));
             }
         });
     }

@@ -24,7 +24,8 @@
             android:id="@+id/tour_list_image"
             android:layout_width="150dp"
             android:layout_height="110dp"
-            android:padding="3dip"
+            android:paddingStart="3dip"
+            android:paddingEnd="3dip"
             android:layout_alignParentLeft="true"
             android:layout_marginRight="5dip"
             android:src="@drawable/ic_menu_gallery">

@@ -11,10 +11,10 @@ public class TourWithWpWithPaths {
     public Tour tour;
 
     @Relation(parentColumn = "id", entityColumn = "tour_id", entity=TourWaypoint.class)
-    private List<TourWpWithPicPaths> tourWpsWithPicPaths;
+    public List<TourWpWithPicPaths> _tourWpsWithPicPaths;
 
     public List<TourWpWithPicPaths> getSortedTourWpsWithPicPaths(){
-        Collections.sort(tourWpsWithPicPaths);
-        return tourWpsWithPicPaths;
+        Collections.sort(_tourWpsWithPicPaths);
+        return _tourWpsWithPicPaths;
     }
 }

@@ -1,10 +1,14 @@
 package com.hal9000.tourmania.ui.my_tours;
 
+import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.NonNull;
@@ -18,7 +22,17 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.hal9000.tourmania.R;
+import com.hal9000.tourmania.TourWaypointsAdapter;
 import com.hal9000.tourmania.ToursAdapter;
+import com.hal9000.tourmania.database.AppDatabase;
+import com.hal9000.tourmania.model.TourWaypoint;
+import com.hal9000.tourmania.model.TourWithWpWithPaths;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 
 public class MyToursFragment extends Fragment {
 
@@ -26,7 +40,7 @@ public class MyToursFragment extends Fragment {
     private RecyclerView recyclerView;
     private RecyclerView.Adapter mAdapter;
     private RecyclerView.LayoutManager layoutManager;
-    private String[] myDataset;
+    private List<TourWithWpWithPaths> toursWithTourWps;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -44,17 +58,30 @@ public class MyToursFragment extends Fragment {
             }
         });
 
-        fillDataset(100);
+        Future future = loadToursFromRoomDb();
+        try {
+            future.get();
+        } catch (ExecutionException | InterruptedException e) {
+            //e.printStackTrace();
+        }
         createRecyclerView(root);
 
         return root;
     }
 
-    private void fillDataset(int arrSize) {
-        myDataset = new String[arrSize];
-        for (int i = 0, c = 0; i < arrSize; i++) {
-            myDataset[i] = Integer.toString(i);
-        }
+    private Future loadToursFromRoomDb() {
+        // Currently does NOT handle additional waypoint pics (PicturePath / TourWpWithPicPaths)
+        Log.d("crashTest", "loadToursFromRoomDb()");
+        return AppDatabase.databaseWriteExecutor.submit(new Runnable() {
+            public void run() {
+                //Log.d("crashTest", "run()");
+                AppDatabase appDatabase = AppDatabase.getInstance(requireContext());
+                //List<Tour> toursWithTourWps = AppDatabase.getInstance(requireContext()).tourDAO().getTours();
+                toursWithTourWps = appDatabase.tourWaypointDAO().getToursWithTourWps();
+
+                Log.d("crashTest", Integer.toString(toursWithTourWps.size()));
+            }
+        });
     }
 
     private void createRecyclerView(View root) {
@@ -66,7 +93,13 @@ public class MyToursFragment extends Fragment {
         recyclerView.setLayoutManager(layoutManager);
 
         // specify an adapter (see also next example)
-        mAdapter = new ToursAdapter(myDataset);
+        mAdapter = new ToursAdapter(toursWithTourWps,
+                new ToursAdapter.ToursAdapterCallback() {
+                    @Override
+                    public Context getContext() {
+                        return requireContext();
+                    }
+                });
         recyclerView.setAdapter(mAdapter);
     }
 }
