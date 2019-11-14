@@ -21,6 +21,7 @@ public class CreateTourSharedViewModel extends ViewModel {
     private Tour tour = new Tour();
     private ArrayList<TourWpWithPicPaths> tourWaypointList = new ArrayList<TourWpWithPicPaths>();
     private int choosenLocateWaypointIndex = -1;
+    private boolean loadedFromDb = false;
 
     public CreateTourSharedViewModel() {
         //Log.d("crashTest", "CreateTourSharedViewModel.CreateTourSharedViewModel()");
@@ -50,6 +51,7 @@ public class CreateTourSharedViewModel extends ViewModel {
         // Currently does NOT handle additional waypoint pics (PicturePath / TourWpWithPicPaths)
         //Log.d("crashTest", "saveTourToDb()");
         return AppDatabase.databaseWriteExecutor.submit(new Runnable() {
+            @Override
             public void run() {
                 //Log.d("crashTest", "run()");
                 AppDatabase appDatabase = AppDatabase.getInstance(context);
@@ -69,6 +71,21 @@ public class CreateTourSharedViewModel extends ViewModel {
                 //List<Tour> toursWithTourWps = AppDatabase.getInstance(requireContext()).tourDAO().getTours();
                 //List<TourWithWpWithPaths> toursWithTourWps = appDatabase.tourWaypointDAO().getToursWithTourWps();
                 //Log.d("crashTest", Integer.toString(toursWithTourWps.size()));
+            }
+        });
+    }
+
+    public Future loadTourFromDb(final int tourId, final Context context) {
+        return AppDatabase.databaseWriteExecutor.submit(new Runnable() {
+            @Override
+            public void run() {
+                if (!loadedFromDb) {
+                    AppDatabase appDatabase = AppDatabase.getInstance(context);
+                    TourWithWpWithPaths tourWpWithPicPaths = appDatabase.tourWaypointDAO().getTourWithTourWps(tourId);
+                    tour = tourWpWithPicPaths.tour;
+                    tourWaypointList.addAll(tourWpWithPicPaths.getSortedTourWpsWithPicPaths());
+                    loadedFromDb = true;
+                }
             }
         });
     }

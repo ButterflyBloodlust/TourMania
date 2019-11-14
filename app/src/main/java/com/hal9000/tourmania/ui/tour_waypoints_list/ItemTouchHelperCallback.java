@@ -1,6 +1,6 @@
 package com.hal9000.tourmania.ui.tour_waypoints_list;
 
-import com.hal9000.tourmania.TourWaypointsAdapter;
+import com.hal9000.tourmania.ui.TourWaypointsAdapter;
 
 import org.jetbrains.annotations.NotNull;
 

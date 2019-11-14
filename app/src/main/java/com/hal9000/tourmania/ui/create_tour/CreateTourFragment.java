@@ -234,6 +234,17 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
         CreateTourSharedViewModelFactory factory = new CreateTourSharedViewModelFactory();
         createTourSharedViewModel = new ViewModelProvider(owner, factory).get(CreateTourSharedViewModel.class);
 
+        int tourId = CreateTourFragmentArgs.fromBundle(getArguments()).getTourId();
+        Log.d("crashTest", "tourId = " + Integer.toString(tourId));
+        if (tourId != -1) {
+            Future future = createTourSharedViewModel.loadTourFromDb(tourId, requireContext());
+            try {
+                future.get();
+            } catch (ExecutionException | InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
         Mapbox.getInstance(requireActivity(), getString(R.string.mapbox_access_token));
 
         // Set up tour waypoints list fragment floating action button
@@ -421,8 +432,10 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
             }
         });
 
-        // Handle annotation label updates.
-        ((EditText)view.findViewById(R.id.text_input_edit_text_create_tour)).setOnEditorActionListener(new TextView.OnEditorActionListener() {
+        // Handle tour title and it's updates.
+        EditText tourTitleEditText = ((EditText)view.findViewById(R.id.text_input_edit_text_create_tour));
+        tourTitleEditText.setText(createTourSharedViewModel.getTour().getTitle());
+        tourTitleEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                 if (actionId == EditorInfo.IME_ACTION_DONE) {
@@ -626,7 +639,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
         int annotationsSize = annotations.size();
         int tourWpWithPicPathsLinkedListInitialSize = tourWpWithPicPathsLinkedList.size();
         tourWpWithPicPathsLinkedList.ensureCapacity(annotationsSize);
-        for (int i = 0; i < tourWpWithPicPathsLinkedListInitialSize; i++) {
+        for (int i = 0; i < tourWpWithPicPathsLinkedListInitialSize && i < annotationsSize; i++) {
             Symbol symbol = annotations.valueAt(i);
             LatLng latLng = symbol.getLatLng();
 

@@ -58,7 +58,12 @@
             android:id="@+id/createTourFragment"
             android:name="com.hal9000.tourmania.ui.create_tour.CreateTourFragment"
             android:label="@string/title_create_tour"
-            tools:layout="@layout/fragment_create_tour" />
+            tools:layout="@layout/fragment_create_tour" >
+            <argument
+                android:name="tourId"
+                app:argType="integer"
+                android:defaultValue="-1" />
+        </fragment>
         <fragment
             android:id="@+id/tourWaypointsListFragment"
             android:name="com.hal9000.tourmania.ui.tour_waypoints_list.TourWaypointsListFragment"

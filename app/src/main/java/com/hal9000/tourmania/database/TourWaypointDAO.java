@@ -40,4 +40,8 @@ public interface TourWaypointDAO {
     @Transaction
     @Query("SELECT * FROM Tours")
     List<TourWithWpWithPaths> getToursWithTourWps();
+
+    @Transaction
+    @Query("SELECT * FROM Tours WHERE id = :tourId")
+    TourWithWpWithPaths getTourWithTourWps(int tourId);
 }

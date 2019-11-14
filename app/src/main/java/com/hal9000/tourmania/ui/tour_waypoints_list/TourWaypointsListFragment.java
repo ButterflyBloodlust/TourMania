@@ -22,7 +22,7 @@ import android.view.ViewGroup;
 import android.widget.Toast;
 
 import com.hal9000.tourmania.R;
-import com.hal9000.tourmania.TourWaypointsAdapter;
+import com.hal9000.tourmania.ui.TourWaypointsAdapter;
 import com.hal9000.tourmania.ui.create_tour.CreateTourSharedViewModel;
 import com.hal9000.tourmania.ui.create_tour.CreateTourSharedViewModelFactory;
 

@@ -1,4 +1,4 @@
-package com.hal9000.tourmania;
+package com.hal9000.tourmania.ui;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -10,13 +10,13 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.model.TourWithWpWithPaths;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.List;
 
-import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.RecyclerView;
 
 public class ToursAdapter extends RecyclerView.Adapter<ToursAdapter.MyViewHolder> {
@@ -57,7 +57,7 @@ public class ToursAdapter extends RecyclerView.Adapter<ToursAdapter.MyViewHolder
 
     // Replace the contents of a view (invoked by the layout manager)
     @Override
-    public void onBindViewHolder(MyViewHolder holder, int position) {
+    public void onBindViewHolder(final MyViewHolder holder, int position) {
         // - get element from your dataset at this position
         // - replace the contents of the view with that element
         holder.textView.setText(mDataset.get(position).tour.getTitle());
@@ -80,7 +80,7 @@ public class ToursAdapter extends RecyclerView.Adapter<ToursAdapter.MyViewHolder
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                callback.navigateToViewTour();
+                callback.navigateToViewTour(holder.getAdapterPosition());
             }
         });
     }
@@ -93,6 +93,6 @@ public class ToursAdapter extends RecyclerView.Adapter<ToursAdapter.MyViewHolder
 
     public interface ToursAdapterCallback {
         Context getContext();
-        void navigateToViewTour();
+        void navigateToViewTour(int position);
     }
 }

@@ -1,38 +1,28 @@
 package com.hal9000.tourmania.ui.my_tours;
 
 import android.content.Context;
-import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
-import android.widget.Toast;
 
-import androidx.annotation.Nullable;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProviders;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.android.material.snackbar.Snackbar;
 import com.hal9000.tourmania.R;
-import com.hal9000.tourmania.TourWaypointsAdapter;
-import com.hal9000.tourmania.ToursAdapter;
+import com.hal9000.tourmania.ui.ToursAdapter;
 import com.hal9000.tourmania.database.AppDatabase;
-import com.hal9000.tourmania.model.TourWaypoint;
 import com.hal9000.tourmania.model.TourWithWpWithPaths;
+import com.hal9000.tourmania.ui.create_tour.CreateTourFragmentArgs;
 
-import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
 
 public class MyToursFragment extends Fragment {
 
@@ -84,7 +74,7 @@ public class MyToursFragment extends Fragment {
         });
     }
 
-    private void createRecyclerView(View root) {
+    private void createRecyclerView(final View root) {
         // Create recycler view
         recyclerView = (RecyclerView) root.findViewById(R.id.my_tours_recycler_view);
         recyclerView.setHasFixedSize(true);
@@ -101,8 +91,9 @@ public class MyToursFragment extends Fragment {
                     }
 
                     @Override
-                    public void navigateToViewTour() {
-                        Navigation.findNavController(requireView()).navigate(R.id.nav_view_tour, null);
+                    public void navigateToViewTour(int position) {
+                        Navigation.findNavController(requireView()).navigate(R.id.nav_nested_create_tour,
+                                new CreateTourFragmentArgs.Builder().setTourId(toursWithTourWps.get(position).tour.getTourId()).build().toBundle());
                     }
                 });
         recyclerView.setAdapter(mAdapter);
