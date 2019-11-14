@@ -3,6 +3,7 @@
     package="com.hal9000.tourmania">
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
     <application
         android:name=".TourManiaApplication"

@@ -22,8 +22,8 @@ public class MainActivity extends AppCompatActivity {
 
     private AppBarConfiguration mAppBarConfiguration;
     private boolean permissionAccessFineLocationAccepted = false;
-    private String [] permissions = {Manifest.permission.ACCESS_FINE_LOCATION};
-    private static final int REQUEST_ACESS_FINE_LOCATION_PERMISSION_ID = 100;
+    private String [] permissions = {Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.READ_EXTERNAL_STORAGE};
+    private static final int REQUEST_PERMISSIONS_ID = 100;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
         NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
         NavigationUI.setupWithNavController(navigationView, navController);
 
-        ActivityCompat.requestPermissions(this, permissions, REQUEST_ACESS_FINE_LOCATION_PERMISSION_ID);  // This call is asynchronous
+        ActivityCompat.requestPermissions(this, permissions, REQUEST_PERMISSIONS_ID);  // This call is asynchronous
     }
 
     @Override

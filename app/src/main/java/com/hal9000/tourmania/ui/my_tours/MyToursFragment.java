@@ -99,6 +99,11 @@ public class MyToursFragment extends Fragment {
                     public Context getContext() {
                         return requireContext();
                     }
+
+                    @Override
+                    public void navigateToViewTour() {
+                        Navigation.findNavController(requireView()).navigate(R.id.nav_view_tour, null);
+                    }
                 });
         recyclerView.setAdapter(mAdapter);
     }

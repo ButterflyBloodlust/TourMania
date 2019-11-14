@@ -23,5 +23,6 @@
     <string name="tracking_enabled">Tracking enabled</string>
     <string name="tracking_already_enabled">Tracking already enabled</string>
     <string name="title_tour_waypoints_list">Tour Waypoints</string>
+    <string name="title_view_tour">View Tour</string>
 
 </resources>

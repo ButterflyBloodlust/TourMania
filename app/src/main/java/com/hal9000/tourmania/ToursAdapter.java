@@ -16,6 +16,7 @@ import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.List;
 
+import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.RecyclerView;
 
 public class ToursAdapter extends RecyclerView.Adapter<ToursAdapter.MyViewHolder> {
@@ -75,6 +76,13 @@ public class ToursAdapter extends RecyclerView.Adapter<ToursAdapter.MyViewHolder
         else {
             holder.tourImage.setImageResource(R.drawable.ic_menu_gallery);
         }
+
+        holder.itemView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                callback.navigateToViewTour();
+            }
+        });
     }
 
     // Return the size of your dataset (invoked by the layout manager)
@@ -85,5 +93,6 @@ public class ToursAdapter extends RecyclerView.Adapter<ToursAdapter.MyViewHolder
 
     public interface ToursAdapterCallback {
         Context getContext();
+        void navigateToViewTour();
     }
 }
