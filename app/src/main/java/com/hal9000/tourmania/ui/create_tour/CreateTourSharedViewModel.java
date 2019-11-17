@@ -22,6 +22,8 @@ public class CreateTourSharedViewModel extends ViewModel {
     private ArrayList<TourWpWithPicPaths> tourWaypointList = new ArrayList<TourWpWithPicPaths>();
     private int choosenLocateWaypointIndex = -1;
     private boolean loadedFromDb = false;
+    private boolean editingEnabled = true;
+    private boolean editingInitialised = false;
 
     public CreateTourSharedViewModel() {
         //Log.d("crashTest", "CreateTourSharedViewModel.CreateTourSharedViewModel()");
@@ -88,6 +90,21 @@ public class CreateTourSharedViewModel extends ViewModel {
                 }
             }
         });
+    }
+
+    public boolean isEditingEnabled() {
+        return editingEnabled;
+    }
+
+    public void setEditingEnabled(boolean editingEnabled) {
+        this.editingEnabled = editingEnabled;
+    }
+
+    public void setInitialEditingEnabled(boolean editingEnabled) {
+        if (!editingInitialised) {
+            this.editingEnabled = editingEnabled;
+            editingInitialised = true;
+        }
     }
 
     /*

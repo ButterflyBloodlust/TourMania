@@ -65,13 +65,6 @@ public class TourWaypointsListFragment extends Fragment {
         super.onActivityCreated(savedInstanceState);
     }
 
-    private void fillDataset(int arrSize) {
-        myDataset = new String[arrSize];
-        for (int i = 0, c = 0; i < arrSize; i++) {
-            myDataset[i] = Integer.toString(i);
-        }
-    }
-
     private void createRecyclerView(View root) {
         // Create recycler view
         recyclerView = (RecyclerView) root.findViewById(R.id.tour_waypoints_recycler_view);
@@ -107,12 +100,14 @@ public class TourWaypointsListFragment extends Fragment {
                     public Context getContext() {
                         return requireContext();
                     }
-                });
+                },
+                mViewModel);
         recyclerView.setAdapter(mAdapter);
         ItemTouchHelper.Callback callback =
                 new ItemTouchHelperCallback(mAdapter);
         ItemTouchHelper touchHelper = new ItemTouchHelper(callback);
-        touchHelper.attachToRecyclerView(recyclerView);
+        if (mViewModel.isEditingEnabled())
+            touchHelper.attachToRecyclerView(recyclerView);
     }
 
     @Override

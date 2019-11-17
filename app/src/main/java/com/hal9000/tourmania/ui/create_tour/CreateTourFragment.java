@@ -15,6 +15,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
@@ -141,10 +142,26 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
         // The callback can be enabled or disabled here or in handleOnBackPressed()
     }
 
+    /*
     @Override
     public void onCreateOptionsMenu(@NonNull Menu menu, MenuInflater inflater) {
         inflater.inflate(R.menu.create_tour_toolbar_menu, menu);
         super.onCreateOptionsMenu(menu, inflater);
+    }
+    */
+
+    @Override
+    public void onPrepareOptionsMenu(Menu menu) {
+        menu.clear();
+        MenuInflater inflater = requireActivity().getMenuInflater();
+        inflater.inflate(R.menu.main, menu);
+        if(createTourSharedViewModel.isEditingEnabled()) {
+            inflater.inflate(R.menu.create_tour_toolbar_menu, menu);
+        }
+        else {
+            inflater.inflate(R.menu.create_tour_toolbar_menu_editing_disabled, menu);
+        }
+        super.onPrepareOptionsMenu(menu);
     }
 
     @Override
@@ -181,6 +198,12 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                 intent.setType("image/*");
                 intent.setAction(Intent.ACTION_GET_CONTENT);
                 startActivityForResult(Intent.createChooser(intent, "Select image"), PICK_IMAGE_REQUEST_CODE);
+                return true;
+            case R.id.action_edit_tour:
+                createTourSharedViewModel.setEditingEnabled(true);
+                requireActivity().invalidateOptionsMenu();
+                enableEditing();
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -217,6 +240,31 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
         tourImageView.setMaxWidth(bmp.getWidth() * viewHeight / bmp.getHeight());
     }
 
+    private void disableEditText(EditText editText) {
+        editText.setFocusable(false);
+        editText.setFocusableInTouchMode(false);
+        editText.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
+        //editText.setEnabled(false);
+        editText.setCursorVisible(false);
+        editText.setTextColor(0xffffffff);
+    }
+
+    private void enableEditText(EditText editText) {
+        editText.setFocusable(true);
+        editText.setFocusableInTouchMode(true);
+        editText.setEnabled(true);
+        editText.setCursorVisible(true);
+        //editText.setKeyListener(null);
+        editText.setTextColor(0xffffffff);
+    }
+
+    private void enableEditing() {
+        View view = requireView();
+        enableEditText(((EditText)view.findViewById(R.id.text_input_edit_text_create_tour)));
+        enableEditText(((EditText)view.findViewById(R.id.textViewAnnotationText)));
+        view.findViewById(R.id.buttonDeleteAnnotation).setVisibility(View.VISIBLE);
+    }
+
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
@@ -237,6 +285,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
         int tourId = CreateTourFragmentArgs.fromBundle(getArguments()).getTourId();
         Log.d("crashTest", "tourId = " + Integer.toString(tourId));
         if (tourId != -1) {
+            createTourSharedViewModel.setInitialEditingEnabled(false);
             Future future = createTourSharedViewModel.loadTourFromDb(tourId, requireContext());
             try {
                 future.get();
@@ -382,7 +431,8 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                             @Override
                             public boolean onMapLongClick(@NonNull LatLng point) {
                                 //Log.d("crashTest", "onMapLongClick()");
-                                addWaypoint(point);
+                                if (createTourSharedViewModel.isEditingEnabled())
+                                    addWaypoint(point);
 
                                 //PointF pointF = CreateTourFragment.this.mapboxMap.getProjection().toScreenLocation(point);
                                 //Toast.makeText(requireContext(), String.format("User clicked at: %s\n%s", point.toString(), pointF.toString()), Toast.LENGTH_LONG).show();
@@ -417,7 +467,8 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
         });
 
         // Handle annotation label updates.
-        ((EditText)view.findViewById(R.id.textViewAnnotationText)).setOnEditorActionListener(new TextView.OnEditorActionListener() {
+        EditText annotationTextEditText = ((EditText)view.findViewById(R.id.textViewAnnotationText));
+        annotationTextEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                 if (actionId == EditorInfo.IME_ACTION_DONE) {
@@ -444,6 +495,13 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                 return false;   // don't consume action (allow propagation)
             }
         });
+
+        // Disable option to edit text if not in editing mode
+        if (!createTourSharedViewModel.isEditingEnabled()) {
+            disableEditText(tourTitleEditText);
+            disableEditText(annotationTextEditText);
+            view.findViewById(R.id.buttonDeleteAnnotation).setVisibility(View.GONE);
+        }
 
         // Handle displaying tour waypoint images
         final ImageView tourImageView = (ImageView)requireView().findViewById(R.id.tour_image);

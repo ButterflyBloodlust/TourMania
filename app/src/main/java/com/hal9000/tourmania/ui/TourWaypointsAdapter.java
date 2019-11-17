@@ -19,6 +19,7 @@ import android.widget.TextView;
 
 import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.model.TourWpWithPicPaths;
+import com.hal9000.tourmania.ui.create_tour.CreateTourSharedViewModel;
 import com.hal9000.tourmania.ui.tour_waypoints_list.ItemTouchHelperAdapter;
 
 import org.jetbrains.annotations.NotNull;
@@ -34,6 +35,7 @@ public class TourWaypointsAdapter extends RecyclerView.Adapter<TourWaypointsAdap
     private ArrayList<TourWpWithPicPaths> mDataset;
     private TourWaypointsOnClickListener callbackOnClickListener;
     public boolean dragButtonPressed = false;
+    CreateTourSharedViewModel mViewModel;
 
     // Provide a reference to the views for each data item
     // Complex data items may need more than one view per item, and
@@ -57,9 +59,11 @@ public class TourWaypointsAdapter extends RecyclerView.Adapter<TourWaypointsAdap
 
     // Provide a suitable constructor (depends on the kind of dataset)
     public TourWaypointsAdapter(ArrayList<TourWpWithPicPaths> myDataset,
-                                TourWaypointsOnClickListener callbackOnClickListener) {
+                                TourWaypointsOnClickListener callbackOnClickListener,
+                                CreateTourSharedViewModel mViewModel) {
         mDataset = myDataset;
         this.callbackOnClickListener = callbackOnClickListener;
+        this.mViewModel = mViewModel;
     }
 
     // Create new views (invoked by the layout manager)
@@ -97,39 +101,57 @@ public class TourWaypointsAdapter extends RecyclerView.Adapter<TourWaypointsAdap
             holder.tourWpImage.setImageResource(R.drawable.ic_menu_gallery);
         }
 
-        // Handle annotation label updates.
-        holder.titleEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if (actionId == EditorInfo.IME_ACTION_DONE) {
-                    mDataset.get(holder.getAdapterPosition()).tourWaypoint.setTitle(v.getText().toString());
+        if (mViewModel.isEditingEnabled()) {
+            // Handle annotation label updates.
+            holder.titleEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+                @Override
+                public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                    if (actionId == EditorInfo.IME_ACTION_DONE) {
+                        mDataset.get(holder.getAdapterPosition()).tourWaypoint.setTitle(v.getText().toString());
+                    }
+                    return false;   // don't consume action (allow propagation)
                 }
-                return false;   // don't consume action (allow propagation)
-            }
-        });
-        holder.titleEditText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if (!hasFocus && holder.getAdapterPosition() >= 0) {
-                    mDataset.get(holder.getAdapterPosition()).tourWaypoint.setTitle(((TextView)v).getText().toString());
+            });
+            holder.titleEditText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                @Override
+                public void onFocusChange(View v, boolean hasFocus) {
+                    if (!hasFocus && holder.getAdapterPosition() >= 0) {
+                        mDataset.get(holder.getAdapterPosition()).tourWaypoint.setTitle(((TextView) v).getText().toString());
+                    }
                 }
-            }
-        });
+            });
+
+            // Handle adding tour waypoint images
+            holder.tourWpImage.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    callbackOnClickListener.pickPictureMainOnLongClick(holder.getAdapterPosition());
+                    return false;
+                }
+            });
+
+            // Handle row drag button (sets a flag when pressed and is furhter handled in ItemItemTouchHelperCallback)
+            holder.buttonDragRow.setOnTouchListener(new View.OnTouchListener() {
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    if (event.getAction() == MotionEvent.ACTION_DOWN)
+                        dragButtonPressed = true;
+                    else if (event.getAction() == MotionEvent.ACTION_UP)
+                        dragButtonPressed = false;
+                    return false;
+                }
+            });
+        }
+        else {
+            disableEditText(holder.titleEditText);
+            holder.buttonDragRow.setVisibility(View.GONE);
+        }
 
         // Handle show location button
         holder.buttonShowWaypointLocation.setOnClickListener(new ImageButton.OnClickListener() {
             @Override
             public void onClick(View v) {
                 callbackOnClickListener.locateWaypointOnClick(v, holder.getAdapterPosition());
-            }
-        });
-
-        // Handle adding tour waypoint images
-        holder.tourWpImage.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-                callbackOnClickListener.pickPictureMainOnLongClick(holder.getAdapterPosition());
-                return false;
             }
         });
 
@@ -140,18 +162,6 @@ public class TourWaypointsAdapter extends RecyclerView.Adapter<TourWaypointsAdap
                 String mainImgPath = mDataset.get(holder.getAdapterPosition()).tourWaypoint.getMainImgPath();
                 if (mainImgPath != null)
                     callbackOnClickListener.getContext().startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(mainImgPath)));
-            }
-        });
-
-        // Handle row drag button (sets a flag when pressed and is furhter handled in ItemItemTouchHelperCallback)
-        holder.buttonDragRow.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                if (event.getAction() == MotionEvent.ACTION_DOWN)
-                    dragButtonPressed = true;
-                else if (event.getAction() == MotionEvent.ACTION_UP)
-                    dragButtonPressed = false;
-                return false;
             }
         });
     }
@@ -191,5 +201,14 @@ public class TourWaypointsAdapter extends RecyclerView.Adapter<TourWaypointsAdap
 
     public boolean isDragButtonPressed() {
         return dragButtonPressed;
+    }
+
+    private void disableEditText(EditText editText) {
+        editText.setFocusable(false);
+        editText.setFocusableInTouchMode(false);
+        editText.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
+        //editText.setEnabled(false);
+        editText.setCursorVisible(false);
+        editText.setTextColor(0xffffffff);
     }
 }
