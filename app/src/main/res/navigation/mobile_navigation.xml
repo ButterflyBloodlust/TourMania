@@ -76,4 +76,14 @@
         android:name="com.hal9000.tourmania.ui.view_tour.ViewTourFragment"
         android:label="@string/title_view_tour"
         tools:layout="@layout/fragment_view_tour" />
+    <fragment
+        android:id="@+id/nav_sign_in"
+        android:name="com.hal9000.tourmania.ui.sign_in.SignInFragment"
+        android:label="@string/title_sign_in"
+        tools:layout="@layout/fragment_sign_in" />
+    <fragment
+        android:id="@+id/nav_sign_up"
+        android:name="com.hal9000.tourmania.ui.sign_up.SignUpFragment"
+        android:label="@string/title_sign_up"
+        tools:layout="@layout/fragment_sign_up" />
 </navigation>

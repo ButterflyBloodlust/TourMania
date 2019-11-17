@@ -15,6 +15,8 @@
     <string name="menu_join_tour">Join a Tour</string>
     <string name="menu_share">Share</string>
     <string name="menu_fav_tours">Favourite Tours</string>
+    <string name="menu_sign_in">Sign In</string>
+    <string name="menu_sign_up">Sign Up</string>
 
     <string name="title_create_tour">Create Tour</string>
     <string name="create_tour_title_hint_text">Title</string>
@@ -24,5 +26,7 @@
     <string name="tracking_already_enabled">Tracking already enabled</string>
     <string name="title_tour_waypoints_list">Tour Waypoints</string>
     <string name="title_view_tour">View Tour</string>
+    <string name="title_sign_in">Sign In</string>
+    <string name="title_sign_up">Sign Up</string>
 
 </resources>

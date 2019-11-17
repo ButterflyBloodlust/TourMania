@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
@@ -36,6 +37,23 @@ public class HomeFragment extends Fragment {
                 //Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG).setAction("Action", null).show();
             }
         });
+
+        Button singInButton = root.findViewById(R.id.button_sign_in);
+        singInButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Navigation.findNavController(view).navigate(R.id.nav_sign_in, null);
+            }
+        });
+
+        Button singUpButton = root.findViewById(R.id.button_sign_up);
+        singUpButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Navigation.findNavController(view).navigate(R.id.nav_sign_up, null);
+            }
+        });
+
         return root;
     }
 }
