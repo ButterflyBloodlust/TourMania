@@ -32,6 +32,8 @@ dependencies {
     implementation 'com.mapbox.mapboxsdk:mapbox-android-navigation:0.42.1'
     implementation 'com.mapbox.mapboxsdk:mapbox-android-navigation-ui:0.42.1'
     implementation 'com.squareup.retrofit2:retrofit:2.6.2'
+    implementation 'com.squareup.retrofit2:converter-gson:2.6.2'
+    implementation 'com.squareup.retrofit2:converter-scalars:2.6.2'
     implementation 'androidx.recyclerview:recyclerview:1.0.0'
     implementation 'androidx.cardview:cardview:1.0.0'
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
