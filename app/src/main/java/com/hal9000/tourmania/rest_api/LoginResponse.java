@@ -5,6 +5,6 @@ import com.google.gson.annotations.SerializedName;
 
 public class LoginResponse {
     @SerializedName("data") @Expose
-    private LoginResponseData data;
+    public LoginResponseData data;
 }
 

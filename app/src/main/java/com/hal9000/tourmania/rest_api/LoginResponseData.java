@@ -7,8 +7,8 @@ import androidx.annotation.Nullable;
 
 public class LoginResponseData {
     @SerializedName("token") @Expose @Nullable
-    private String token;
+    public String token;
 
     @SerializedName("error_msg") @Expose @Nullable
-    private String errorMsg;
+    public String errorMsg;
 }

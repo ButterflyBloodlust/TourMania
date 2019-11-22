@@ -18,6 +18,7 @@
     <string name="menu_fav_tours">Favourite Tours</string>
     <string name="menu_sign_in">Sign In</string>
     <string name="menu_sign_up">Sign Up</string>
+    <string name="menu_sign_out">Sign Out</string>
 
     <string name="title_create_tour">Create Tour</string>
     <string name="create_tour_title_hint_text">Title</string>

@@ -16,7 +16,10 @@ import androidx.navigation.Navigation;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
+import com.hal9000.tourmania.AppUtils;
+import com.hal9000.tourmania.MainActivity;
 import com.hal9000.tourmania.R;
+import com.hal9000.tourmania.SharedPrefUtils;
 
 public class HomeFragment extends Fragment {
 
@@ -38,21 +41,27 @@ public class HomeFragment extends Fragment {
             }
         });
 
-        Button singInButton = root.findViewById(R.id.button_sign_in);
-        singInButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Navigation.findNavController(view).navigate(R.id.nav_sign_in, null);
-            }
-        });
+        if (!AppUtils.isUserLoggedIn(requireContext())) {
+            Button singInButton = root.findViewById(R.id.button_sign_in);
+            Button singUpButton = root.findViewById(R.id.button_sign_up);
 
-        Button singUpButton = root.findViewById(R.id.button_sign_up);
-        singUpButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Navigation.findNavController(view).navigate(R.id.nav_sign_up, null);
-            }
-        });
+            singInButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    Navigation.findNavController(view).navigate(R.id.nav_sign_in, null);
+                }
+            });
+
+            singUpButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    Navigation.findNavController(view).navigate(R.id.nav_sign_up, null);
+                }
+            });
+
+            singInButton.setVisibility(View.VISIBLE);
+            singUpButton.setVisibility(View.VISIBLE);
+        }
 
         return root;
     }

@@ -86,4 +86,10 @@
         android:name="com.hal9000.tourmania.ui.sign_up.SignUpFragment"
         android:label="@string/title_sign_up"
         tools:layout="@layout/fragment_sign_up" />
+    <action
+        android:id="@+id/action_global_nav_home"
+        app:destination="@id/nav_home"
+        app:popUpTo="@id/nav_home"
+        app:popUpToInclusive="true"
+        app:launchSingleTop="true" />
 </navigation>

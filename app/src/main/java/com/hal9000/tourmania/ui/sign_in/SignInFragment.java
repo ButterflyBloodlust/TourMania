@@ -26,7 +26,10 @@ import android.widget.Button;
 import android.widget.Toast;
 
 import com.google.android.material.textfield.TextInputEditText;
+import com.hal9000.tourmania.AppUtils;
+import com.hal9000.tourmania.MainActivity;
 import com.hal9000.tourmania.R;
+import com.hal9000.tourmania.SharedPrefUtils;
 import com.hal9000.tourmania.rest_api.LoginController;
 import com.hal9000.tourmania.rest_api.LoginResponse;
 import com.hal9000.tourmania.rest_api.RestClient;
@@ -61,10 +64,11 @@ public class SignInFragment extends Fragment {
                         @EverythingIsNonNull
                         public void onResponse(Call<LoginResponse> call, Response<LoginResponse> response) {
                             if (response.isSuccessful()) {
-                                LoginResponse rss = response.body();
-                                // TODO process login
-                                hideSoftKeyboard();
+                                LoginResponse loginResponse = response.body();
+                                SharedPrefUtils.putString(requireContext(), MainActivity.getLoginTokenKey(), loginResponse.data.token);
+                                AppUtils.hideSoftKeyboard(requireActivity());
                                 Toast.makeText(requireContext(),"Logged in", Toast.LENGTH_SHORT).show();
+                                AppUtils.updateUserAccDrawer(requireActivity());
                                 Navigation.findNavController(requireView()).popBackStack();
                             } else {
                                 //System.out.println(response.errorBody());
@@ -82,11 +86,6 @@ public class SignInFragment extends Fragment {
             }
         });
         return root;
-    }
-
-    private void hideSoftKeyboard() {
-        InputMethodManager inputMethodManager = (InputMethodManager) getActivity().getSystemService(Activity.INPUT_METHOD_SERVICE);
-        inputMethodManager.hideSoftInputFromWindow(getActivity().getCurrentFocus().getWindowToken(), 0);
     }
 
     @Override

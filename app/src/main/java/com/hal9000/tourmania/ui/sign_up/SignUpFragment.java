@@ -24,6 +24,7 @@ import android.widget.Button;
 import android.widget.Toast;
 
 import com.google.android.material.textfield.TextInputEditText;
+import com.hal9000.tourmania.AppUtils;
 import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.rest_api.LoginResponse;
 import com.hal9000.tourmania.rest_api.RestClient;
@@ -68,7 +69,7 @@ public class SignUpFragment extends Fragment {
                                 if (response.isSuccessful()) {
                                     SignUpResponse rss = response.body();
                                     // TODO process registration
-                                    hideSoftKeyboard();
+                                    AppUtils.hideSoftKeyboard(requireActivity());
                                     Toast.makeText(requireContext(),"Signed up", Toast.LENGTH_SHORT).show();
                                     Navigation.findNavController(requireView()).popBackStack();
                                 } else {
@@ -88,11 +89,6 @@ public class SignUpFragment extends Fragment {
             }
         });
         return root;
-    }
-
-    private void hideSoftKeyboard() {
-        InputMethodManager inputMethodManager = (InputMethodManager) getActivity().getSystemService(Activity.INPUT_METHOD_SERVICE);
-        inputMethodManager.hideSoftInputFromWindow(getActivity().getCurrentFocus().getWindowToken(), 0);
     }
 
     @Override

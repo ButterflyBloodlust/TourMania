@@ -46,6 +46,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.hal9000.tourmania.AppUtils;
 import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.database.AppDatabase;
 import com.hal9000.tourmania.model.Tour;
@@ -680,6 +681,9 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
     public void onPause() {
         super.onPause();
         mapView.onPause();
+        FragmentActivity fragmentActivity = getActivity();
+        if (fragmentActivity != null && !fragmentActivity.isChangingConfigurations())
+            AppUtils.hideSoftKeyboard(requireActivity());
     }
 
     @Override

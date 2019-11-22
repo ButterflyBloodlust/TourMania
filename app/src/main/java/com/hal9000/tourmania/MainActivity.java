@@ -4,6 +4,7 @@ import android.Manifest;
 import android.os.Bundle;
 
 import androidx.core.app.ActivityCompat;
+import androidx.core.view.GravityCompat;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
@@ -16,14 +17,17 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
+import android.os.Handler;
+import android.util.Log;
 import android.view.Menu;
+import android.view.MenuItem;
 
 public class MainActivity extends AppCompatActivity {
 
     private AppBarConfiguration mAppBarConfiguration;
-    private boolean permissionAccessFineLocationAccepted = false;
     private String [] permissions = {Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.READ_EXTERNAL_STORAGE};
     private static final int REQUEST_PERMISSIONS_ID = 100;
+    private static String LOGIN_TOKEN_KEY = "login_token";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,7 +49,29 @@ public class MainActivity extends AppCompatActivity {
         NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
         NavigationUI.setupWithNavController(navigationView, navController);
 
+        navigationView.getMenu().findItem(R.id.sign_out).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                SharedPrefUtils.removeItem(getBaseContext(), getLoginTokenKey());
+                DrawerLayout drawer = findViewById(R.id.drawer_layout);
+                drawer.closeDrawer(GravityCompat.START);
+                AppUtils.updateUserAccDrawer(MainActivity.this);
+                Navigation.findNavController(MainActivity.this, R.id.nav_host_fragment).navigate(
+                        MobileNavigationDirections.actionGlobalNavHome()
+                );
+                return false;
+            }
+        });
+
         ActivityCompat.requestPermissions(this, permissions, REQUEST_PERMISSIONS_ID);  // This call is asynchronous
+
+        // Make sure KeyStore keys are generated, so that UI isn't stalled when they are needed later on in the app
+        new Handler().post(new Runnable() {
+            @Override
+            public void run() {
+                SharedPrefUtils.generateKeys(getBaseContext());
+            }
+        });
     }
 
     @Override
@@ -61,4 +87,15 @@ public class MainActivity extends AppCompatActivity {
         return NavigationUI.navigateUp(navController, mAppBarConfiguration)
                 || super.onSupportNavigateUp();
     }
+
+    public static String getLoginTokenKey() {
+        return LOGIN_TOKEN_KEY;
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        AppUtils.updateUserAccDrawer(this);
+    }
+
 }
