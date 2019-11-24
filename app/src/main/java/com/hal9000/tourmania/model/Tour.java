@@ -21,6 +21,7 @@ public class Tour {
     @ColumnInfo(name = "title")
     private String title;
 
+    @Exclude
     @ColumnInfo(name = "img_path")
     private String tourImgPath;
 
@@ -31,7 +32,6 @@ public class Tour {
     @ColumnInfo(name = "server_synced")
     private boolean serverSynced = false;
 
-    @SerializationExclude
     @SerializedName("trSrvrId")
     @ColumnInfo(name = "server_tour_id")
     private String serverTourId = "";

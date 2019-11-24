@@ -26,6 +26,7 @@ public abstract class RestClient {
                     .addConverterFactory(GsonConverterFactory.create(new GsonBuilder()
                             .setExclusionStrategies(new AnnotationExclusionStrategy())
                             .addSerializationExclusionStrategy(new AnnotationSerializationExclusionStrategy())
+                            //.serializeNulls()
                             .create()));
 
     private static Retrofit retrofit = builder.build();

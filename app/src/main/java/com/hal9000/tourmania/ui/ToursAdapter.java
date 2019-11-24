@@ -7,10 +7,12 @@ import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.hal9000.tourmania.R;
+import com.hal9000.tourmania.database.AppDatabase;
 import com.hal9000.tourmania.model.TourWithWpWithPaths;
 
 import java.io.FileNotFoundException;
@@ -30,10 +32,12 @@ public class ToursAdapter extends RecyclerView.Adapter<ToursAdapter.MyViewHolder
         // each data item is just a string in this case
         public TextView textView;
         public ImageView tourImage;
+        public ImageButton deleteImageButton;
         public MyViewHolder(View v) {
             super(v);
             textView = v.findViewById(R.id.tour_title);
             tourImage = v.findViewById(R.id.tour_list_image);
+            deleteImageButton = v.findViewById(R.id.buttonDeleteTour);
         }
     }
 
@@ -80,6 +84,22 @@ public class ToursAdapter extends RecyclerView.Adapter<ToursAdapter.MyViewHolder
             @Override
             public void onClick(View v) {
                 callback.navigateToViewTour(holder.getAdapterPosition());
+            }
+        });
+
+        holder.deleteImageButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                final TourWithWpWithPaths tourWithWpWithPaths = mDataset.remove(holder.getAdapterPosition());
+                notifyItemRemoved(holder.getAdapterPosition());
+                AppDatabase.databaseWriteExecutor.submit(new Runnable() {
+                    @Override
+                    public void run() {
+                        //Log.d("crashTest", "run()");
+                        AppDatabase appDatabase = AppDatabase.getInstance(callback.getContext());
+                        appDatabase.tourDAO().deleteTourWp(tourWithWpWithPaths.tour);
+                    }
+                });
             }
         });
     }

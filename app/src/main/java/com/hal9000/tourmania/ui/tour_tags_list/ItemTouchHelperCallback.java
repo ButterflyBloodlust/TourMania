@@ -1,13 +1,8 @@
 package com.hal9000.tourmania.ui.tour_tags_list;
 
-import org.jetbrains.annotations.NotNull;
-
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
-import retrofit2.internal.EverythingIsNonNull;
-
-import static androidx.recyclerview.widget.ItemTouchHelper.ACTION_STATE_DRAG;
 
 public class ItemTouchHelperCallback extends ItemTouchHelper.Callback {
 

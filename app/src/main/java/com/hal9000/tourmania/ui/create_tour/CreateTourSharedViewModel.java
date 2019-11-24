@@ -1,10 +1,13 @@
 package com.hal9000.tourmania.ui.create_tour;
 
 import android.content.Context;
+import android.net.Uri;
+import android.os.Environment;
 import android.util.Log;
 import android.widget.Toast;
 
 import com.hal9000.tourmania.AppUtils;
+import com.hal9000.tourmania.FileUtil;
 import com.hal9000.tourmania.MainActivity;
 import com.hal9000.tourmania.SharedPrefUtils;
 import com.hal9000.tourmania.database.AppDatabase;
@@ -19,7 +22,9 @@ import com.hal9000.tourmania.rest_api.SignUpResponse;
 import com.hal9000.tourmania.rest_api.TourSave;
 import com.hal9000.tourmania.rest_api.TourUpsertResponse;
 import com.hal9000.tourmania.rest_api.UserSignUp;
+import com.mapbox.android.core.FileUtils;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -28,6 +33,7 @@ import java.util.concurrent.Future;
 
 import androidx.lifecycle.ViewModel;
 import androidx.navigation.Navigation;
+import id.zelory.compressor.Compressor;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -106,6 +112,7 @@ public class CreateTourSharedViewModel extends ViewModel {
 
     private void saveTourToServerDb(final Context context) {
         TourSave client = RestClient.createService(TourSave.class, SharedPrefUtils.getString(context, MainActivity.getLoginTokenKey()));
+        compressMainTourImg(context);
         Call<TourUpsertResponse> call = client.upsertTour(new TourWithWpWithPaths(tour, tourTagsList, tourWaypointList));
         call.enqueue(new Callback<TourUpsertResponse>() {
             @Override
@@ -135,6 +142,28 @@ public class CreateTourSharedViewModel extends ViewModel {
                 //Log.d("crashTest", "saveTourToServerDb onFailure()");
             }
         });
+    }
+
+    private void compressMainTourImg(final Context context) {
+        String mainImgPath = tour.getTourImgPath();
+        if (mainImgPath != null) {
+            try {
+                File originalImageFile = FileUtil.from(context, Uri.parse(mainImgPath));
+
+                String dirPath = context.getFilesDir().getAbsolutePath() + File.separator + "TourPictures";
+                File projDir = new File(dirPath);
+                if (!projDir.exists())
+                    projDir.mkdirs();
+
+                File compressedImageFile = new Compressor(context)
+                        .setDestinationDirectoryPath(projDir.getAbsolutePath())
+                        .compressToFile(originalImageFile);
+                Log.d("crashTest", "compressMainTourImg(): " + compressedImageFile.getName());
+            } catch (IOException e) {
+                e.printStackTrace();
+                Log.d("crashTest", "compressMainTourImg() IOException");
+            }
+        }
     }
 
     public Future loadTourFromDb(final int tourId, final Context context) {
