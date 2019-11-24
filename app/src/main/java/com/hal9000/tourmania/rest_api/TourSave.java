@@ -8,5 +8,5 @@ import retrofit2.http.POST;
 
 public interface TourSave {
     @POST("tour/upsert/")
-    Call<Void> upsertTour(@Body TourWithWpWithPaths tourWithWpWithPaths);
+    Call<TourUpsertResponse> upsertTour(@Body TourWithWpWithPaths tourWithWpWithPaths);
 }

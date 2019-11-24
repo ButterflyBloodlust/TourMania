@@ -1,7 +1,9 @@
 package com.hal9000.tourmania.model;
 
 import com.google.gson.annotations.Expose;
+import com.google.gson.annotations.SerializedName;
 import com.hal9000.tourmania.rest_api.Exclude;
+import com.hal9000.tourmania.rest_api.SerializationExclude;
 
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
@@ -28,6 +30,11 @@ public class Tour {
     @Exclude
     @ColumnInfo(name = "server_synced")
     private boolean serverSynced = false;
+
+    @SerializationExclude
+    @SerializedName("trSrvrId")
+    @ColumnInfo(name = "server_tour_id")
+    private String serverTourId = "";
 
     public Tour() {}
 
@@ -76,5 +83,13 @@ public class Tour {
 
     public void setServerSynced(boolean serverSynced) {
         this.serverSynced = serverSynced;
+    }
+
+    public String getServerTourId() {
+        return serverTourId;
+    }
+
+    public void setServerTourId(String serverTourId) {
+        this.serverTourId = serverTourId;
     }
 }

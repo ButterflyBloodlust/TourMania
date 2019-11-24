@@ -50,7 +50,6 @@ public class ToursAdapter extends RecyclerView.Adapter<ToursAdapter.MyViewHolder
         // create a new view
         View v = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.tour_rec_view_row, parent, false);
-        //...
         MyViewHolder vh = new MyViewHolder(v);
         return vh;
     }

@@ -9,6 +9,7 @@ import com.hal9000.tourmania.MainActivity;
 import com.hal9000.tourmania.SharedPrefUtils;
 import com.hal9000.tourmania.database.AppDatabase;
 import com.hal9000.tourmania.model.Tour;
+import com.hal9000.tourmania.model.TourTag;
 import com.hal9000.tourmania.model.TourWaypoint;
 import com.hal9000.tourmania.model.TourWithWpWithPaths;
 import com.hal9000.tourmania.model.TourWpWithPicPaths;
@@ -16,6 +17,7 @@ import com.hal9000.tourmania.rest_api.LoginResponse;
 import com.hal9000.tourmania.rest_api.RestClient;
 import com.hal9000.tourmania.rest_api.SignUpResponse;
 import com.hal9000.tourmania.rest_api.TourSave;
+import com.hal9000.tourmania.rest_api.TourUpsertResponse;
 import com.hal9000.tourmania.rest_api.UserSignUp;
 
 import java.io.IOException;
@@ -35,7 +37,8 @@ import retrofit2.internal.EverythingIsNonNull;
 public class CreateTourSharedViewModel extends ViewModel {
 
     private Tour tour = new Tour();
-    private ArrayList<TourWpWithPicPaths> tourWaypointList = new ArrayList<TourWpWithPicPaths>();
+    private ArrayList<TourWpWithPicPaths> tourWaypointList = new ArrayList<>();
+    private ArrayList<TourTag> tourTagsList = new ArrayList<>();
     private int choosenLocateWaypointIndex = -1;
     private boolean loadedFromDb = false;
     private boolean editingEnabled = true;
@@ -79,12 +82,12 @@ public class CreateTourSharedViewModel extends ViewModel {
             public void run() {
                 //Log.d("crashTest", "run()");
                 AppDatabase appDatabase = AppDatabase.getInstance(context);
-                long tourId = appDatabase.tourDAO().insertTour(getTour());
-                getTour().setTourId((int)tourId);
+                int tourId = (int)appDatabase.tourDAO().insertTour(getTour());
+                getTour().setTourId(tourId);
                 LinkedList<TourWaypoint> tourWps = new LinkedList<>();
                 for (int i = 0; i < tourWaypointList.size(); i++) {
                     TourWaypoint tourWaypoint = tourWaypointList.get(i).tourWaypoint;
-                    tourWaypoint.setTourId((int)tourId);
+                    tourWaypoint.setTourId(tourId);
                     tourWaypoint.setWpOrder(i);
                     tourWps.addLast(tourWaypoint);
                 }
@@ -92,25 +95,30 @@ public class CreateTourSharedViewModel extends ViewModel {
                 for (int i = 0; i < wpsIds.length; i++) {
                     tourWaypointList.get(i).tourWaypoint.setTourWpId((int)wpsIds[i]);
                 }
-                //List<Tour> toursWithTourWps = AppDatabase.getInstance(requireContext()).tourDAO().getTours();
-                //List<TourWithWpWithPaths> toursWithTourWps = appDatabase.tourWaypointDAO().getToursWithTourWps();
-                //Log.d("crashTest", Integer.toString(toursWithTourWps.size()));
+
+                for (TourTag tourTag : tourTagsList) {
+                    tourTag.setTourId(tourId);
+                }
+                appDatabase.tourTagDAO().insertTourTags(tourTagsList);
             }
         });
     }
 
     private void saveTourToServerDb(final Context context) {
         TourSave client = RestClient.createService(TourSave.class, SharedPrefUtils.getString(context, MainActivity.getLoginTokenKey()));
-        Call<Void> call = client.upsertTour(new TourWithWpWithPaths(tour, tourWaypointList));
-        call.enqueue(new Callback<Void>() {
+        Call<TourUpsertResponse> call = client.upsertTour(new TourWithWpWithPaths(tour, tourTagsList, tourWaypointList));
+        call.enqueue(new Callback<TourUpsertResponse>() {
             @Override
             @EverythingIsNonNull
-            public void onResponse(Call<Void> call, Response<Void> response) {
+            public void onResponse(Call<TourUpsertResponse> call, final Response<TourUpsertResponse> response) {
                 if (response.isSuccessful()) {
                     AppDatabase.databaseWriteExecutor.submit(new Runnable() {
                         @Override
                         public void run() {
                             tour.setServerSynced(true);
+                            TourUpsertResponse resp = response.body();
+                            if (resp != null && resp.tourServerId != null)
+                                tour.setServerTourId(resp.tourServerId);
                             AppDatabase appDatabase = AppDatabase.getInstance(context);
                             appDatabase.tourDAO().updateTour(tour);
                         }
@@ -122,7 +130,7 @@ public class CreateTourSharedViewModel extends ViewModel {
 
             @Override
             @EverythingIsNonNull
-            public void onFailure(Call<Void> call, Throwable t) {
+            public void onFailure(Call<TourUpsertResponse> call, Throwable t) {
                 t.printStackTrace();
                 //Log.d("crashTest", "saveTourToServerDb onFailure()");
             }
@@ -157,6 +165,10 @@ public class CreateTourSharedViewModel extends ViewModel {
             this.editingEnabled = editingEnabled;
             editingInitialised = true;
         }
+    }
+
+    public ArrayList<TourTag> getTourTagsList() {
+        return tourTagsList;
     }
 
     /*

@@ -18,6 +18,13 @@ public class AppUtils {
             inputMethodManager.hideSoftInputFromWindow(currentFocus.getWindowToken(), 0);
     }
 
+    public static void showSoftKeyboard(FragmentActivity fragmentActivity) {
+        InputMethodManager inputMethodManager = (InputMethodManager) fragmentActivity.getSystemService(Activity.INPUT_METHOD_SERVICE);
+        View currentFocus = fragmentActivity.getCurrentFocus();
+        if (currentFocus != null)
+            inputMethodManager.showSoftInput(currentFocus, 0);
+    }
+
     public static boolean isUserLoggedIn(Context context) {
         return SharedPrefUtils.getString(context, MainActivity.getLoginTokenKey()) != null;
     }

@@ -82,7 +82,7 @@ public class MyToursFragment extends Fragment {
         layoutManager = new LinearLayoutManager(getContext());
         recyclerView.setLayoutManager(layoutManager);
 
-        // specify an adapter (see also next example)
+        // specify an adapter
         mAdapter = new ToursAdapter(toursWithTourWps,
                 new ToursAdapter.ToursAdapterCallback() {
                     @Override

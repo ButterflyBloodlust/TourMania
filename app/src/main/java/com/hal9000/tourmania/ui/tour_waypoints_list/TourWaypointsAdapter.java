@@ -1,4 +1,4 @@
-package com.hal9000.tourmania.ui;
+package com.hal9000.tourmania.ui.tour_waypoints_list;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -20,7 +20,6 @@ import android.widget.TextView;
 import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.model.TourWpWithPicPaths;
 import com.hal9000.tourmania.ui.create_tour.CreateTourSharedViewModel;
-import com.hal9000.tourmania.ui.tour_waypoints_list.ItemTouchHelperAdapter;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -73,7 +72,6 @@ public class TourWaypointsAdapter extends RecyclerView.Adapter<TourWaypointsAdap
         // create a new view
         View v = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.tour_waypoints_rec_view_row, parent, false);
-        //...
         MyViewHolder vh = new MyViewHolder(v);
         return vh;
     }

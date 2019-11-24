@@ -22,7 +22,6 @@ import android.view.ViewGroup;
 import android.widget.Toast;
 
 import com.hal9000.tourmania.R;
-import com.hal9000.tourmania.ui.TourWaypointsAdapter;
 import com.hal9000.tourmania.ui.create_tour.CreateTourSharedViewModel;
 import com.hal9000.tourmania.ui.create_tour.CreateTourSharedViewModelFactory;
 
@@ -33,7 +32,6 @@ public class TourWaypointsListFragment extends Fragment {
     private RecyclerView recyclerView;
     private TourWaypointsAdapter mAdapter;
     private RecyclerView.LayoutManager layoutManager;
-    private String[] myDataset;
 
     private static int PICK_IMAGE_REQUEST_CODE = 0xf000;   // used with bitmask to encode up to ‭4095‬ positions
     private static String ADAPTER_POSITION_INTENT_EXTRA_ID = "item_position";
@@ -73,7 +71,7 @@ public class TourWaypointsListFragment extends Fragment {
         layoutManager = new LinearLayoutManager(getContext());
         recyclerView.setLayoutManager(layoutManager);
 
-        // specify an adapter (see also next example)
+        // specify an adapter
         mAdapter = new TourWaypointsAdapter(mViewModel.getTourWaypointList(),
                 new TourWaypointsAdapter.TourWaypointsOnClickListener() {
                     @Override

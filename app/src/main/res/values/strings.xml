@@ -8,6 +8,7 @@
     <string name="action_settings">Settings</string>
     <string name="action_save_route">Save route</string>
     <string name="action_add_tour_image">Add tour image</string>
+    <string name="action_edit_tags">Edit tags</string>
     <string name="action_edit_tour">Edit tour</string>
 
     <string name="menu_home">Home</string>
@@ -27,6 +28,7 @@
     <string name="tracking_enabled">Tracking enabled</string>
     <string name="tracking_already_enabled">Tracking already enabled</string>
     <string name="title_tour_waypoints_list">Tour Waypoints</string>
+    <string name="title_tour_tags_list">Tour Tags</string>
     <string name="title_view_tour">View Tour</string>
     <string name="title_sign_in">Sign In</string>
     <string name="title_sign_up">Sign Up</string>

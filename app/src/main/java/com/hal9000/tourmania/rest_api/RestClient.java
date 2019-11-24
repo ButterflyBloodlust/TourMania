@@ -23,7 +23,10 @@ public abstract class RestClient {
             new Retrofit.Builder()
                     .baseUrl(API_BASE_URL)
                     .addConverterFactory(ScalarsConverterFactory.create())
-                    .addConverterFactory(GsonConverterFactory.create(new GsonBuilder().setExclusionStrategies(new AnnotationExclusionStrategy()).create()));
+                    .addConverterFactory(GsonConverterFactory.create(new GsonBuilder()
+                            .setExclusionStrategies(new AnnotationExclusionStrategy())
+                            .addSerializationExclusionStrategy(new AnnotationSerializationExclusionStrategy())
+                            .create()));
 
     private static Retrofit retrofit = builder.build();
 

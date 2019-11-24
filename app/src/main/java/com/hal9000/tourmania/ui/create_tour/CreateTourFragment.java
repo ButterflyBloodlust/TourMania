@@ -194,6 +194,9 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                         .setNegativeButton("No", null)
                         .show();
                 return true;
+            case R.id.action_edit_tags:
+                Navigation.findNavController(requireView()).navigate(R.id.tourTagsListFragment, null);
+                return true;
             case R.id.action_add_tour_image:
                 Intent intent = new Intent();
                 intent.setType("image/*");

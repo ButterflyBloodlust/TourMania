@@ -13,14 +13,19 @@ public class TourWithWpWithPaths {
     @SerializedName("tour")
     public Tour tour;
 
+    @SerializedName("tags")
+    @Relation(parentColumn = "id", entityColumn = "tour_id", entity=TourTag.class)
+    public List<TourTag> tourTags;
+
     @SerializedName("wpsWPics")
     @Relation(parentColumn = "id", entityColumn = "tour_id", entity=TourWaypoint.class)
     public List<TourWpWithPicPaths> _tourWpsWithPicPaths;
 
     public TourWithWpWithPaths () {}
 
-    public TourWithWpWithPaths(Tour tour, List<TourWpWithPicPaths> tourWpsWithPicPaths) {
+    public TourWithWpWithPaths(Tour tour, List<TourTag> tourTags, List<TourWpWithPicPaths> tourWpsWithPicPaths) {
         this.tour = tour;
+        this.tourTags = tourTags;
         this._tourWpsWithPicPaths = tourWpsWithPicPaths;
     }
 

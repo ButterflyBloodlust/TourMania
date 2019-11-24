@@ -10,11 +10,10 @@ import androidx.room.PrimaryKey;
 
 @Entity(tableName = "PicturePaths",
         foreignKeys = @ForeignKey(entity = TourWaypoint.class,
-        parentColumns = "id",
-        childColumns = "tour_wp_id",
-        onDelete = ForeignKey.CASCADE),
+                parentColumns = "id",
+                childColumns = "tour_wp_id",
+                onDelete = ForeignKey.CASCADE),
         indices=@Index(value="tour_wp_id"))
-
 public class PicturePath {
 
     @Exclude

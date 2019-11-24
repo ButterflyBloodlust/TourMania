@@ -69,6 +69,11 @@
             android:name="com.hal9000.tourmania.ui.tour_waypoints_list.TourWaypointsListFragment"
             android:label="@string/title_tour_waypoints_list"
             tools:layout="@layout/fragment_tour_waypoints_list" />
+        <fragment
+            android:id="@+id/tourTagsListFragment"
+            android:name="com.hal9000.tourmania.ui.tour_tags_list.TourTagsListFragment"
+            android:label="@string/title_tour_tags_list"
+            tools:layout="@layout/fragment_tour_tags_list" />
     </navigation>
 
     <fragment
