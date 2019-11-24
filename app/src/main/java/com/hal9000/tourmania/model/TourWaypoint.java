@@ -1,5 +1,7 @@
 package com.hal9000.tourmania.model;
 
+import com.hal9000.tourmania.rest_api.Exclude;
+
 import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
@@ -15,6 +17,7 @@ import androidx.room.PrimaryKey;
         indices=@Index(value="tour_id"))
 public class TourWaypoint implements Comparable<TourWaypoint>{
 
+    @Exclude
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
     private int tourWpId;
@@ -31,6 +34,7 @@ public class TourWaypoint implements Comparable<TourWaypoint>{
     @ColumnInfo(name = "main_img_path")
     private String mainImgPath;
 
+    @Exclude
     @ColumnInfo(name = "tour_id")
     private int tourId;
 

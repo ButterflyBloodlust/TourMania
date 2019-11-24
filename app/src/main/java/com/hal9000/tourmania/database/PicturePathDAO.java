@@ -34,9 +34,4 @@ public interface PicturePathDAO {
 
     @Delete
     void deletePicPath(PicturePath picturePath);
-
-    //@Query("SELECT * FROM TourWaypoints WHERE id IN (SELECT DISTINCT(tour_wp_id) FROM PicturePaths)")
-    @Transaction
-    @Query("SELECT * FROM TourWaypoints")
-    List<TourWpWithPicPaths> getTourWpsWithPicPaths();
 }

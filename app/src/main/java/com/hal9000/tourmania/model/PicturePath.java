@@ -1,5 +1,7 @@
 package com.hal9000.tourmania.model;
 
+import com.hal9000.tourmania.rest_api.Exclude;
+
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.ForeignKey;
@@ -15,6 +17,7 @@ import androidx.room.PrimaryKey;
 
 public class PicturePath {
 
+    @Exclude
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
     private int id;
@@ -22,6 +25,7 @@ public class PicturePath {
     @ColumnInfo(name = "pic_path")
     private String picPath;
 
+    @Exclude
     @ColumnInfo(name = "tour_wp_id")
     private int tourWpId;
 

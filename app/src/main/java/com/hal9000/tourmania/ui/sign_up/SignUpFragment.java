@@ -49,8 +49,7 @@ public class SignUpFragment extends Fragment {
         singInButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Retrofit retrofit = RestClient.getInstance();
-                UserSignUp client = retrofit.create(UserSignUp.class);
+                UserSignUp client = RestClient.createService(UserSignUp.class);
                 View mainView = requireView();
                 Editable email = ((TextInputEditText) mainView.findViewById(R.id.text_input_edit_text_email)).getText();
                 Editable nickname = ((TextInputEditText) mainView.findViewById(R.id.text_input_edit_text_login)).getText();

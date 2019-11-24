@@ -1,8 +1,9 @@
 package com.hal9000.tourmania.ui.sign_in;
 
+import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.ViewModelProviders;
 
-import android.app.Activity;
+import android.content.Context;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -13,15 +14,12 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 import retrofit2.internal.EverythingIsNonNull;
 
 import android.text.Editable;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.Toast;
 
@@ -30,7 +28,6 @@ import com.hal9000.tourmania.AppUtils;
 import com.hal9000.tourmania.MainActivity;
 import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.SharedPrefUtils;
-import com.hal9000.tourmania.rest_api.LoginController;
 import com.hal9000.tourmania.rest_api.LoginResponse;
 import com.hal9000.tourmania.rest_api.RestClient;
 import com.hal9000.tourmania.rest_api.UserLogin;
@@ -52,8 +49,7 @@ public class SignInFragment extends Fragment {
         singInButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Retrofit retrofit = RestClient.getInstance();
-                UserLogin client = retrofit.create(UserLogin.class);
+                UserLogin client = RestClient.createService(UserLogin.class);
                 View mainView = requireView();
                 Editable username = ((TextInputEditText) mainView.findViewById(R.id.text_input_edit_text_login)).getText();
                 Editable passwd = ((TextInputEditText) mainView.findViewById(R.id.text_input_edit_text_password)).getText();
@@ -64,11 +60,13 @@ public class SignInFragment extends Fragment {
                         @EverythingIsNonNull
                         public void onResponse(Call<LoginResponse> call, Response<LoginResponse> response) {
                             if (response.isSuccessful()) {
+                                Context ctx = requireContext();
+                                FragmentActivity fragmentActivity = requireActivity();
                                 LoginResponse loginResponse = response.body();
-                                SharedPrefUtils.putString(requireContext(), MainActivity.getLoginTokenKey(), loginResponse.data.token);
-                                AppUtils.hideSoftKeyboard(requireActivity());
-                                Toast.makeText(requireContext(),"Logged in", Toast.LENGTH_SHORT).show();
-                                AppUtils.updateUserAccDrawer(requireActivity());
+                                SharedPrefUtils.putString(ctx, MainActivity.getLoginTokenKey(), loginResponse.data.token);
+                                AppUtils.hideSoftKeyboard(fragmentActivity);
+                                Toast.makeText(ctx,"Logged in", Toast.LENGTH_SHORT).show();
+                                AppUtils.updateUserAccDrawer(fragmentActivity);
                                 Navigation.findNavController(requireView()).popBackStack();
                             } else {
                                 //System.out.println(response.errorBody());

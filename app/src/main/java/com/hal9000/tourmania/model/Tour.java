@@ -1,12 +1,17 @@
 package com.hal9000.tourmania.model;
 
+import com.google.gson.annotations.Expose;
+import com.hal9000.tourmania.rest_api.Exclude;
+
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
+import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
 @Entity(tableName = "Tours")
 public class Tour {
 
+    @Exclude
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
     private int tourId;
@@ -20,8 +25,13 @@ public class Tour {
     @ColumnInfo(name = "rating")
     private float rating;
 
+    @Exclude
+    @ColumnInfo(name = "server_synced")
+    private boolean serverSynced = false;
+
     public Tour() {}
 
+    @Ignore
     public Tour(String title, String tourImgPath, float rating) {
         this.title = title;
         this.tourImgPath = tourImgPath;
@@ -58,5 +68,13 @@ public class Tour {
 
     public void setRating(float rating) {
         this.rating = rating;
+    }
+
+    public boolean isServerSynced() {
+        return serverSynced;
+    }
+
+    public void setServerSynced(boolean serverSynced) {
+        this.serverSynced = serverSynced;
     }
 }

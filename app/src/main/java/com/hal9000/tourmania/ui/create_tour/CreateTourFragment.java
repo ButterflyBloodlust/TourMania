@@ -284,7 +284,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
         createTourSharedViewModel = new ViewModelProvider(owner, factory).get(CreateTourSharedViewModel.class);
 
         int tourId = CreateTourFragmentArgs.fromBundle(getArguments()).getTourId();
-        Log.d("crashTest", "tourId = " + Integer.toString(tourId));
+        //Log.d("crashTest", "tourId = " + Integer.toString(tourId));
         if (tourId != -1) {
             createTourSharedViewModel.setInitialEditingEnabled(false);
             Future future = createTourSharedViewModel.loadTourFromDb(tourId, requireContext());

@@ -36,12 +36,8 @@ public interface TourWaypointDAO {
     @Delete
     void deleteTourWp(TourWaypoint tourWaypoint);
 
-    //@Query("SELECT * FROM Tours WHERE id IN (SELECT DISTINCT(tour_id) FROM TourWaypoints)")
+    //@Query("SELECT * FROM TourWaypoints WHERE id IN (SELECT DISTINCT(tour_wp_id) FROM PicturePaths)")
     @Transaction
-    @Query("SELECT * FROM Tours")
-    List<TourWithWpWithPaths> getToursWithTourWps();
-
-    @Transaction
-    @Query("SELECT * FROM Tours WHERE id = :tourId")
-    TourWithWpWithPaths getTourWithTourWps(int tourId);
+    @Query("SELECT * FROM TourWaypoints")
+    List<TourWpWithPicPaths> getTourWpsWithPicPaths();
 }

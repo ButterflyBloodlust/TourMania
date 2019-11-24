@@ -67,7 +67,7 @@ public class MyToursFragment extends Fragment {
                 //Log.d("crashTest", "run()");
                 AppDatabase appDatabase = AppDatabase.getInstance(requireContext());
                 //List<Tour> toursWithTourWps = AppDatabase.getInstance(requireContext()).tourDAO().getTours();
-                toursWithTourWps = appDatabase.tourWaypointDAO().getToursWithTourWps();
+                toursWithTourWps = appDatabase.tourDAO().getToursWithTourWps();
 
                 //Log.d("crashTest", Integer.toString(toursWithTourWps.size()));
             }
