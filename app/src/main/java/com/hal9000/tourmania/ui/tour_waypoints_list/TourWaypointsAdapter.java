@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.text.TextUtils;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -20,6 +21,7 @@ import android.widget.TextView;
 import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.model.TourWpWithPicPaths;
 import com.hal9000.tourmania.ui.create_tour.CreateTourSharedViewModel;
+import com.squareup.picasso.Picasso;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -86,7 +88,8 @@ public class TourWaypointsAdapter extends RecyclerView.Adapter<TourWaypointsAdap
 
         String mainImgPath = mDataset.get(position).tourWaypoint.getMainImgPath();
         //Log.d("crashTest", mainImgPath == null ? "null" : mainImgPath);
-        if (mainImgPath != null) {
+        if (!TextUtils.isEmpty(mainImgPath)) {
+            /*
             try {
                 InputStream inStream = callbackOnClickListener.getContext().getContentResolver().openInputStream(Uri.parse(mainImgPath));
                 Bitmap bmp = BitmapFactory.decodeStream(inStream);
@@ -94,6 +97,12 @@ public class TourWaypointsAdapter extends RecyclerView.Adapter<TourWaypointsAdap
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             }
+            */
+            // asynchronous image loading
+            Picasso.get() //
+                    .load(Uri.parse(mainImgPath)) //
+                    .fit() //
+                    .into(holder.tourWpImage);
         }
         else {
             holder.tourWpImage.setImageResource(R.drawable.ic_menu_gallery);

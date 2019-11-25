@@ -2,6 +2,8 @@ package com.hal9000.tourmania.ui;
 
 import android.content.Context;
 import android.net.Uri;
+import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -64,7 +66,7 @@ public class ToursAdapter extends RecyclerView.Adapter<ToursAdapter.MyViewHolder
 
         String mainImgPath = mDataset.get(position).tour.getTourImgPath();
         //Log.d("crashTest", mainImgPath == null ? "null" : mainImgPath);
-        if (mainImgPath != null) {
+        if (!TextUtils.isEmpty(mainImgPath)) {
             /*
             try {
                 InputStream inStream = callback.getContext().getContentResolver().openInputStream(Uri.parse(mainImgPath));

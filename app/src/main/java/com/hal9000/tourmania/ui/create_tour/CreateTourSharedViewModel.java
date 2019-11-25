@@ -3,6 +3,8 @@ package com.hal9000.tourmania.ui.create_tour;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Environment;
+import android.os.Handler;
+import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -112,7 +114,6 @@ public class CreateTourSharedViewModel extends ViewModel {
 
     private void saveTourToServerDb(final Context context) {
         TourSave client = RestClient.createService(TourSave.class, SharedPrefUtils.getString(context, MainActivity.getLoginTokenKey()));
-        compressMainTourImg(context);
         Call<TourUpsertResponse> call = client.upsertTour(new TourWithWpWithPaths(tour, tourTagsList, tourWaypointList));
         call.enqueue(new Callback<TourUpsertResponse>() {
             @Override
@@ -142,14 +143,25 @@ public class CreateTourSharedViewModel extends ViewModel {
                 //Log.d("crashTest", "saveTourToServerDb onFailure()");
             }
         });
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                // Compress and send tour images
+                compressMainTourImg(context, tour.getTourImgPath());
+                for (TourWpWithPicPaths tourWpWithPicPaths : tourWaypointList) {
+                    compressMainTourImg(context, tourWpWithPicPaths.tourWaypoint.getMainImgPath());
+                }
+            }
+        }).start();
     }
 
-    private void compressMainTourImg(final Context context) {
-        String mainImgPath = tour.getTourImgPath();
-        if (mainImgPath != null) {
+    private void compressMainTourImg(final Context context, String imgPath) {
+        if (!TextUtils.isEmpty(imgPath)) {
             try {
-                File originalImageFile = FileUtil.from(context, Uri.parse(mainImgPath));
-
+                File originalImageFile = FileUtil.from(context, Uri.parse(imgPath));
+                if (!originalImageFile.exists())
+                    return;
                 String dirPath = context.getFilesDir().getAbsolutePath() + File.separator + "TourPictures";
                 File projDir = new File(dirPath);
                 if (!projDir.exists())

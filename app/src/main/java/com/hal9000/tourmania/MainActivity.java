@@ -66,12 +66,12 @@ public class MainActivity extends AppCompatActivity {
         ActivityCompat.requestPermissions(this, permissions, REQUEST_PERMISSIONS_ID);  // This call is asynchronous
 
         // Make sure KeyStore keys are generated, so that UI isn't stalled when they are needed later on in the app
-        new Handler().post(new Runnable() {
+        new Thread(new Runnable() {
             @Override
             public void run() {
                 SharedPrefUtils.generateKeys(getBaseContext());
             }
-        });
+        }).start();
     }
 
     @Override
