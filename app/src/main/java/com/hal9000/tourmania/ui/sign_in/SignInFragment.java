@@ -27,6 +27,8 @@ import com.hal9000.tourmania.AppUtils;
 import com.hal9000.tourmania.MainActivity;
 import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.SharedPrefUtils;
+import com.hal9000.tourmania.database.AppDatabase;
+import com.hal9000.tourmania.model.User;
 import com.hal9000.tourmania.rest_api.login.LoginResponse;
 import com.hal9000.tourmania.rest_api.RestClient;
 import com.hal9000.tourmania.rest_api.login.UserLogin;
@@ -50,7 +52,7 @@ public class SignInFragment extends Fragment {
             public void onClick(View view) {
                 UserLogin client = RestClient.createService(UserLogin.class);
                 View mainView = requireView();
-                Editable username = ((TextInputEditText) mainView.findViewById(R.id.text_input_edit_text_login)).getText();
+                final Editable username = ((TextInputEditText) mainView.findViewById(R.id.text_input_edit_text_login)).getText();
                 Editable passwd = ((TextInputEditText) mainView.findViewById(R.id.text_input_edit_text_password)).getText();
                 if (username != null && passwd != null) {
                     Call<LoginResponse> call = client.login(username.toString(), passwd.toString());
@@ -63,6 +65,14 @@ public class SignInFragment extends Fragment {
                                 FragmentActivity fragmentActivity = requireActivity();
                                 LoginResponse loginResponse = response.body();
                                 SharedPrefUtils.putString(ctx, MainActivity.getLoginTokenKey(), loginResponse.data.token);
+                                SharedPrefUtils.putString(ctx, MainActivity.getUsernameKey(), username.toString());
+                                AppDatabase.databaseWriteExecutor.submit(
+                                        new Runnable() {
+                                            public void run() {
+                                                AppDatabase appDatabase = AppDatabase.getInstance(requireContext());
+                                                appDatabase.userDAO().insertUser(new User(username.toString()));
+                                            }
+                                        });
                                 AppUtils.hideSoftKeyboard(fragmentActivity);
                                 Toast.makeText(ctx,"Logged in", Toast.LENGTH_SHORT).show();
                                 AppUtils.updateUserAccDrawer(fragmentActivity);

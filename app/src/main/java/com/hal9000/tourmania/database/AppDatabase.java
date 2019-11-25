@@ -6,6 +6,7 @@ import com.hal9000.tourmania.model.PicturePath;
 import com.hal9000.tourmania.model.Tour;
 import com.hal9000.tourmania.model.TourTag;
 import com.hal9000.tourmania.model.TourWaypoint;
+import com.hal9000.tourmania.model.User;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -15,7 +16,7 @@ import androidx.room.Room;
 import androidx.room.RoomDatabase;
 
 
-@Database(entities = {Tour.class, TourWaypoint.class, PicturePath.class, TourTag.class}, version = 2, exportSchema = false)
+@Database(entities = {Tour.class, TourWaypoint.class, PicturePath.class, TourTag.class, User.class}, version = 2, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
     private static final String LOG_TAG = AppDatabase.class.getSimpleName();
     private static final Object LOCK = new Object();
@@ -41,4 +42,5 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract PicturePathDAO picturePathDAO();
     public abstract TourDAO tourDAO();
     public abstract TourTagDAO tourTagDAO();
+    public abstract UserDAO userDAO();
 }

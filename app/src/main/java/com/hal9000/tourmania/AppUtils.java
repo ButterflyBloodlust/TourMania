@@ -7,6 +7,17 @@ import android.view.inputmethod.InputMethodManager;
 import android.webkit.MimeTypeMap;
 
 import com.google.android.material.navigation.NavigationView;
+import com.hal9000.tourmania.database.AppDatabase;
+import com.hal9000.tourmania.model.Tour;
+import com.hal9000.tourmania.model.TourTag;
+import com.hal9000.tourmania.model.TourWaypoint;
+import com.hal9000.tourmania.model.TourWithWpWithPaths;
+import com.hal9000.tourmania.model.TourWpWithPicPaths;
+
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.Future;
 
 import androidx.fragment.app.FragmentActivity;
 
@@ -50,5 +61,36 @@ public class AppUtils {
             type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
         }
         return type;
+    }
+
+    public static Future<?> saveToursToLocalDb(final List<TourWithWpWithPaths> tourWithWpWithPathsList, final Context context) {
+        return AppDatabase.databaseWriteExecutor.submit(new Runnable() {
+            @Override
+            public void run() {
+                //Log.d("crashTest", "run()");
+                AppDatabase appDatabase = AppDatabase.getInstance(context);
+                ArrayList<Tour> tours = new ArrayList<>(tourWithWpWithPathsList.size());
+                for (TourWithWpWithPaths tourWithWpWithPaths : tourWithWpWithPathsList) {
+                    tours.add(tourWithWpWithPaths.tour);
+                }
+                long[] tourIds = appDatabase.tourDAO().insertTours(tours);
+
+                LinkedList<TourTag> tourTags = new LinkedList<>();
+                LinkedList<TourWaypoint> tourWaypoints = new LinkedList<>();
+                for (int i = 0; i < tourWithWpWithPathsList.size(); i++) {
+                    int tourId = (int) tourIds[i];
+                    for (TourTag tourTag : tourWithWpWithPathsList.get(i).tourTags) {
+                        tourTag.setTourId(tourId);
+                        tourTags.add(tourTag);
+                    }
+                    for (TourWpWithPicPaths tourWpWithPicPaths : tourWithWpWithPathsList.get(i)._tourWpsWithPicPaths) {
+                        tourWpWithPicPaths.tourWaypoint.setTourId(tourId);
+                        tourWaypoints.add(tourWpWithPicPaths.tourWaypoint);
+                    }
+                }
+                appDatabase.tourTagDAO().insertTourTags(tourTags);
+                appDatabase.tourWaypointDAO().insertTourWps(tourWaypoints);
+            }
+        });
     }
 }

@@ -29,6 +29,7 @@ public class MainActivity extends AppCompatActivity {
     private String [] permissions = {Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.READ_EXTERNAL_STORAGE};
     private static final int REQUEST_PERMISSIONS_ID = 100;
     private static String LOGIN_TOKEN_KEY = "login_token";
+    private static String USERNAME_KEY = "username";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
                 SharedPrefUtils.removeItem(getBaseContext(), getLoginTokenKey());
+                SharedPrefUtils.removeItem(getBaseContext(), getUsernameKey());
                 AppDatabase.databaseWriteExecutor.submit(
                         new Runnable() {
                             @Override
@@ -98,6 +100,10 @@ public class MainActivity extends AppCompatActivity {
 
     public static String getLoginTokenKey() {
         return LOGIN_TOKEN_KEY;
+    }
+
+    public static String getUsernameKey() {
+        return USERNAME_KEY;
     }
 
     @Override

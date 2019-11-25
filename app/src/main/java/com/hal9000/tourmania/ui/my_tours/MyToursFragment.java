@@ -2,6 +2,7 @@ package com.hal9000.tourmania.ui.my_tours;
 
 import android.content.Context;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,14 +13,24 @@ import androidx.lifecycle.ViewModelProviders;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.hal9000.tourmania.AppUtils;
+import com.hal9000.tourmania.MainActivity;
 import com.hal9000.tourmania.R;
+import com.hal9000.tourmania.SharedPrefUtils;
+import com.hal9000.tourmania.rest_api.RestClient;
+import com.hal9000.tourmania.rest_api.tours.ToursCRUD;
 import com.hal9000.tourmania.ui.ToursAdapter;
 import com.hal9000.tourmania.database.AppDatabase;
 import com.hal9000.tourmania.model.TourWithWpWithPaths;
 import com.hal9000.tourmania.ui.create_tour.CreateTourFragmentArgs;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -28,7 +39,7 @@ public class MyToursFragment extends Fragment {
 
     private MyToursViewModel myToursViewModel;
     private RecyclerView recyclerView;
-    private RecyclerView.Adapter mAdapter;
+    private ToursAdapter mAdapter;
     private RecyclerView.LayoutManager layoutManager;
     private List<TourWithWpWithPaths> toursWithTourWps;
 
@@ -55,7 +66,7 @@ public class MyToursFragment extends Fragment {
             //e.printStackTrace();
         }
         createRecyclerView(root);
-
+        loadToursFromServerDb();
         return root;
     }
 
@@ -72,6 +83,48 @@ public class MyToursFragment extends Fragment {
                 //Log.d("crashTest", Integer.toString(toursWithTourWps.size()));
             }
         });
+    }
+
+    private void loadToursFromServerDb() {
+        AppDatabase.databaseWriteExecutor.submit(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        final AppDatabase appDatabase = AppDatabase.getInstance(requireContext());
+                        List<String> serverMyTourIds = appDatabase.tourDAO().getServerMyTourIds(-222);
+                        ToursCRUD client = RestClient.createService(ToursCRUD.class);
+                        Call<List<TourWithWpWithPaths>> call = serverMyTourIds == null || serverMyTourIds.size() == 0 ?
+                                client.getUserTours(SharedPrefUtils.getString(requireContext(), MainActivity.getUsernameKey())) :
+                                client.getUserTours(SharedPrefUtils.getString(requireContext(), MainActivity.getUsernameKey()), serverMyTourIds);
+                        call.enqueue(new Callback<List<TourWithWpWithPaths>>() {
+                            @Override
+                            public void onResponse(Call<List<TourWithWpWithPaths>> call, final Response<List<TourWithWpWithPaths>> response) {
+                                if (response.isSuccessful()) {
+                                    Log.d("crashTest", "loadToursFromServerDb onResponse");
+                                    if (response.body() != null) {
+                                        AppUtils.saveToursToLocalDb(response.body(), requireContext());
+                                        AppDatabase.databaseWriteExecutor.submit(
+                                                new Runnable() {
+                                                    @Override
+                                                    public void run() {
+                                                        List<TourWithWpWithPaths> _toursWithTourWps = response.body();
+                                                        int oldSize = mAdapter.mDataset.size();
+                                                        mAdapter.mDataset.addAll(_toursWithTourWps);
+                                                        mAdapter.notifyItemRangeInserted(oldSize, _toursWithTourWps.size());
+                                                    }
+                                                });
+                                    }
+                                }
+                            }
+
+                            @Override
+                            public void onFailure(Call<List<TourWithWpWithPaths>> call, Throwable t) {
+                                t.printStackTrace();
+                                Log.d("crashTest", "loadToursFromServerDb onFailure");
+                            }
+                        });
+                    }
+                });
     }
 
     private void createRecyclerView(final View root) {

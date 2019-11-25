@@ -21,7 +21,7 @@ import java.util.List;
 import androidx.recyclerview.widget.RecyclerView;
 
 public class ToursAdapter extends RecyclerView.Adapter<ToursAdapter.MyViewHolder> {
-    private List<TourWithWpWithPaths> mDataset;
+    public List<TourWithWpWithPaths> mDataset;
     ToursAdapterCallback callback;
 
     // Provide a reference to the views for each data item

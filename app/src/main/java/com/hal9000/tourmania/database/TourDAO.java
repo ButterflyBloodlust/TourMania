@@ -37,6 +37,10 @@ public abstract class TourDAO {
     public abstract List<TourWithWpWithPaths> getToursWithTourWps();
 
     @Transaction
+    @Query("SELECT * FROM Tours WHERE user_id = 0")
+    public abstract List<TourWithWpWithPaths> getMyToursWithTourWps();
+
+    @Transaction
     @Query("SELECT * FROM Tours WHERE id = :tourId")
     public abstract TourWithWpWithPaths getTourWithTourWps(int tourId);
 
@@ -44,10 +48,10 @@ public abstract class TourDAO {
     abstract long insertTour(Tour tour);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    public abstract void insertTours(List<Tour> tours);
+    public abstract long[] insertTours(List<Tour> tours);
 
     @Update
-    abstract void updateTour(Tour tour);
+    public abstract void updateTour(Tour tour);
 
     @Delete
     public abstract void deleteTourWp(Tour tour);
@@ -61,4 +65,7 @@ public abstract class TourDAO {
         tour.setModifiedAt(System.currentTimeMillis());
         updateTour(tour);
     }
+
+    @Query("SELECT server_tour_id FROM Tours WHERE user_id IN (0, :userId)")
+    public abstract List<String> getServerMyTourIds(int userId);
 }

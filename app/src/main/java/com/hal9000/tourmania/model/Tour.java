@@ -7,10 +7,17 @@ import com.hal9000.tourmania.rest_api.SerializationExclude;
 
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
+import androidx.room.ForeignKey;
 import androidx.room.Ignore;
+import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
-@Entity(tableName = "Tours")
+@Entity(tableName = "Tours")/*,
+        foreignKeys = @ForeignKey(entity = User.class,
+                parentColumns = "id",
+                childColumns = "user_id",
+                onDelete = ForeignKey.SET_NULL),
+        indices=@Index(value="user_id"))*/
 public class Tour {
 
     @Exclude
@@ -39,6 +46,10 @@ public class Tour {
     @SerializedName("modified_at")
     @ColumnInfo(name = "modified_at")
     private long modifiedAt;
+
+    @Exclude
+    @ColumnInfo(name = "user_id")
+    private int userId = 0;
 
     public Tour() {}
 
@@ -103,5 +114,13 @@ public class Tour {
 
     public void setModifiedAt(long modifiedAt) {
         this.modifiedAt = modifiedAt;
+    }
+
+    public int getUserId() {
+        return userId;
+    }
+
+    public void setUserId(int userId) {
+        this.userId = userId;
     }
 }

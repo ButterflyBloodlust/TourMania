@@ -3,7 +3,6 @@ package com.hal9000.tourmania.ui.create_tour;
 import android.content.Context;
 import android.net.Uri;
 import android.text.TextUtils;
-import android.util.Log;
 
 import com.hal9000.tourmania.AppUtils;
 import com.hal9000.tourmania.FileUtil;
@@ -17,8 +16,8 @@ import com.hal9000.tourmania.model.TourWithWpWithPaths;
 import com.hal9000.tourmania.model.TourWpWithPicPaths;
 import com.hal9000.tourmania.rest_api.RestClient;
 import com.hal9000.tourmania.rest_api.files_upload.FileUploadService;
-import com.hal9000.tourmania.rest_api.tour_save.TourSave;
-import com.hal9000.tourmania.rest_api.tour_save.TourUpsertResponse;
+import com.hal9000.tourmania.rest_api.tours.ToursCRUD;
+import com.hal9000.tourmania.rest_api.tours.TourUpsertResponse;
 
 import java.io.File;
 import java.io.IOException;
@@ -109,7 +108,7 @@ public class CreateTourSharedViewModel extends ViewModel {
     }
 
     private void saveTourToServerDb(final Context context) {
-        TourSave client = RestClient.createService(TourSave.class, SharedPrefUtils.getString(context, MainActivity.getLoginTokenKey()));
+        ToursCRUD client = RestClient.createService(ToursCRUD.class, SharedPrefUtils.getString(context, MainActivity.getLoginTokenKey()));
         Call<TourUpsertResponse> call = client.upsertTour(new TourWithWpWithPaths(tour, tourTagsList, tourWaypointList));
         call.enqueue(new Callback<TourUpsertResponse>() {
             @Override
@@ -124,7 +123,7 @@ public class CreateTourSharedViewModel extends ViewModel {
                             if (resp != null && resp.tourServerId != null)
                                 tour.setServerTourId(resp.tourServerId);
                             AppDatabase appDatabase = AppDatabase.getInstance(context);
-                            appDatabase.tourDAO().updateWithTimestamp(tour);
+                            appDatabase.tourDAO().updateTour(tour);  // purposely without timestamp
 
                             sendImgFilesToServer(context);
                         }
