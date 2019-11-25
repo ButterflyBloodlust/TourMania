@@ -1,9 +1,10 @@
-package com.hal9000.tourmania.rest_api;
+package com.hal9000.tourmania.rest_api.login;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
-public class SignUpResponse {
+public class LoginResponse {
     @SerializedName("data") @Expose
-    public SignUpResponseData data;
+    public LoginResponseData data;
 }
+

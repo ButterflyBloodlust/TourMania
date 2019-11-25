@@ -2,7 +2,6 @@ package com.hal9000.tourmania.ui.sign_up;
 
 import androidx.lifecycle.ViewModelProviders;
 
-import android.app.Activity;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -12,25 +11,21 @@ import androidx.navigation.Navigation;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import retrofit2.Retrofit;
 import retrofit2.internal.EverythingIsNonNull;
 
 import android.text.Editable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.Toast;
 
 import com.google.android.material.textfield.TextInputEditText;
 import com.hal9000.tourmania.AppUtils;
 import com.hal9000.tourmania.R;
-import com.hal9000.tourmania.rest_api.LoginResponse;
 import com.hal9000.tourmania.rest_api.RestClient;
-import com.hal9000.tourmania.rest_api.SignUpResponse;
-import com.hal9000.tourmania.rest_api.UserLogin;
-import com.hal9000.tourmania.rest_api.UserSignUp;
+import com.hal9000.tourmania.rest_api.sign_up.SignUpResponse;
+import com.hal9000.tourmania.rest_api.sign_up.UserSignUp;
 
 public class SignUpFragment extends Fragment {
 

@@ -1,4 +1,4 @@
-package com.hal9000.tourmania.rest_api;
+package com.hal9000.tourmania.rest_api.sign_up;
 
 import retrofit2.Call;
 import retrofit2.http.Multipart;

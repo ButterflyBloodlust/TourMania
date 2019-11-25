@@ -1,4 +1,4 @@
-package com.hal9000.tourmania.rest_api;
+package com.hal9000.tourmania.rest_api.login;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;

@@ -13,7 +13,6 @@ import androidx.navigation.Navigation;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import retrofit2.Retrofit;
 import retrofit2.internal.EverythingIsNonNull;
 
 import android.text.Editable;
@@ -28,9 +27,9 @@ import com.hal9000.tourmania.AppUtils;
 import com.hal9000.tourmania.MainActivity;
 import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.SharedPrefUtils;
-import com.hal9000.tourmania.rest_api.LoginResponse;
+import com.hal9000.tourmania.rest_api.login.LoginResponse;
 import com.hal9000.tourmania.rest_api.RestClient;
-import com.hal9000.tourmania.rest_api.UserLogin;
+import com.hal9000.tourmania.rest_api.login.UserLogin;
 
 public class SignInFragment extends Fragment {
 

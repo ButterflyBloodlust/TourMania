@@ -1,14 +1,26 @@
 package com.hal9000.tourmania.rest_api;
 
 import android.content.Context;
+import android.net.Uri;
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.hal9000.tourmania.AppUtils;
+import com.hal9000.tourmania.FileUtil;
 import com.hal9000.tourmania.database.AppDatabase;
+import com.mapbox.android.core.FileUtils;
 
+import java.io.File;
+import java.io.IOException;
+
+import androidx.annotation.NonNull;
 import androidx.room.Room;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
+import okhttp3.RequestBody;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 import retrofit2.converter.scalars.ScalarsConverterFactory;
@@ -49,5 +61,40 @@ public abstract class RestClient {
             }
         }
         return retrofit.create(serviceClass);
+    }
+
+    @NonNull
+    public static RequestBody createPartFromString(String descriptionString) {
+        return RequestBody.create(
+                okhttp3.MultipartBody.FORM, descriptionString);
+    }
+
+    @NonNull
+    public static MultipartBody.Part prepareFilePart(String partName, Uri fileUri, final Context context) {
+
+        File file = null;
+        try {
+            file = FileUtil.from(context, fileUri);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // create RequestBody instance from file
+        RequestBody requestFile =
+                RequestBody.create(MediaType.parse(context.getContentResolver().getType(fileUri)),file);
+
+        // MultipartBody.Part is used to send also the actual file name
+        return MultipartBody.Part.createFormData(partName, file.getName(), requestFile);
+    }
+
+    @NonNull
+    public static MultipartBody.Part prepareFilePart(String partName, File file, final Context context) {
+        // create RequestBody instance from file
+
+        RequestBody requestFile =
+                RequestBody.create(MediaType.parse(AppUtils.getMimeType(Uri.fromFile(file).toString())),file);
+
+        // MultipartBody.Part is used to send also the actual file name
+        return MultipartBody.Part.createFormData(partName, file.getName(), requestFile);
     }
 }

@@ -1,4 +1,4 @@
-package com.hal9000.tourmania.rest_api;
+package com.hal9000.tourmania.rest_api.tour_save;
 
 import com.hal9000.tourmania.model.TourWithWpWithPaths;
 
