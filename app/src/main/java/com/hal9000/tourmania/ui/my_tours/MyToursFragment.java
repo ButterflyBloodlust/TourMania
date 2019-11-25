@@ -13,6 +13,7 @@ import androidx.lifecycle.ViewModelProviders;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -22,7 +23,9 @@ import com.hal9000.tourmania.AppUtils;
 import com.hal9000.tourmania.MainActivity;
 import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.SharedPrefUtils;
+import com.hal9000.tourmania.model.TourWpWithPicPaths;
 import com.hal9000.tourmania.rest_api.RestClient;
+import com.hal9000.tourmania.rest_api.files_upload.FileUploadService;
 import com.hal9000.tourmania.rest_api.tours.ToursCRUD;
 import com.hal9000.tourmania.ui.ToursAdapter;
 import com.hal9000.tourmania.database.AppDatabase;
@@ -42,6 +45,7 @@ public class MyToursFragment extends Fragment {
     private ToursAdapter mAdapter;
     private RecyclerView.LayoutManager layoutManager;
     private List<TourWithWpWithPaths> toursWithTourWps;
+    private List<TourWithWpWithPaths> missingToursWithTourWps;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -107,10 +111,11 @@ public class MyToursFragment extends Fragment {
                                                 new Runnable() {
                                                     @Override
                                                     public void run() {
-                                                        List<TourWithWpWithPaths> _toursWithTourWps = response.body();
+                                                        missingToursWithTourWps = response.body();
                                                         int oldSize = mAdapter.mDataset.size();
-                                                        mAdapter.mDataset.addAll(_toursWithTourWps);
-                                                        mAdapter.notifyItemRangeInserted(oldSize, _toursWithTourWps.size());
+                                                        mAdapter.mDataset.addAll(missingToursWithTourWps);
+                                                        mAdapter.notifyItemRangeInserted(oldSize, missingToursWithTourWps.size());
+                                                        loadToursImagesFromServerDb();
                                                     }
                                                 });
                                     }
@@ -125,6 +130,36 @@ public class MyToursFragment extends Fragment {
                         });
                     }
                 });
+    }
+
+    private void loadToursImagesFromServerDb() {
+        List<String> missingTourIds = new ArrayList<>(missingToursWithTourWps.size());
+        for (TourWithWpWithPaths tourWithWpWithPaths : missingToursWithTourWps) {
+            missingTourIds.add(tourWithWpWithPaths.tour.getServerTourId());
+        }
+        FileUploadService client = RestClient.createService(FileUploadService.class);
+        Log.d("crashTest", Integer.toString(missingTourIds.size()));
+        Call<ResponseBody> call = client.downloadMultipleFiles(missingTourIds);
+        call.enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                ResponseBody res = response.body();
+                if (res != null) {
+                    try {
+                        Log.d("crashTest", res.string());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                Log.d("crashTest", "loadToursImagesFromServerDb onResponse");
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                Log.d("crashTest", "loadToursImagesFromServerDb onFailure");
+            }
+        });
     }
 
     private void createRecyclerView(final View root) {

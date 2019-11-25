@@ -11,14 +11,22 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.hal9000.tourmania.MainActivity;
 import com.hal9000.tourmania.R;
+import com.hal9000.tourmania.SharedPrefUtils;
 import com.hal9000.tourmania.database.AppDatabase;
 import com.hal9000.tourmania.model.TourWithWpWithPaths;
+import com.hal9000.tourmania.rest_api.RestClient;
+import com.hal9000.tourmania.rest_api.tours.ToursCRUD;
 import com.squareup.picasso.Picasso;
 
 import java.util.List;
 
 import androidx.recyclerview.widget.RecyclerView;
+import okhttp3.ResponseBody;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class ToursAdapter extends RecyclerView.Adapter<ToursAdapter.MyViewHolder> {
     public List<TourWithWpWithPaths> mDataset;
@@ -104,6 +112,24 @@ public class ToursAdapter extends RecyclerView.Adapter<ToursAdapter.MyViewHolder
                         //Log.d("crashTest", "run()");
                         AppDatabase appDatabase = AppDatabase.getInstance(callback.getContext());
                         appDatabase.tourDAO().deleteTourWp(tourWithWpWithPaths.tour);
+
+                        /*
+                        ToursCRUD client = RestClient.createService(ToursCRUD.class,
+                                SharedPrefUtils.getString(callback.getContext(), MainActivity.getLoginTokenKey()));
+                        Call<ResponseBody> call = client.deleteTourById(tourWithWpWithPaths.tour.getServerTourId());
+                        call.enqueue(new Callback<ResponseBody>() {
+                            @Override
+                            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                                Log.d("crashTest", "deleteImageButton onResponse");
+                            }
+
+                            @Override
+                            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                                t.printStackTrace();
+                                Log.d("crashTest", "deleteImageButton onFailure");
+                            }
+                        });
+                        */
                     }
                 });
             }

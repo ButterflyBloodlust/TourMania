@@ -79,6 +79,7 @@ public class AppUtils {
                 LinkedList<TourWaypoint> tourWaypoints = new LinkedList<>();
                 for (int i = 0; i < tourWithWpWithPathsList.size(); i++) {
                     int tourId = (int) tourIds[i];
+                    tourWithWpWithPathsList.get(i).tour.setTourId(tourId);
                     for (TourTag tourTag : tourWithWpWithPathsList.get(i).tourTags) {
                         tourTag.setTourId(tourId);
                         tourTags.add(tourTag);
