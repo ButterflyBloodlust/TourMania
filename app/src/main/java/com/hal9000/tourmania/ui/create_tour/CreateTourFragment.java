@@ -2,6 +2,7 @@ package com.hal9000.tourmania.ui.create_tour;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.collection.LongSparseArray;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
@@ -123,7 +124,11 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        int tourId = CreateTourFragmentArgs.fromBundle(getArguments()).getTourId();
+        if (tourId == -1)
+            ((AppCompatActivity)getActivity()).getSupportActionBar().setTitle("Create Tour");
+        else
+            ((AppCompatActivity)getActivity()).getSupportActionBar().setTitle("Tour");
         // This callback will only be called when MyFragment is at least Started.
         OnBackPressedCallback callback = new OnBackPressedCallback(true /* enabled by default */) {
             @Override

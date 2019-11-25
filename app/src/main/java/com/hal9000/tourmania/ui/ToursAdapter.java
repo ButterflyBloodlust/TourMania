@@ -1,8 +1,6 @@
 package com.hal9000.tourmania.ui;
 
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -14,9 +12,8 @@ import android.widget.TextView;
 import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.database.AppDatabase;
 import com.hal9000.tourmania.model.TourWithWpWithPaths;
+import com.squareup.picasso.Picasso;
 
-import java.io.FileNotFoundException;
-import java.io.InputStream;
 import java.util.List;
 
 import androidx.recyclerview.widget.RecyclerView;
@@ -31,12 +28,12 @@ public class ToursAdapter extends RecyclerView.Adapter<ToursAdapter.MyViewHolder
     public static class MyViewHolder extends RecyclerView.ViewHolder {
         // each data item is just a string in this case
         public TextView textView;
-        public ImageView tourImage;
+        public ImageView tourImageView;
         public ImageButton deleteImageButton;
         public MyViewHolder(View v) {
             super(v);
             textView = v.findViewById(R.id.tour_title);
-            tourImage = v.findViewById(R.id.tour_list_image);
+            tourImageView = v.findViewById(R.id.tour_list_image);
             deleteImageButton = v.findViewById(R.id.buttonDeleteTour);
         }
     }
@@ -68,16 +65,23 @@ public class ToursAdapter extends RecyclerView.Adapter<ToursAdapter.MyViewHolder
         String mainImgPath = mDataset.get(position).tour.getTourImgPath();
         //Log.d("crashTest", mainImgPath == null ? "null" : mainImgPath);
         if (mainImgPath != null) {
+            /*
             try {
                 InputStream inStream = callback.getContext().getContentResolver().openInputStream(Uri.parse(mainImgPath));
                 Bitmap bmp = BitmapFactory.decodeStream(inStream);
-                holder.tourImage.setImageBitmap(bmp);
+                holder.tourImageView.setImageBitmap(bmp);
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             }
+            */
+            // asynchronous image loading
+            Picasso.get() //
+                    .load(Uri.parse(mainImgPath)) //
+                    .fit() //
+                    .into(holder.tourImageView);
         }
         else {
-            holder.tourImage.setImageResource(R.drawable.ic_menu_gallery);
+            holder.tourImageView.setImageResource(R.drawable.ic_menu_gallery);
         }
 
         holder.itemView.setOnClickListener(new View.OnClickListener() {

@@ -31,6 +31,7 @@ public class TourWaypoint implements Comparable<TourWaypoint>{
     @ColumnInfo(name = "title")
     private String title;
 
+    @Exclude
     @ColumnInfo(name = "main_img_path")
     private String mainImgPath;
 
