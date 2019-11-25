@@ -36,6 +36,10 @@ public class Tour {
     @ColumnInfo(name = "server_tour_id")
     private String serverTourId = "";
 
+    @SerializedName("modified_at")
+    @ColumnInfo(name = "modified_at")
+    private long modifiedAt;
+
     public Tour() {}
 
     @Ignore
@@ -91,5 +95,13 @@ public class Tour {
 
     public void setServerTourId(String serverTourId) {
         this.serverTourId = serverTourId;
+    }
+
+    public long getModifiedAt() {
+        return modifiedAt;
+    }
+
+    public void setModifiedAt(long modifiedAt) {
+        this.modifiedAt = modifiedAt;
     }
 }

@@ -41,14 +41,24 @@ public abstract class TourDAO {
     public abstract TourWithWpWithPaths getTourWithTourWps(int tourId);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    public abstract long insertTour(Tour tour);
+    abstract long insertTour(Tour tour);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     public abstract void insertTours(List<Tour> tours);
 
     @Update
-    public abstract void updateTour(Tour tour);
+    abstract void updateTour(Tour tour);
 
     @Delete
     public abstract void deleteTourWp(Tour tour);
+
+    public long insertWithTimestamp(Tour tour) {
+        tour.setModifiedAt(System.currentTimeMillis());
+        return insertTour(tour);
+    }
+
+    public void updateWithTimestamp(Tour tour) {
+        tour.setModifiedAt(System.currentTimeMillis());
+        updateTour(tour);
+    }
 }

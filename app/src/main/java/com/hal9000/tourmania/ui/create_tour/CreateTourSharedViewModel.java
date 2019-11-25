@@ -84,7 +84,7 @@ public class CreateTourSharedViewModel extends ViewModel {
             public void run() {
                 //Log.d("crashTest", "run()");
                 AppDatabase appDatabase = AppDatabase.getInstance(context);
-                int tourId = (int)appDatabase.tourDAO().insertTour(getTour());
+                int tourId = (int)appDatabase.tourDAO().insertWithTimestamp(getTour());
                 getTour().setTourId(tourId);
                 LinkedList<TourWaypoint> tourWps = new LinkedList<>();
                 for (int i = 0; i < tourWaypointList.size(); i++) {
@@ -122,7 +122,7 @@ public class CreateTourSharedViewModel extends ViewModel {
                             if (resp != null && resp.tourServerId != null)
                                 tour.setServerTourId(resp.tourServerId);
                             AppDatabase appDatabase = AppDatabase.getInstance(context);
-                            appDatabase.tourDAO().updateTour(tour);
+                            appDatabase.tourDAO().updateWithTimestamp(tour);
 
                             sendImgFilesToServer(context);
                         }
