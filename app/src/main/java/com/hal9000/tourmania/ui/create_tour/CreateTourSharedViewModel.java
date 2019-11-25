@@ -5,6 +5,7 @@ import android.net.Uri;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.hal9000.tourmania.AppUtils;
 import com.hal9000.tourmania.FileUtil;
 import com.hal9000.tourmania.MainActivity;
 import com.hal9000.tourmania.SharedPrefUtils;
@@ -74,7 +75,8 @@ public class CreateTourSharedViewModel extends ViewModel {
         // Currently does NOT handle additional waypoint pics (PicturePath / TourWpWithPicPaths)
         //Log.d("crashTest", "saveTourToDb()");
         Future future = saveTourToLocalDb(context);
-        saveTourToServerDb(context);
+        if (AppUtils.isUserLoggedIn(context))
+            saveTourToServerDb(context);
         return future;
     }
 

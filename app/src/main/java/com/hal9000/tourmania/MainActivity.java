@@ -11,6 +11,7 @@ import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
 import com.google.android.material.navigation.NavigationView;
+import com.hal9000.tourmania.database.AppDatabase;
 
 import androidx.drawerlayout.widget.DrawerLayout;
 
@@ -53,6 +54,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
                 SharedPrefUtils.removeItem(getBaseContext(), getLoginTokenKey());
+                AppDatabase.databaseWriteExecutor.submit(
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                AppDatabase.getInstance(getBaseContext()).clearAllTables();
+                            }
+                        });
                 DrawerLayout drawer = findViewById(R.id.drawer_layout);
                 drawer.closeDrawer(GravityCompat.START);
                 AppUtils.updateUserAccDrawer(MainActivity.this);
