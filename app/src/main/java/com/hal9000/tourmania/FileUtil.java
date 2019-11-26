@@ -37,13 +37,14 @@ public class FileUtil {
 
     }
 
+    // NOTE: this function creates new file in app's cache directory
     public static File from(Context context, Uri uri) throws IOException {
         InputStream inputStream = context.getContentResolver().openInputStream(uri);
         String fileName = getFileName(context, uri);
         String[] splitName = splitFileName(fileName);
         File tempFile = File.createTempFile(splitName[0], splitName[1]);
         tempFile = rename(tempFile, fileName);
-        tempFile.deleteOnExit();
+        //tempFile.deleteOnExit();  // this rarely works (if ever)
         FileOutputStream out = null;
         try {
             out = new FileOutputStream(tempFile);

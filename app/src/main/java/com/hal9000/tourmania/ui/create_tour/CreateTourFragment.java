@@ -1,6 +1,7 @@
 package com.hal9000.tourmania.ui.create_tour;
 
 import androidx.activity.OnBackPressedCallback;
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.collection.LongSparseArray;
@@ -124,11 +125,6 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        int tourId = CreateTourFragmentArgs.fromBundle(getArguments()).getTourId();
-        if (tourId == -1)
-            ((AppCompatActivity)getActivity()).getSupportActionBar().setTitle("Create Tour");
-        else
-            ((AppCompatActivity)getActivity()).getSupportActionBar().setTitle("Tour");
         // This callback will only be called when MyFragment is at least Started.
         OnBackPressedCallback callback = new OnBackPressedCallback(true /* enabled by default */) {
             @Override
@@ -293,7 +289,14 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
 
         int tourId = CreateTourFragmentArgs.fromBundle(getArguments()).getTourId();
         //Log.d("crashTest", "tourId = " + Integer.toString(tourId));
+        AppCompatActivity appCompatActivity = ((AppCompatActivity)getActivity());
+        ActionBar actionBar = null;
+        if (appCompatActivity != null)
+            actionBar = appCompatActivity.getSupportActionBar();
         if (tourId != -1) {
+            if (actionBar != null) {
+                actionBar.setTitle("Tour");
+            }
             createTourSharedViewModel.setInitialEditingEnabled(false);
             Future future = createTourSharedViewModel.loadTourFromDb(tourId, requireContext());
             try {
@@ -302,6 +305,17 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                 e.printStackTrace();
             }
         }
+        else
+            if (actionBar != null) {
+                actionBar.setTitle("Create Tour");
+            }
+        /*
+        int tourId = CreateTourFragmentArgs.fromBundle(getArguments()).getTourId();
+        if (tourId == -1)
+            ((AppCompatActivity)getActivity()).getSupportActionBar().setTitle("Create Tour");
+        else
+            ((AppCompatActivity)getActivity()).getSupportActionBar().setTitle("Tour");
+        */
 
         Mapbox.getInstance(requireActivity(), getString(R.string.mapbox_access_token));
 
@@ -518,8 +532,13 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
             @Override
             public void onClick(View v) {
                 String tourImgPath = createTourSharedViewModel.getTour().getTourImgPath();
-                if (tourImgPath != null)
-                    requireContext().startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(tourImgPath)));
+                if (tourImgPath != null) {
+                    Intent intent = new Intent();
+                    intent.setAction(Intent.ACTION_VIEW);
+                    intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    intent.setDataAndType(Uri.parse(tourImgPath), AppUtils.getMimeType(tourImgPath));
+                    requireContext().startActivity(intent);
+                }
             }
         });
 

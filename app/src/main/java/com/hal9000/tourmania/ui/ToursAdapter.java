@@ -1,5 +1,7 @@
 package com.hal9000.tourmania.ui;
 
+import android.content.ContentProvider;
+import android.content.ContentProviderClient;
 import android.content.Context;
 import android.net.Uri;
 import android.text.TextUtils;
@@ -16,10 +18,12 @@ import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.SharedPrefUtils;
 import com.hal9000.tourmania.database.AppDatabase;
 import com.hal9000.tourmania.model.TourWithWpWithPaths;
+import com.hal9000.tourmania.model.TourWpWithPicPaths;
 import com.hal9000.tourmania.rest_api.RestClient;
 import com.hal9000.tourmania.rest_api.tours.ToursCRUD;
 import com.squareup.picasso.Picasso;
 
+import java.io.File;
 import java.util.List;
 
 import androidx.recyclerview.widget.RecyclerView;
@@ -109,11 +113,19 @@ public class ToursAdapter extends RecyclerView.Adapter<ToursAdapter.MyViewHolder
                 AppDatabase.databaseWriteExecutor.submit(new Runnable() {
                     @Override
                     public void run() {
-                        //Log.d("crashTest", "run()");
+                        // delete tour from local db
                         AppDatabase appDatabase = AppDatabase.getInstance(callback.getContext());
                         appDatabase.tourDAO().deleteTourWp(tourWithWpWithPaths.tour);
 
+                        // delete files related to tour, stored in app's dirs
+                        new File(callback.getContext().getExternalCacheDir(), new File(tourWithWpWithPaths.tour.getTourImgPath()).getName()).delete();
+                        for (TourWpWithPicPaths tourWpWithPicPaths : tourWithWpWithPaths._tourWpsWithPicPaths) {
+                            String mainImgPath = tourWpWithPicPaths.tourWaypoint.getMainImgPath();
+                            if (mainImgPath != null)
+                                new File(callback.getContext().getExternalCacheDir(), new File(mainImgPath).getName()).delete();
+                        }
                         /*
+                        // delete tour from server db
                         ToursCRUD client = RestClient.createService(ToursCRUD.class,
                                 SharedPrefUtils.getString(callback.getContext(), MainActivity.getLoginTokenKey()));
                         Call<ResponseBody> call = client.deleteTourById(tourWithWpWithPaths.tour.getServerTourId());

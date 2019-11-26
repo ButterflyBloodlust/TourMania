@@ -89,8 +89,10 @@ public abstract class RestClient {
 
     @NonNull
     public static MultipartBody.Part prepareFilePart(String partName, File file, final Context context) {
-        // create RequestBody instance from file
+        if (file == null)
+            return MultipartBody.Part.createFormData(partName, "");
 
+        // create RequestBody instance from file
         RequestBody requestFile =
                 RequestBody.create(MediaType.parse(AppUtils.getMimeType(Uri.fromFile(file).toString())),file);
 

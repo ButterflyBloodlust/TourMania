@@ -13,7 +13,6 @@ import androidx.lifecycle.ViewModelProviders;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -23,18 +22,21 @@ import com.hal9000.tourmania.AppUtils;
 import com.hal9000.tourmania.MainActivity;
 import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.SharedPrefUtils;
-import com.hal9000.tourmania.model.TourWpWithPicPaths;
+import com.hal9000.tourmania.model.TourWaypoint;
 import com.hal9000.tourmania.rest_api.RestClient;
-import com.hal9000.tourmania.rest_api.files_upload.FileUploadService;
+import com.hal9000.tourmania.rest_api.files_upload_download.FileDownloadImageObj;
+import com.hal9000.tourmania.rest_api.files_upload_download.FileDownloadResponse;
+import com.hal9000.tourmania.rest_api.files_upload_download.FileUploadDownloadService;
 import com.hal9000.tourmania.rest_api.tours.ToursCRUD;
 import com.hal9000.tourmania.ui.ToursAdapter;
 import com.hal9000.tourmania.database.AppDatabase;
 import com.hal9000.tourmania.model.TourWithWpWithPaths;
 import com.hal9000.tourmania.ui.create_tour.CreateTourFragmentArgs;
 
-import java.io.IOException;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -45,7 +47,7 @@ public class MyToursFragment extends Fragment {
     private ToursAdapter mAdapter;
     private RecyclerView.LayoutManager layoutManager;
     private List<TourWithWpWithPaths> toursWithTourWps;
-    private List<TourWithWpWithPaths> missingToursWithTourWps;
+    //private List<TourWithWpWithPaths> missingToursWithTourWps;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -107,17 +109,12 @@ public class MyToursFragment extends Fragment {
                                     Log.d("crashTest", "loadToursFromServerDb onResponse");
                                     if (response.body() != null) {
                                         AppUtils.saveToursToLocalDb(response.body(), requireContext());
-                                        AppDatabase.databaseWriteExecutor.submit(
-                                                new Runnable() {
-                                                    @Override
-                                                    public void run() {
-                                                        missingToursWithTourWps = response.body();
-                                                        int oldSize = mAdapter.mDataset.size();
-                                                        mAdapter.mDataset.addAll(missingToursWithTourWps);
-                                                        mAdapter.notifyItemRangeInserted(oldSize, missingToursWithTourWps.size());
-                                                        loadToursImagesFromServerDb();
-                                                    }
-                                                });
+                                        List<TourWithWpWithPaths> missingToursWithTourWps = response.body();
+                                        int oldSize = mAdapter.mDataset.size();
+                                        mAdapter.mDataset.addAll(missingToursWithTourWps);
+                                        mAdapter.notifyItemRangeInserted(oldSize, missingToursWithTourWps.size());
+                                        if (missingToursWithTourWps.size() > 0)
+                                            loadToursImagesFromServerDb(missingToursWithTourWps);
                                     }
                                 }
                             }
@@ -132,22 +129,29 @@ public class MyToursFragment extends Fragment {
                 });
     }
 
-    private void loadToursImagesFromServerDb() {
+    private void loadToursImagesFromServerDb(List<TourWithWpWithPaths> missingToursWithTourWps) {
         List<String> missingTourIds = new ArrayList<>(missingToursWithTourWps.size());
         for (TourWithWpWithPaths tourWithWpWithPaths : missingToursWithTourWps) {
             missingTourIds.add(tourWithWpWithPaths.tour.getServerTourId());
         }
-        FileUploadService client = RestClient.createService(FileUploadService.class);
-        Log.d("crashTest", Integer.toString(missingTourIds.size()));
-        Call<ResponseBody> call = client.downloadMultipleFiles(missingTourIds);
-        call.enqueue(new Callback<ResponseBody>() {
+        FileUploadDownloadService client = RestClient.createService(FileUploadDownloadService.class);
+        Log.d("crashTest", "Missing tour: " + Integer.toString(missingTourIds.size()));
+        Call<List<FileDownloadResponse>> call = client.downloadMultipleFiles(missingTourIds);
+        call.enqueue(new Callback<List<FileDownloadResponse>>() {
             @Override
-            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                ResponseBody res = response.body();
-                if (res != null) {
+            public void onResponse(Call<List<FileDownloadResponse>> call, Response<List<FileDownloadResponse>> response) {
+                final List<FileDownloadResponse> res = response.body();
+                if (res != null && res.size() > 0) {
                     try {
-                        Log.d("crashTest", res.string());
-                    } catch (IOException e) {
+                        AppDatabase.databaseWriteExecutor.submit(
+                            new Runnable() {
+                                @Override
+                                public void run() {
+                                    loadToursImagesFromServerDbProcessResponse(res);
+                                }
+                            });
+                    } catch (Exception e) { // IOException
+                        Log.d("crashTest", "Unknown expection while reading file download response");
                         e.printStackTrace();
                     }
                 }
@@ -155,11 +159,55 @@ public class MyToursFragment extends Fragment {
             }
 
             @Override
-            public void onFailure(Call<ResponseBody> call, Throwable t) {
+            public void onFailure(Call<List<FileDownloadResponse>> call, Throwable t) {
                 t.printStackTrace();
                 Log.d("crashTest", "loadToursImagesFromServerDb onFailure");
             }
         });
+    }
+
+    private void loadToursImagesFromServerDbProcessResponse(List<FileDownloadResponse> res) {
+        final AppDatabase appDatabase = AppDatabase.getInstance(requireContext());
+        // for each tour
+        for (FileDownloadResponse fileDownloadResponse : res) {
+            Log.d("crashTest", fileDownloadResponse.tourServerId);
+            TourWithWpWithPaths tourWithWpWithPaths = appDatabase.tourDAO().getTourByServerTourIds(fileDownloadResponse.tourServerId);
+            tourWithWpWithPaths.getSortedTourWpsWithPicPaths();  // make sure waypoints have sorted order
+            if (fileDownloadResponse.images != null) {
+                int wpImgId = -1;
+                // for each image in tour
+                for (Map.Entry<String, FileDownloadImageObj> entry : fileDownloadResponse.images.entrySet()) {
+                    FileDownloadImageObj fileDownloadImageObj = entry.getValue();
+                    Log.d("crashTest", entry.getKey() + " / " + entry.getValue());
+                    if (fileDownloadImageObj.base64 != null && fileDownloadImageObj.mime != null) {
+                        File file = AppUtils.saveImageFromBase64(requireContext(), fileDownloadImageObj.base64, fileDownloadImageObj.mime);
+                        // process main tour image
+                        if (entry.getKey().equals("0")) {
+                            Log.d("crashTest", "updating main tour image");
+                            tourWithWpWithPaths.tour.setTourImgPath(file.toURI().toString());
+                            appDatabase.tourDAO().updateTour(tourWithWpWithPaths.tour);
+                            int i = 0;
+                            for (TourWithWpWithPaths t : mAdapter.mDataset) {
+                                Log.d("crashTest", t.tour.getServerTourId());
+                                if (t.tour.getServerTourId().equals(fileDownloadResponse.tourServerId)) {
+                                    t.tour.setTourImgPath(file.toURI().toString());
+                                    mAdapter.notifyItemChanged(i);
+                                }
+                                i++;
+                            }
+                        }
+                        // process tour waypoints images
+                        else {
+                            Log.d("crashTest", "updating tour waypoint image");
+                            TourWaypoint tourWaypoint = tourWithWpWithPaths._tourWpsWithPicPaths.get(Integer.parseInt(entry.getKey()) - 1).tourWaypoint;
+                            tourWaypoint.setMainImgPath(file.toURI().toString());
+                            appDatabase.tourWaypointDAO().updateTourWp(tourWaypoint);
+                        }
+                    }
+                    wpImgId++;
+                }
+            }
+        }
     }
 
     private void createRecyclerView(final View root) {

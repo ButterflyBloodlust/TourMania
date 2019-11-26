@@ -18,6 +18,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.hal9000.tourmania.AppUtils;
 import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.model.TourWpWithPicPaths;
 import com.hal9000.tourmania.ui.create_tour.CreateTourSharedViewModel;
@@ -167,8 +168,13 @@ public class TourWaypointsAdapter extends RecyclerView.Adapter<TourWaypointsAdap
             @Override
             public void onClick(View v) {
                 String mainImgPath = mDataset.get(holder.getAdapterPosition()).tourWaypoint.getMainImgPath();
-                if (mainImgPath != null)
-                    callbackOnClickListener.getContext().startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(mainImgPath)));
+                if (mainImgPath != null) {
+                    Intent intent = new Intent();
+                    intent.setAction(Intent.ACTION_VIEW);
+                    intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    intent.setDataAndType(Uri.parse(mainImgPath), AppUtils.getMimeType(mainImgPath));
+                    callbackOnClickListener.getContext().startActivity(intent);
+                }
             }
         });
     }

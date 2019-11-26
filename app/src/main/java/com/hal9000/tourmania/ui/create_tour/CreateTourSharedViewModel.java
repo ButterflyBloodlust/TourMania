@@ -15,12 +15,13 @@ import com.hal9000.tourmania.model.TourWaypoint;
 import com.hal9000.tourmania.model.TourWithWpWithPaths;
 import com.hal9000.tourmania.model.TourWpWithPicPaths;
 import com.hal9000.tourmania.rest_api.RestClient;
-import com.hal9000.tourmania.rest_api.files_upload.FileUploadService;
+import com.hal9000.tourmania.rest_api.files_upload_download.FileUploadDownloadService;
 import com.hal9000.tourmania.rest_api.tours.ToursCRUD;
 import com.hal9000.tourmania.rest_api.tours.TourUpsertResponse;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -148,12 +149,12 @@ public class CreateTourSharedViewModel extends ViewModel {
                 // Compress and send tour images
                 LinkedList<File> imageFiles = new LinkedList<>();
                 File imgFile = compressMainTourImg(context, tour.getTourImgPath());
-                if (imgFile != null)
+                //if (imgFile != null)
                     imageFiles.addLast(imgFile);
 
                 for (TourWpWithPicPaths tourWpWithPicPaths : tourWaypointList) {
                     imgFile = compressMainTourImg(context, tourWpWithPicPaths.tourWaypoint.getMainImgPath());
-                    if (imgFile != null)
+                    //if (imgFile != null)
                         imageFiles.addLast(imgFile);
                 }
 
@@ -167,15 +168,19 @@ public class CreateTourSharedViewModel extends ViewModel {
         List<MultipartBody.Part> parts = new ArrayList<>(imageFiles.size());
 
         // add dynamic amount
+        int i = 0;
         for (File imgFile : imageFiles) {
-            parts.add(RestClient.prepareFilePart(imgFile.getName(), imgFile, context));
+            String label;
+            label = Integer.toString(i++);
+            //label = imgFile.getName();
+            parts.add(RestClient.prepareFilePart(label, imgFile, context));
         }
 
         // add the description part within the multipart request
         RequestBody description = RestClient.createPartFromString(tour.getServerTourId());
 
         // create upload service client
-        FileUploadService service = RestClient.createService(FileUploadService.class, SharedPrefUtils.getString(context, MainActivity.getLoginTokenKey()));
+        FileUploadDownloadService service = RestClient.createService(FileUploadDownloadService.class, SharedPrefUtils.getString(context, MainActivity.getLoginTokenKey()));
 
         // execute the request
         Call<ResponseBody> call = service.uploadMultipleFilesDynamic(description, parts);
@@ -194,8 +199,9 @@ public class CreateTourSharedViewModel extends ViewModel {
 
     private File compressMainTourImg(final Context context, String imgPath) {
         if (!TextUtils.isEmpty(imgPath)) {
+            File originalImageFile = null;
             try {
-                File originalImageFile = FileUtil.from(context, Uri.parse(imgPath));
+                originalImageFile = FileUtil.from(context, Uri.parse(imgPath));
                 if (!originalImageFile.exists())
                     return null;
                 String dirPath = context.getFilesDir().getAbsolutePath() + File.separator + "TourPictures";
@@ -211,6 +217,9 @@ public class CreateTourSharedViewModel extends ViewModel {
             } catch (IOException e) {
                 e.printStackTrace();
                 //Log.d("crashTest", "compressMainTourImg() IOException");
+            } finally {
+                if (originalImageFile != null)
+                    originalImageFile.delete();
             }
         }
         return null;

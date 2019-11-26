@@ -12,12 +12,12 @@ import androidx.room.Ignore;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
-@Entity(tableName = "Tours")/*,
+@Entity(tableName = "Tours",/*
         foreignKeys = @ForeignKey(entity = User.class,
                 parentColumns = "id",
                 childColumns = "user_id",
-                onDelete = ForeignKey.SET_NULL),
-        indices=@Index(value="user_id"))*/
+                onDelete = ForeignKey.SET_NULL),*/
+        indices=@Index(value="server_tour_id", unique = true))
 public class Tour {
 
     @Exclude

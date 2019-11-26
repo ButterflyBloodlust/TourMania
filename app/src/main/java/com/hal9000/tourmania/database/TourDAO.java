@@ -68,4 +68,8 @@ public abstract class TourDAO {
 
     @Query("SELECT server_tour_id FROM Tours WHERE user_id IN (0, :userId)")
     public abstract List<String> getServerMyTourIds(int userId);
+
+    @Transaction
+    @Query("SELECT * FROM Tours WHERE server_tour_id = :serverTourId")
+    public abstract TourWithWpWithPaths getTourByServerTourIds(String serverTourId);
 }

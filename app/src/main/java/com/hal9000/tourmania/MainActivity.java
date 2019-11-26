@@ -1,6 +1,7 @@
 package com.hal9000.tourmania;
 
 import android.Manifest;
+import android.content.Context;
 import android.os.Bundle;
 
 import androidx.core.app.ActivityCompat;
@@ -60,7 +61,9 @@ public class MainActivity extends AppCompatActivity {
                         new Runnable() {
                             @Override
                             public void run() {
-                                AppDatabase.getInstance(getBaseContext()).clearAllTables();
+                                Context context = getBaseContext();
+                                AppDatabase.getInstance(context).clearAllTables();
+                                AppUtils.clearExternalCache(context);
                             }
                         });
                 DrawerLayout drawer = findViewById(R.id.drawer_layout);
