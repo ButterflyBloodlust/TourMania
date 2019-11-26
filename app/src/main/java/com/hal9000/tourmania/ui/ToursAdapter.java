@@ -109,6 +109,7 @@ public class ToursAdapter extends RecyclerView.Adapter<ToursAdapter.MyViewHolder
             @Override
             public void onClick(View v) {
                 final TourWithWpWithPaths tourWithWpWithPaths = mDataset.remove(holder.getAdapterPosition());
+                //Log.d("crashTest", "delete tour from server db");
                 notifyItemRemoved(holder.getAdapterPosition());
                 AppDatabase.databaseWriteExecutor.submit(new Runnable() {
                     @Override
@@ -116,32 +117,33 @@ public class ToursAdapter extends RecyclerView.Adapter<ToursAdapter.MyViewHolder
                         // delete tour from local db
                         AppDatabase appDatabase = AppDatabase.getInstance(callback.getContext());
                         appDatabase.tourDAO().deleteTourWp(tourWithWpWithPaths.tour);
+                    }
+                });
 
-                        // delete files related to tour, stored in app's dirs
-                        new File(callback.getContext().getExternalCacheDir(), new File(tourWithWpWithPaths.tour.getTourImgPath()).getName()).delete();
-                        for (TourWpWithPicPaths tourWpWithPicPaths : tourWithWpWithPaths._tourWpsWithPicPaths) {
-                            String mainImgPath = tourWpWithPicPaths.tourWaypoint.getMainImgPath();
-                            if (mainImgPath != null)
-                                new File(callback.getContext().getExternalCacheDir(), new File(mainImgPath).getName()).delete();
-                        }
-                        /*
-                        // delete tour from server db
-                        ToursCRUD client = RestClient.createService(ToursCRUD.class,
-                                SharedPrefUtils.getString(callback.getContext(), MainActivity.getLoginTokenKey()));
-                        Call<ResponseBody> call = client.deleteTourById(tourWithWpWithPaths.tour.getServerTourId());
-                        call.enqueue(new Callback<ResponseBody>() {
-                            @Override
-                            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                                Log.d("crashTest", "deleteImageButton onResponse");
-                            }
+                // delete files related to tour, stored in app's dirs
+                String mainImgPath = tourWithWpWithPaths.tour.getTourImgPath();
+                if (mainImgPath != null)
+                    new File(callback.getContext().getExternalCacheDir(), new File(mainImgPath).getName()).delete();
+                for (TourWpWithPicPaths tourWpWithPicPaths : tourWithWpWithPaths._tourWpsWithPicPaths) {
+                    mainImgPath = tourWpWithPicPaths.tourWaypoint.getMainImgPath();
+                    if (mainImgPath != null)
+                        new File(callback.getContext().getExternalCacheDir(), new File(mainImgPath).getName()).delete();
+                }
 
-                            @Override
-                            public void onFailure(Call<ResponseBody> call, Throwable t) {
-                                t.printStackTrace();
-                                Log.d("crashTest", "deleteImageButton onFailure");
-                            }
-                        });
-                        */
+                // delete tour from server db
+                ToursCRUD client = RestClient.createService(ToursCRUD.class,
+                        SharedPrefUtils.getString(callback.getContext(), MainActivity.getLoginTokenKey()));
+                Call<Void> call = client.deleteTourById(tourWithWpWithPaths.tour.getServerTourId());
+                call.enqueue(new Callback<Void>() {
+                    @Override
+                    public void onResponse(Call<Void> call, Response<Void> response) {
+                        //Log.d("crashTest", "deleteImageButton onResponse");
+                    }
+
+                    @Override
+                    public void onFailure(Call<Void> call, Throwable t) {
+                        t.printStackTrace();
+                        //Log.d("crashTest", "deleteImageButton onFailure");
                     }
                 });
             }

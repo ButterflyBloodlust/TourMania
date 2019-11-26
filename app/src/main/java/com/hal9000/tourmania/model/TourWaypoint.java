@@ -25,8 +25,8 @@ public class TourWaypoint implements Comparable<TourWaypoint>{
     @ColumnInfo(name = "latitude")
     private double latitude;
 
-    @ColumnInfo(name = "longtitude")
-    private double longtitude;
+    @ColumnInfo(name = "longitude")
+    private double longitude;
 
     @ColumnInfo(name = "title")
     private String title;
@@ -42,9 +42,9 @@ public class TourWaypoint implements Comparable<TourWaypoint>{
     @ColumnInfo(name = "wp_order")
     private int wpOrder;
 
-    public TourWaypoint(double latitude, double longtitude, String title, String mainImgPath) {
+    public TourWaypoint(double latitude, double longitude, String title, String mainImgPath) {
         this.setLatitude(latitude);
-        this.setLongtitude(longtitude);
+        this.setLongitude(longitude);
         this.setTitle(title);
         this.setMainImgPath(mainImgPath);
     }
@@ -65,12 +65,12 @@ public class TourWaypoint implements Comparable<TourWaypoint>{
         this.latitude = latitude;
     }
 
-    public double getLongtitude() {
-        return longtitude;
+    public double getLongitude() {
+        return longitude;
     }
 
-    public void setLongtitude(double longtitude) {
-        this.longtitude = longtitude;
+    public void setLongitude(double longitude) {
+        this.longitude = longitude;
     }
 
     public String getTitle() {

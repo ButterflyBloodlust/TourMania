@@ -24,5 +24,5 @@ public interface ToursCRUD {
     Call<List<TourWithWpWithPaths>> getUserTours(@Path("username") String username);
 
     @DELETE("tour/delete/{tourId}/")
-    Call<ResponseBody> deleteTourById(@Path("tourId") String tourId);
+    Call<Void> deleteTourById(@Path("tourId") String tourId);
 }

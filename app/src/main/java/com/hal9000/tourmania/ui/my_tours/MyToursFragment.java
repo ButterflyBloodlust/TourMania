@@ -106,7 +106,7 @@ public class MyToursFragment extends Fragment {
                             @Override
                             public void onResponse(Call<List<TourWithWpWithPaths>> call, final Response<List<TourWithWpWithPaths>> response) {
                                 if (response.isSuccessful()) {
-                                    Log.d("crashTest", "loadToursFromServerDb onResponse");
+                                    //Log.d("crashTest", "loadToursFromServerDb onResponse");
                                     if (response.body() != null) {
                                         AppUtils.saveToursToLocalDb(response.body(), requireContext());
                                         List<TourWithWpWithPaths> missingToursWithTourWps = response.body();
@@ -122,7 +122,7 @@ public class MyToursFragment extends Fragment {
                             @Override
                             public void onFailure(Call<List<TourWithWpWithPaths>> call, Throwable t) {
                                 t.printStackTrace();
-                                Log.d("crashTest", "loadToursFromServerDb onFailure");
+                                //Log.d("crashTest", "loadToursFromServerDb onFailure");
                             }
                         });
                     }
@@ -135,7 +135,7 @@ public class MyToursFragment extends Fragment {
             missingTourIds.add(tourWithWpWithPaths.tour.getServerTourId());
         }
         FileUploadDownloadService client = RestClient.createService(FileUploadDownloadService.class);
-        Log.d("crashTest", "Missing tour: " + Integer.toString(missingTourIds.size()));
+        //Log.d("crashTest", "Missing tour: " + Integer.toString(missingTourIds.size()));
         Call<List<FileDownloadResponse>> call = client.downloadMultipleFiles(missingTourIds);
         call.enqueue(new Callback<List<FileDownloadResponse>>() {
             @Override
@@ -151,17 +151,17 @@ public class MyToursFragment extends Fragment {
                                 }
                             });
                     } catch (Exception e) { // IOException
-                        Log.d("crashTest", "Unknown expection while reading file download response");
+                        //Log.d("crashTest", "Unknown expection while reading file download response");
                         e.printStackTrace();
                     }
                 }
-                Log.d("crashTest", "loadToursImagesFromServerDb onResponse");
+                //Log.d("crashTest", "loadToursImagesFromServerDb onResponse");
             }
 
             @Override
             public void onFailure(Call<List<FileDownloadResponse>> call, Throwable t) {
                 t.printStackTrace();
-                Log.d("crashTest", "loadToursImagesFromServerDb onFailure");
+                //Log.d("crashTest", "loadToursImagesFromServerDb onFailure");
             }
         });
     }
@@ -170,7 +170,7 @@ public class MyToursFragment extends Fragment {
         final AppDatabase appDatabase = AppDatabase.getInstance(requireContext());
         // for each tour
         for (FileDownloadResponse fileDownloadResponse : res) {
-            Log.d("crashTest", fileDownloadResponse.tourServerId);
+            //Log.d("crashTest", fileDownloadResponse.tourServerId);
             TourWithWpWithPaths tourWithWpWithPaths = appDatabase.tourDAO().getTourByServerTourIds(fileDownloadResponse.tourServerId);
             tourWithWpWithPaths.getSortedTourWpsWithPicPaths();  // make sure waypoints have sorted order
             if (fileDownloadResponse.images != null) {
@@ -178,17 +178,17 @@ public class MyToursFragment extends Fragment {
                 // for each image in tour
                 for (Map.Entry<String, FileDownloadImageObj> entry : fileDownloadResponse.images.entrySet()) {
                     FileDownloadImageObj fileDownloadImageObj = entry.getValue();
-                    Log.d("crashTest", entry.getKey() + " / " + entry.getValue());
+                    //Log.d("crashTest", entry.getKey() + " / " + entry.getValue());
                     if (fileDownloadImageObj.base64 != null && fileDownloadImageObj.mime != null) {
                         File file = AppUtils.saveImageFromBase64(requireContext(), fileDownloadImageObj.base64, fileDownloadImageObj.mime);
                         // process main tour image
                         if (entry.getKey().equals("0")) {
-                            Log.d("crashTest", "updating main tour image");
+                            //Log.d("crashTest", "updating main tour image");
                             tourWithWpWithPaths.tour.setTourImgPath(file.toURI().toString());
                             appDatabase.tourDAO().updateTour(tourWithWpWithPaths.tour);
                             int i = 0;
                             for (TourWithWpWithPaths t : mAdapter.mDataset) {
-                                Log.d("crashTest", t.tour.getServerTourId());
+                                //Log.d("crashTest", t.tour.getServerTourId());
                                 if (t.tour.getServerTourId().equals(fileDownloadResponse.tourServerId)) {
                                     t.tour.setTourImgPath(file.toURI().toString());
                                     mAdapter.notifyItemChanged(i);
@@ -198,7 +198,7 @@ public class MyToursFragment extends Fragment {
                         }
                         // process tour waypoints images
                         else {
-                            Log.d("crashTest", "updating tour waypoint image");
+                            //Log.d("crashTest", "updating tour waypoint image");
                             TourWaypoint tourWaypoint = tourWithWpWithPaths._tourWpsWithPicPaths.get(Integer.parseInt(entry.getKey()) - 1).tourWaypoint;
                             tourWaypoint.setMainImgPath(file.toURI().toString());
                             appDatabase.tourWaypointDAO().updateTourWp(tourWaypoint);

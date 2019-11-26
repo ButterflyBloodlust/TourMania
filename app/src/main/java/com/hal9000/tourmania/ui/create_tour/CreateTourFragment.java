@@ -7,18 +7,19 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.collection.LongSparseArray;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
-import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.lifecycle.ViewModelProviders;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.drawable.Drawable;
+import android.location.Location;
+import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Bundle;
 
@@ -31,7 +32,6 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -43,6 +43,7 @@ import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -50,19 +51,16 @@ import android.widget.Toast;
 
 import com.hal9000.tourmania.AppUtils;
 import com.hal9000.tourmania.R;
-import com.hal9000.tourmania.database.AppDatabase;
-import com.hal9000.tourmania.model.Tour;
 import com.hal9000.tourmania.model.TourWaypoint;
-import com.hal9000.tourmania.model.TourWithWpWithPaths;
 import com.hal9000.tourmania.model.TourWpWithPicPaths;
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
 import com.mapbox.api.directions.v5.DirectionsCriteria;
 import com.mapbox.api.directions.v5.models.DirectionsResponse;
 import com.mapbox.api.directions.v5.models.DirectionsRoute;
-import com.mapbox.api.directions.v5.models.RouteOptions;
 import com.mapbox.geojson.Point;
 import com.mapbox.mapboxsdk.Mapbox;
+import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.location.LocationComponent;
 import com.mapbox.mapboxsdk.location.LocationComponentActivationOptions;
@@ -71,6 +69,7 @@ import com.mapbox.mapboxsdk.location.modes.CameraMode;
 import com.mapbox.mapboxsdk.location.modes.RenderMode;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
+import com.mapbox.mapboxsdk.maps.MapboxMapOptions;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
 import com.mapbox.mapboxsdk.maps.Style;
 import com.mapbox.mapboxsdk.plugins.annotation.OnSymbolClickListener;
@@ -78,9 +77,7 @@ import com.mapbox.mapboxsdk.plugins.annotation.Symbol;
 import com.mapbox.mapboxsdk.plugins.annotation.SymbolManager;
 import com.mapbox.mapboxsdk.plugins.annotation.SymbolOptions;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonOptions;
-import com.mapbox.services.android.navigation.ui.v5.NavigationViewOptions;
 import com.mapbox.services.android.navigation.ui.v5.route.NavigationMapRoute;
-import com.mapbox.services.android.navigation.v5.navigation.MapboxNavigationOptions;
 import com.mapbox.services.android.navigation.v5.navigation.NavigationRoute;
 
 import org.jetbrains.annotations.NotNull;
@@ -93,6 +90,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+import static android.content.Context.LOCATION_SERVICE;
 import static com.mapbox.mapboxsdk.style.layers.Property.TEXT_ANCHOR_BOTTOM;
 import static com.mapbox.mapboxsdk.style.layers.Property.TEXT_JUSTIFY_AUTO;
 
@@ -309,13 +307,6 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
             if (actionBar != null) {
                 actionBar.setTitle("Create Tour");
             }
-        /*
-        int tourId = CreateTourFragmentArgs.fromBundle(getArguments()).getTourId();
-        if (tourId == -1)
-            ((AppCompatActivity)getActivity()).getSupportActionBar().setTitle("Create Tour");
-        else
-            ((AppCompatActivity)getActivity()).getSupportActionBar().setTitle("Tour");
-        */
 
         Mapbox.getInstance(requireActivity(), getString(R.string.mapbox_access_token));
 
@@ -387,7 +378,39 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
             }
         });
 
-        mapView = (MapView) view.findViewById(R.id.mapView);
+        //mapView = (MapView) view.findViewById(R.id.mapView);
+
+
+        Location location = null;
+        LocationManager locationManager = (LocationManager) requireContext().getSystemService(LOCATION_SERVICE);
+        if ( ContextCompat.checkSelfPermission( requireContext(), Manifest.permission.ACCESS_FINE_LOCATION ) == PackageManager.PERMISSION_GRANTED ) {
+            location = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
+        }
+
+        if (location != null) {
+            MapboxMapOptions mapboxMapOptions = MapboxMapOptions.createFromAttributes(requireContext(), null)
+                    .camera(new CameraPosition.Builder()
+                            .target(new LatLng(location.getLatitude(), location.getLongitude()))
+                            .zoom(12)
+                            .build());
+            mapView = new MapView(requireContext(), mapboxMapOptions);
+        }
+        else if (tourId != -1){
+            ArrayList<TourWpWithPicPaths> tourWpWithPicPaths = createTourSharedViewModel.getTourWaypointList();
+                if (!createTourSharedViewModel.getTourWaypointList().isEmpty()) {
+                    TourWaypoint tourWaypoint = tourWpWithPicPaths.get(0).tourWaypoint;
+                    MapboxMapOptions mapboxMapOptions = MapboxMapOptions.createFromAttributes(requireContext(), null)
+                            .camera(new CameraPosition.Builder()
+                                    .target(new LatLng(tourWaypoint.getLatitude(), tourWaypoint.getLongitude()))
+                            .zoom(12)
+                            .build());
+                    mapView = new MapView(requireContext(), mapboxMapOptions);
+                }
+                else
+                    mapView = new MapView(requireContext());
+        }
+        else
+            mapView = new MapView(requireContext());
         mapView.onCreate(savedInstanceState);
         mapView.getMapAsync(new OnMapReadyCallback() {
             @Override
@@ -469,7 +492,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                         List<SymbolOptions> symbolOptionsList = new LinkedList<>();
                         for (TourWpWithPicPaths tourWpWithPicPaths : tourWpWithPicPathsArrayList) {
                             SymbolOptions symbolOptions = new SymbolOptions()
-                                    .withLatLng(new LatLng(tourWpWithPicPaths.tourWaypoint.getLatitude(), tourWpWithPicPaths.tourWaypoint.getLongtitude()))
+                                    .withLatLng(new LatLng(tourWpWithPicPaths.tourWaypoint.getLatitude(), tourWpWithPicPaths.tourWaypoint.getLongitude()))
                                     .withIconImage(ID_ICON_MARKER)
                                     .withTextField(tourWpWithPicPaths.tourWaypoint.getTitle())
                                     .withTextJustify(TEXT_JUSTIFY_AUTO);
@@ -488,6 +511,9 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                 });
             }
         });
+
+        FrameLayout frameLayout = view.findViewById(R.id.mapView);
+        frameLayout.addView(mapView);
 
         // Handle annotation label updates.
         EditText annotationTextEditText = ((EditText)view.findViewById(R.id.textViewAnnotationText));
@@ -734,7 +760,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
 
             TourWpWithPicPaths tourWpWithPicPaths = tourWpWithPicPathsLinkedList.get(i);
             tourWpWithPicPaths.tourWaypoint.setLatitude(latLng.getLatitude());
-            tourWpWithPicPaths.tourWaypoint.setLongtitude(latLng.getLongitude());
+            tourWpWithPicPaths.tourWaypoint.setLongitude(latLng.getLongitude());
             tourWpWithPicPaths.tourWaypoint.setTitle(symbol.getTextField());
         }
         for (int i = tourWpWithPicPathsLinkedList.size(); i < annotationsSize; i++) {
