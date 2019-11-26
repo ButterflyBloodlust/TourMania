@@ -111,7 +111,6 @@ public class MyToursFragment extends Fragment {
                                 if (response.isSuccessful()) {
                                     //Log.d("crashTest", "loadToursFromServerDb onResponse");
                                     if (response.body() != null) {
-                                        AppUtils.saveToursToLocalDb(response.body(), requireContext());
                                         List<TourWithWpWithPaths> missingToursWithTourWps = response.body();
                                         if (missingToursWithTourWps.size() > 0) {
 
@@ -125,9 +124,12 @@ public class MyToursFragment extends Fragment {
                                                     it.remove();
                                             }
 
+                                            AppUtils.saveToursToLocalDb(missingToursWithTourWps, requireContext());
+
                                             int oldSize = mAdapter.mDataset.size();
                                             mAdapter.mDataset.addAll(missingToursWithTourWps);
                                             mAdapter.notifyItemRangeInserted(oldSize, missingToursWithTourWps.size());
+
                                             loadToursImagesFromServerDb(missingToursWithTourWps);
                                         }
                                     }
@@ -162,7 +164,11 @@ public class MyToursFragment extends Fragment {
                             new Runnable() {
                                 @Override
                                 public void run() {
-                                    loadToursImagesFromServerDbProcessResponse(res);
+                                    try {
+                                        loadToursImagesFromServerDbProcessResponse(res);
+                                    } catch (Exception e) { // IOException
+                                        e.printStackTrace();
+                                    }
                                 }
                             });
                     } catch (Exception e) { // IOException
@@ -183,6 +189,7 @@ public class MyToursFragment extends Fragment {
 
     private void loadToursImagesFromServerDbProcessResponse(List<FileDownloadResponse> res) {
         final AppDatabase appDatabase = AppDatabase.getInstance(requireContext());
+        //Log.d("crashTest", "Missing tour: " + Integer.toString(res.size()));
         // for each tour
         for (FileDownloadResponse fileDownloadResponse : res) {
             //Log.d("crashTest", fileDownloadResponse.tourServerId);
@@ -206,6 +213,7 @@ public class MyToursFragment extends Fragment {
                                 //Log.d("crashTest", t.tour.getServerTourId());
                                 if (t.tour.getServerTourId().equals(fileDownloadResponse.tourServerId)) {
                                     t.tour.setTourImgPath(file.toURI().toString());
+                                    while (recyclerView.isComputingLayout());
                                     mAdapter.notifyItemChanged(i);
                                 }
                                 i++;
