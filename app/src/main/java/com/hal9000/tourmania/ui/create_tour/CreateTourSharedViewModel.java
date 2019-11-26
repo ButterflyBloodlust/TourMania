@@ -235,6 +235,7 @@ public class CreateTourSharedViewModel extends ViewModel {
                     TourWithWpWithPaths tourWpWithPicPaths = appDatabase.tourDAO().getTourWithTourWps(tourId);
                     tour = tourWpWithPicPaths.tour;
                     tourWaypointList.addAll(tourWpWithPicPaths.getSortedTourWpsWithPicPaths());
+                    tourTagsList.addAll(tourWpWithPicPaths.tourTags);
                     loadedFromDb = true;
                 }
             }
