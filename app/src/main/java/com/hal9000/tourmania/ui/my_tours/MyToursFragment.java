@@ -35,6 +35,8 @@ import com.hal9000.tourmania.ui.create_tour.CreateTourFragmentArgs;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -47,7 +49,6 @@ public class MyToursFragment extends Fragment {
     private ToursAdapter mAdapter;
     private RecyclerView.LayoutManager layoutManager;
     private List<TourWithWpWithPaths> toursWithTourWps;
-    //private List<TourWithWpWithPaths> missingToursWithTourWps;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -98,8 +99,10 @@ public class MyToursFragment extends Fragment {
                     public void run() {
                         final AppDatabase appDatabase = AppDatabase.getInstance(requireContext());
                         List<String> serverMyTourIds = appDatabase.tourDAO().getServerMyTourIds(-222);
+                        //Log.d("crashTest", "loadToursFromServerDb serverMyTourIds in db : " + serverMyTourIds.size());
+                        //Log.d("crashTest", "loadToursFromServerDb serverMyTourIds in db : " + serverMyTourIds.toString());
                         ToursCRUD client = RestClient.createService(ToursCRUD.class);
-                        Call<List<TourWithWpWithPaths>> call = serverMyTourIds == null || serverMyTourIds.size() == 0 ?
+                        Call<List<TourWithWpWithPaths>> call = serverMyTourIds == null || serverMyTourIds.isEmpty() ?
                                 client.getUserTours(SharedPrefUtils.getString(requireContext(), MainActivity.getUsernameKey())) :
                                 client.getUserTours(SharedPrefUtils.getString(requireContext(), MainActivity.getUsernameKey()), serverMyTourIds);
                         call.enqueue(new Callback<List<TourWithWpWithPaths>>() {
@@ -110,11 +113,23 @@ public class MyToursFragment extends Fragment {
                                     if (response.body() != null) {
                                         AppUtils.saveToursToLocalDb(response.body(), requireContext());
                                         List<TourWithWpWithPaths> missingToursWithTourWps = response.body();
-                                        int oldSize = mAdapter.mDataset.size();
-                                        mAdapter.mDataset.addAll(missingToursWithTourWps);
-                                        mAdapter.notifyItemRangeInserted(oldSize, missingToursWithTourWps.size());
-                                        if (missingToursWithTourWps.size() > 0)
+                                        if (missingToursWithTourWps.size() > 0) {
+
+                                            HashSet<Long> tourTitlesHashSet = new HashSet<>();
+                                            for (TourWithWpWithPaths tourWithWpWithPaths : mAdapter.mDataset) {
+                                                tourTitlesHashSet.add(tourWithWpWithPaths.tour.getModifiedAt());
+                                            }
+                                            Iterator<TourWithWpWithPaths> it = missingToursWithTourWps.iterator();
+                                            while (it.hasNext()) {
+                                                if (tourTitlesHashSet.contains(it.next().tour.getModifiedAt()))
+                                                    it.remove();
+                                            }
+
+                                            int oldSize = mAdapter.mDataset.size();
+                                            mAdapter.mDataset.addAll(missingToursWithTourWps);
+                                            mAdapter.notifyItemRangeInserted(oldSize, missingToursWithTourWps.size());
                                             loadToursImagesFromServerDb(missingToursWithTourWps);
+                                        }
                                     }
                                 }
                             }

@@ -116,19 +116,20 @@ public class CreateTourSharedViewModel extends ViewModel {
             @EverythingIsNonNull
             public void onResponse(Call<TourUpsertResponse> call, final Response<TourUpsertResponse> response) {
                 if (response.isSuccessful()) {
+                    tour.setServerSynced(true);
+                    TourUpsertResponse resp = response.body();
+                    if (resp != null && resp.tourServerId != null)
+                        tour.setServerTourId(resp.tourServerId);
+
                     AppDatabase.databaseWriteExecutor.submit(new Runnable() {
                         @Override
                         public void run() {
-                            tour.setServerSynced(true);
-                            TourUpsertResponse resp = response.body();
-                            if (resp != null && resp.tourServerId != null)
-                                tour.setServerTourId(resp.tourServerId);
                             AppDatabase appDatabase = AppDatabase.getInstance(context);
                             appDatabase.tourDAO().updateTour(tour);  // purposely without timestamp
-
-                            sendImgFilesToServer(context);
                         }
                     });
+
+                    sendImgFilesToServer(context);
                 } else {
                     System.out.println(response.errorBody());
                 }

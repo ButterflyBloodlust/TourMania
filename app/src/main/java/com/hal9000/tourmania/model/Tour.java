@@ -17,7 +17,7 @@ import androidx.room.PrimaryKey;
                 parentColumns = "id",
                 childColumns = "user_id",
                 onDelete = ForeignKey.SET_NULL),*/
-        indices=@Index(value="server_tour_id", unique = true))
+        indices=@Index(value="server_tour_id"))
 public class Tour {
 
     @Exclude
