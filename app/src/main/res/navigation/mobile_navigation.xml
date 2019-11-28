@@ -64,6 +64,11 @@
                 android:name="tourId"
                 app:argType="integer"
                 android:defaultValue="-1" />
+            <argument
+                android:name="tourServerId"
+                app:argType="string"
+                app:nullable="true"
+                android:defaultValue="@null" />
         </fragment>
         <fragment
             android:id="@+id/tourWaypointsListFragment"
@@ -98,4 +103,9 @@
         app:popUpTo="@id/nav_home"
         app:popUpToInclusive="true"
         app:launchSingleTop="true" />
+    <fragment
+        android:id="@+id/nav_search"
+        android:name="com.hal9000.tourmania.ui.search.SearchFragment"
+        android:label=""
+        tools:layout="@layout/fragment_search" />
 </navigation>

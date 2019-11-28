@@ -85,7 +85,7 @@ public class TourTagsListFragment extends Fragment {
                                     new DialogInterface.OnClickListener() {
                                         public void onClick(DialogInterface dialog,int id) {
                                             String tourTag = userInput.getText().toString();
-                                            Log.d("crashTest", tourTag);
+                                            //Log.d("crashTest", tourTag);
                                             if (!tourTag.isEmpty()) {
                                                 List<TourTag> tourTagList = mViewModel.getTourTagsList();
                                                 tourTagList.add(new TourTag(userInput.getText().toString()));

@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.collection.LongSparseArray;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
 import android.Manifest;
@@ -32,6 +33,7 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -51,6 +53,7 @@ import android.widget.Toast;
 
 import com.hal9000.tourmania.AppUtils;
 import com.hal9000.tourmania.R;
+import com.hal9000.tourmania.model.Tour;
 import com.hal9000.tourmania.model.TourWaypoint;
 import com.hal9000.tourmania.model.TourWpWithPicPaths;
 import com.mapbox.android.core.permissions.PermissionsListener;
@@ -61,6 +64,7 @@ import com.mapbox.api.directions.v5.models.DirectionsRoute;
 import com.mapbox.geojson.Point;
 import com.mapbox.mapboxsdk.Mapbox;
 import com.mapbox.mapboxsdk.camera.CameraPosition;
+import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.location.LocationComponent;
 import com.mapbox.mapboxsdk.location.LocationComponentActivationOptions;
@@ -91,6 +95,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import static android.content.Context.LOCATION_SERVICE;
+import static com.hal9000.tourmania.ui.search.SearchFragment.TOUR_SEARCH_CACHE_DIR_NAME;
 import static com.mapbox.mapboxsdk.style.layers.Property.TEXT_ANCHOR_BOTTOM;
 import static com.mapbox.mapboxsdk.style.layers.Property.TEXT_JUSTIFY_AUTO;
 
@@ -158,7 +163,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
         if(createTourSharedViewModel.isEditingEnabled()) {
             inflater.inflate(R.menu.create_tour_toolbar_menu, menu);
         }
-        else {
+        else if (createTourSharedViewModel.isEditingPossible()){
             inflater.inflate(R.menu.create_tour_toolbar_menu_editing_disabled, menu);
         }
         super.onPrepareOptionsMenu(menu);
@@ -286,6 +291,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
         createTourSharedViewModel = new ViewModelProvider(owner, factory).get(CreateTourSharedViewModel.class);
 
         int tourId = CreateTourFragmentArgs.fromBundle(getArguments()).getTourId();
+        String tourServerId = CreateTourFragmentArgs.fromBundle(getArguments()).getTourServerId();
         //Log.d("crashTest", "tourId = " + Integer.toString(tourId));
         AppCompatActivity appCompatActivity = ((AppCompatActivity)getActivity());
         ActionBar actionBar = null;
@@ -295,6 +301,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
             if (actionBar != null) {
                 actionBar.setTitle("Tour");
             }
+            createTourSharedViewModel.setEditingPossible(true);
             createTourSharedViewModel.setInitialEditingEnabled(false);
             Future future = createTourSharedViewModel.loadTourFromDb(tourId, requireContext());
             try {
@@ -303,10 +310,20 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                 e.printStackTrace();
             }
         }
-        else
+        else if (tourServerId != null) {
+            if (actionBar != null) {
+                actionBar.setTitle("Tour");
+            }
+            createTourSharedViewModel.setInitialEditingEnabled(false);
+            createTourSharedViewModel.setEditingPossible(false);
+            createTourSharedViewModel.loadTourFromServerDb(tourServerId, requireContext(), TOUR_SEARCH_CACHE_DIR_NAME);
+        }
+        else {
             if (actionBar != null) {
                 actionBar.setTitle("Create Tour");
             }
+            createTourSharedViewModel.setEditingPossible(true);
+        }
 
         Mapbox.getInstance(requireActivity(), getString(R.string.mapbox_access_token));
 
@@ -380,37 +397,46 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
 
         //mapView = (MapView) view.findViewById(R.id.mapView);
 
-
-        Location location = null;
-        LocationManager locationManager = (LocationManager) requireContext().getSystemService(LOCATION_SERVICE);
-        if ( ContextCompat.checkSelfPermission( requireContext(), Manifest.permission.ACCESS_FINE_LOCATION ) == PackageManager.PERMISSION_GRANTED ) {
-            location = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
-        }
-
-        if (location != null) {
+        final int choosenLocateWaypointIndex = createTourSharedViewModel.getChoosenLocateWaypointIndex();
+        if (choosenLocateWaypointIndex != -1 ) {
+            TourWaypoint tourWaypoint = createTourSharedViewModel.getTourWaypointList().get(choosenLocateWaypointIndex).tourWaypoint;
             MapboxMapOptions mapboxMapOptions = MapboxMapOptions.createFromAttributes(requireContext(), null)
                     .camera(new CameraPosition.Builder()
-                            .target(new LatLng(location.getLatitude(), location.getLongitude()))
-                            .zoom(12)
+                            .target(new LatLng(tourWaypoint.getLatitude(), tourWaypoint.getLongitude()))
+                            .zoom(10)
                             .build());
             mapView = new MapView(requireContext(), mapboxMapOptions);
+            createTourSharedViewModel.removeChoosenLocateWaypointIndex();
         }
-        else if (tourId != -1){
-            ArrayList<TourWpWithPicPaths> tourWpWithPicPaths = createTourSharedViewModel.getTourWaypointList();
+        else {
+            Location location = null;
+            LocationManager locationManager = (LocationManager) requireContext().getSystemService(LOCATION_SERVICE);
+            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                location = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
+            }
+
+            if (location != null) {
+                MapboxMapOptions mapboxMapOptions = MapboxMapOptions.createFromAttributes(requireContext(), null)
+                        .camera(new CameraPosition.Builder()
+                                .target(new LatLng(location.getLatitude(), location.getLongitude()))
+                                .zoom(10)
+                                .build());
+                mapView = new MapView(requireContext(), mapboxMapOptions);
+            } else if (tourId != -1 || tourServerId != null) {
+                ArrayList<TourWpWithPicPaths> tourWpWithPicPaths = createTourSharedViewModel.getTourWaypointList();
                 if (!createTourSharedViewModel.getTourWaypointList().isEmpty()) {
                     TourWaypoint tourWaypoint = tourWpWithPicPaths.get(0).tourWaypoint;
                     MapboxMapOptions mapboxMapOptions = MapboxMapOptions.createFromAttributes(requireContext(), null)
                             .camera(new CameraPosition.Builder()
                                     .target(new LatLng(tourWaypoint.getLatitude(), tourWaypoint.getLongitude()))
-                            .zoom(12)
-                            .build());
+                                    .zoom(10)
+                                    .build());
                     mapView = new MapView(requireContext(), mapboxMapOptions);
-                }
-                else
+                } else
                     mapView = new MapView(requireContext());
+            } else
+                mapView = new MapView(requireContext());
         }
-        else
-            mapView = new MapView(requireContext());
         mapView.onCreate(savedInstanceState);
         mapView.getMapAsync(new OnMapReadyCallback() {
             @Override
@@ -499,7 +525,6 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                             symbolOptionsList.add(symbolOptions);
                         }
                         // Mark selected annotation if aplicable
-                        int choosenLocateWaypointIndex = createTourSharedViewModel.getChoosenLocateWaypointIndex();
                         if (choosenLocateWaypointIndex != -1 ) {
                             symbolOptionsList.get(choosenLocateWaypointIndex).withIconImage(ID_ICON_MARKER_SELECTED);
                             createTourSharedViewModel.removeChoosenLocateWaypointIndex();
@@ -533,7 +558,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
         });
 
         // Handle tour title and it's updates.
-        EditText tourTitleEditText = ((EditText)view.findViewById(R.id.text_input_edit_text_create_tour));
+        final EditText tourTitleEditText = ((EditText)view.findViewById(R.id.text_input_edit_text_create_tour));
         tourTitleEditText.setText(createTourSharedViewModel.getTour().getTitle());
         tourTitleEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
@@ -568,21 +593,42 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
             }
         });
 
-        // Delay loading tour image (if present) until it's ImageView has non zero height / width
-        final String tourImgPath = createTourSharedViewModel.getTour().getTourImgPath();
-        if (tourImgPath != null) {
-            tourImageView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-                @Override
-                public void onGlobalLayout() {
-                    tourImageView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                    try {
-                        setTourImage(Uri.parse(tourImgPath));
-                    } catch (FileNotFoundException e) {
-                        e.printStackTrace();
+        createTourSharedViewModel.getTourLiveData().observe(this, new Observer<Tour>() {
+            @Override
+            public void onChanged(@Nullable Tour tour) {
+                try {
+                    tourTitleEditText.setText(tour.getTitle());
+
+                    // Delay loading tour image (if present) until it's ImageView has non zero height / width
+                    final String tourImgPath = createTourSharedViewModel.getTour().getTourImgPath();
+                    if (tourImgPath != null) {
+                        tourImageView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                            @Override
+                            public void onGlobalLayout() {
+                                tourImageView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                                try {
+                                    setTourImage(Uri.parse(tourImgPath));
+                                } catch (FileNotFoundException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        });
                     }
+
+                    ArrayList<TourWpWithPicPaths> tourWpWithPicPaths = createTourSharedViewModel.getTourWaypointList();
+                    if (!createTourSharedViewModel.getTourWaypointList().isEmpty()) {
+                        TourWaypoint tourWaypoint = tourWpWithPicPaths.get(0).tourWaypoint;
+                        CameraPosition position = new CameraPosition.Builder()
+                                .target(new LatLng(tourWaypoint.getLatitude(), tourWaypoint.getLongitude()))
+                                .zoom(10)
+                                .build();
+                        mapboxMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-            });
-        }
+            }
+        });
     }
 
     private void addWaypoint(@NonNull LatLng point) {

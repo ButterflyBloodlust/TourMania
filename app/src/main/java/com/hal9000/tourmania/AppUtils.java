@@ -100,7 +100,7 @@ public class AppUtils {
         });
     }
 
-    public static File saveImageFromBase64(final Context context, final String imageData, final String mimeType) {
+    public static File saveImageFromBase64(final Context context, final String imageData, final String mimeType, String subDirName) {
         final byte[] imgBytesData = android.util.Base64.decode(imageData,
                 android.util.Base64.DEFAULT);
 
@@ -108,7 +108,16 @@ public class AppUtils {
         final FileOutputStream fileOutputStream;
         final String extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
         try {
-            file = File.createTempFile("image", "." + extension, context.getExternalCacheDir());
+            if (subDirName == null)
+                file = File.createTempFile("image", "." + extension, context.getExternalCacheDir());
+            else {
+                String dirPath = context.getExternalCacheDir() + File.separator + subDirName;
+                File projDir = new File(dirPath);
+                if (!projDir.exists())
+                    projDir.mkdirs();
+                file = File.createTempFile("image", "." + extension, projDir);
+            }
+
             fileOutputStream = new FileOutputStream(file);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -139,23 +148,27 @@ public class AppUtils {
         try {
             File dir = context.getExternalCacheDir();
             if (dir != null && dir.isDirectory()) {
-                deleteDir(dir);
+                deleteDir(dir, 0);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public static boolean deleteDir(File dir) {
+    // pass deleteTop = -1 to keep top level directory
+    public static boolean deleteDir(File dir, int deleteTop) {
         if (dir != null && dir.isDirectory()) {
             String[] children = dir.list();
             for (int i = 0; i < children.length; i++) {
-                boolean success = deleteDir(new File(dir, children[i]));
+                boolean success = deleteDir(new File(dir, children[i]), deleteTop + 1);
                 if (!success) {
                     return false;
                 }
             }
         }
-        return dir.delete();
+        if (deleteTop == -1)
+            return true;
+        else
+            return dir.delete();
     }
 }

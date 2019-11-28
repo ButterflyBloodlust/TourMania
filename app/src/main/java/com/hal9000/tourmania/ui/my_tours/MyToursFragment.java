@@ -2,7 +2,6 @@ package com.hal9000.tourmania.ui.my_tours;
 
 import android.content.Context;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -27,7 +26,7 @@ import com.hal9000.tourmania.rest_api.RestClient;
 import com.hal9000.tourmania.rest_api.files_upload_download.FileDownloadImageObj;
 import com.hal9000.tourmania.rest_api.files_upload_download.FileDownloadResponse;
 import com.hal9000.tourmania.rest_api.files_upload_download.FileUploadDownloadService;
-import com.hal9000.tourmania.rest_api.tours.ToursCRUD;
+import com.hal9000.tourmania.rest_api.tours.ToursService;
 import com.hal9000.tourmania.ui.ToursAdapter;
 import com.hal9000.tourmania.database.AppDatabase;
 import com.hal9000.tourmania.model.TourWithWpWithPaths;
@@ -101,7 +100,7 @@ public class MyToursFragment extends Fragment {
                         List<String> serverMyTourIds = appDatabase.tourDAO().getServerMyTourIds(-222);
                         //Log.d("crashTest", "loadToursFromServerDb serverMyTourIds in db : " + serverMyTourIds.size());
                         //Log.d("crashTest", "loadToursFromServerDb serverMyTourIds in db : " + serverMyTourIds.toString());
-                        ToursCRUD client = RestClient.createService(ToursCRUD.class);
+                        ToursService client = RestClient.createService(ToursService.class);
                         Call<List<TourWithWpWithPaths>> call = serverMyTourIds == null || serverMyTourIds.isEmpty() ?
                                 client.getUserTours(SharedPrefUtils.getString(requireContext(), MainActivity.getUsernameKey())) :
                                 client.getUserTours(SharedPrefUtils.getString(requireContext(), MainActivity.getUsernameKey()), serverMyTourIds);
@@ -153,7 +152,7 @@ public class MyToursFragment extends Fragment {
         }
         FileUploadDownloadService client = RestClient.createService(FileUploadDownloadService.class);
         //Log.d("crashTest", "Missing tour: " + Integer.toString(missingTourIds.size()));
-        Call<List<FileDownloadResponse>> call = client.downloadMultipleFiles(missingTourIds);
+        Call<List<FileDownloadResponse>> call = client.downloadMultipleFiles(missingTourIds, true);
         call.enqueue(new Callback<List<FileDownloadResponse>>() {
             @Override
             public void onResponse(Call<List<FileDownloadResponse>> call, Response<List<FileDownloadResponse>> response) {
@@ -202,7 +201,7 @@ public class MyToursFragment extends Fragment {
                     FileDownloadImageObj fileDownloadImageObj = entry.getValue();
                     //Log.d("crashTest", entry.getKey() + " / " + entry.getValue());
                     if (fileDownloadImageObj.base64 != null && fileDownloadImageObj.mime != null) {
-                        File file = AppUtils.saveImageFromBase64(requireContext(), fileDownloadImageObj.base64, fileDownloadImageObj.mime);
+                        File file = AppUtils.saveImageFromBase64(requireContext(), fileDownloadImageObj.base64, fileDownloadImageObj.mime, null);
                         // process main tour image
                         if (entry.getKey().equals("0")) {
                             //Log.d("crashTest", "updating main tour image");
@@ -254,7 +253,8 @@ public class MyToursFragment extends Fragment {
                         Navigation.findNavController(requireView()).navigate(R.id.nav_nested_create_tour,
                                 new CreateTourFragmentArgs.Builder().setTourId(toursWithTourWps.get(position).tour.getTourId()).build().toBundle());
                     }
-                });
+                },
+                R.layout.tour_rec_view_row);
         recyclerView.setAdapter(mAdapter);
     }
 }
