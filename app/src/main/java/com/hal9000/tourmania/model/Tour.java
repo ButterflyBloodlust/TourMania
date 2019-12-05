@@ -51,6 +51,9 @@ public class Tour {
     @ColumnInfo(name = "user_id")
     private int userId = 0;
 
+    @SerializedName("in_favs") @Ignore
+    private boolean inFavs = false;
+
     public Tour() {}
 
     @Ignore
@@ -122,5 +125,13 @@ public class Tour {
 
     public void setUserId(int userId) {
         this.userId = userId;
+    }
+
+    public boolean isInFavs() {
+        return inFavs;
+    }
+
+    public void setInFavs(boolean inFavs) {
+        this.inFavs = inFavs;
     }
 }

@@ -2,6 +2,7 @@ package com.hal9000.tourmania.ui.my_tours;
 
 import android.content.Context;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -48,6 +49,7 @@ public class MyToursFragment extends Fragment {
     private ToursAdapter mAdapter;
     private RecyclerView.LayoutManager layoutManager;
     private List<TourWithWpWithPaths> toursWithTourWps;
+    private int currentFragmentId;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -55,21 +57,28 @@ public class MyToursFragment extends Fragment {
                 ViewModelProviders.of(this).get(MyToursViewModel.class);
         View root = inflater.inflate(R.layout.fragment_my_tours, container, false);
 
-        FloatingActionButton fab = root.findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                //Navigation.findNavController(view).navigate(R.id.createTourFragment, null);
-                Navigation.findNavController(view).navigate(R.id.action_nav_my_tours_to_nav_nested_create_tour, null);
-                //Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG).setAction("Action", null).show();
-            }
-        });
+        currentFragmentId = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment).getCurrentDestination().getId();
+        //Log.d("crashTest", "currId = " + currId);
+        //Log.d("crashTest", "nav_my_tours = " + R.id.nav_my_tours);
+        //Log.d("crashTest", "nav_fav_tours = " + R.id.nav_fav_tours);
+        if (currentFragmentId == R.id.nav_my_tours) {
+            View fab = root.findViewById(R.id.fab);
+            fab.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    //Navigation.findNavController(view).navigate(R.id.createTourFragment, null);
+                    Navigation.findNavController(view).navigate(R.id.action_nav_my_tours_to_nav_nested_create_tour, null);
+                    //Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                }
+            });
+            fab.setVisibility(View.VISIBLE);
+        }
 
         Future future = loadToursFromRoomDb();
         try {
             future.get();
         } catch (ExecutionException | InterruptedException e) {
-            //e.printStackTrace();
+            e.printStackTrace();
         }
         createRecyclerView(root);
         loadToursFromServerDb();
@@ -84,7 +93,12 @@ public class MyToursFragment extends Fragment {
                 //Log.d("crashTest", "run()");
                 AppDatabase appDatabase = AppDatabase.getInstance(requireContext());
                 //List<Tour> toursWithTourWps = AppDatabase.getInstance(requireContext()).tourDAO().getTours();
-                toursWithTourWps = appDatabase.tourDAO().getToursWithTourWps();
+                if (currentFragmentId == R.id.nav_my_tours) {
+                    toursWithTourWps = appDatabase.tourDAO().getMyToursWithTourWps();
+                }
+                else if (currentFragmentId == R.id.nav_fav_tours){
+                    toursWithTourWps = appDatabase.tourDAO().getFavouriteToursWithTourWps();
+                }
 
                 //Log.d("crashTest", Integer.toString(toursWithTourWps.size()));
             }
@@ -97,13 +111,22 @@ public class MyToursFragment extends Fragment {
                     @Override
                     public void run() {
                         final AppDatabase appDatabase = AppDatabase.getInstance(requireContext());
-                        List<String> serverMyTourIds = appDatabase.tourDAO().getServerMyTourIds(-222);
                         //Log.d("crashTest", "loadToursFromServerDb serverMyTourIds in db : " + serverMyTourIds.size());
                         //Log.d("crashTest", "loadToursFromServerDb serverMyTourIds in db : " + serverMyTourIds.toString());
                         ToursService client = RestClient.createService(ToursService.class);
-                        Call<List<TourWithWpWithPaths>> call = serverMyTourIds == null || serverMyTourIds.isEmpty() ?
-                                client.getUserTours(SharedPrefUtils.getString(requireContext(), MainActivity.getUsernameKey())) :
-                                client.getUserTours(SharedPrefUtils.getString(requireContext(), MainActivity.getUsernameKey()), serverMyTourIds);
+                        Call<List<TourWithWpWithPaths>> call = null;
+                        if (currentFragmentId == R.id.nav_my_tours) {
+                            List<String> serverMyTourIds = appDatabase.tourDAO().getServerMyTourIds(-1);
+                            call = serverMyTourIds == null || serverMyTourIds.isEmpty() ?
+                                    client.getUserTours(SharedPrefUtils.getString(requireContext(), MainActivity.getUsernameKey())) :
+                                    client.getUserTours(SharedPrefUtils.getString(requireContext(), MainActivity.getUsernameKey()), serverMyTourIds);
+                        }
+                        else if (currentFragmentId == R.id.nav_fav_tours) {
+                            List<String> serverMyTourIds = appDatabase.tourDAO().getServerFavTourIds(-1);
+                            call = serverMyTourIds == null || serverMyTourIds.isEmpty() ?
+                                    client.getUserFavTours(SharedPrefUtils.getString(requireContext(), MainActivity.getUsernameKey())) :
+                                    client.getUserFavTours(SharedPrefUtils.getString(requireContext(), MainActivity.getUsernameKey()), serverMyTourIds);
+                        }
                         call.enqueue(new Callback<List<TourWithWpWithPaths>>() {
                             @Override
                             public void onResponse(Call<List<TourWithWpWithPaths>> call, final Response<List<TourWithWpWithPaths>> response) {
@@ -123,7 +146,12 @@ public class MyToursFragment extends Fragment {
                                                     it.remove();
                                             }
 
-                                            AppUtils.saveToursToLocalDb(missingToursWithTourWps, requireContext());
+                                            if (currentFragmentId == R.id.nav_my_tours)
+                                                AppUtils.saveToursToLocalDb(missingToursWithTourWps, requireContext(), AppUtils.TOUR_TYPE_MY_TOUR);
+                                            else if (currentFragmentId == R.id.nav_fav_tours)
+                                                AppUtils.saveToursToLocalDb(missingToursWithTourWps, requireContext(), AppUtils.TOUR_TYPE_FAV_TOUR);
+                                            else
+                                                AppUtils.saveToursToLocalDb(missingToursWithTourWps, requireContext(), null);
 
                                             int oldSize = mAdapter.mDataset.size();
                                             mAdapter.mDataset.addAll(missingToursWithTourWps);
@@ -254,7 +282,7 @@ public class MyToursFragment extends Fragment {
                                 new CreateTourFragmentArgs.Builder().setTourId(toursWithTourWps.get(position).tour.getTourId()).build().toBundle());
                     }
                 },
-                R.layout.tour_rec_view_row);
+                currentFragmentId == R.id.nav_my_tours ? R.layout.tour_rec_view_row : R.layout.tour_search_rec_view_row);
         recyclerView.setAdapter(mAdapter);
     }
 }

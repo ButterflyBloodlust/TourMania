@@ -47,9 +47,14 @@
 
     <fragment
         android:id="@+id/nav_fav_tours"
-        android:name="com.hal9000.tourmania.ui.favourite_tours.FavouriteToursFragment"
+        android:name="com.hal9000.tourmania.ui.my_tours.MyToursFragment"
         android:label="@string/menu_fav_tours"
-        tools:layout="@layout/fragment_fav_tours" />
+        tools:layout="@layout/fragment_my_tours" >
+        <action
+            android:id="@+id/action_nav_fav_tours_to_nav_nested_create_tour"
+            app:destination="@id/nav_nested_create_tour"
+            app:popUpTo="@+id/createTourFragment" />
+    </fragment>
 
     <navigation
         android:id="@+id/nav_nested_create_tour"

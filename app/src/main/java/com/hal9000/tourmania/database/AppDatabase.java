@@ -2,6 +2,8 @@ package com.hal9000.tourmania.database;
 
 import android.content.Context;
 
+import com.hal9000.tourmania.model.FavouriteTour;
+import com.hal9000.tourmania.model.MyTour;
 import com.hal9000.tourmania.model.PicturePath;
 import com.hal9000.tourmania.model.Tour;
 import com.hal9000.tourmania.model.TourTag;
@@ -16,7 +18,8 @@ import androidx.room.Room;
 import androidx.room.RoomDatabase;
 
 
-@Database(entities = {Tour.class, TourWaypoint.class, PicturePath.class, TourTag.class, User.class}, version = 2, exportSchema = false)
+@Database(entities = {Tour.class, TourWaypoint.class, PicturePath.class, TourTag.class, User.class,
+        FavouriteTour.class, MyTour.class}, version = 2, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
     private static final String LOG_TAG = AppDatabase.class.getSimpleName();
     private static final Object LOCK = new Object();
@@ -43,4 +46,6 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract TourDAO tourDAO();
     public abstract TourTagDAO tourTagDAO();
     public abstract UserDAO userDAO();
+    public abstract FavouriteTourDAO favouriteTourDAO();
+    public abstract MyTourDAO myTourDAO();
 }

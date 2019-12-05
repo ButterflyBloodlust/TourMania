@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/action_add_tour_to_favourites"
+        android:orderInCategory="180"
+        android:title="@string/action_add_to_favourites"
+        app:showAsAction="ifRoom"
+        android:icon="@drawable/ic_star_white_border_50dp"
+        android:visible="false"/>
+</menu>

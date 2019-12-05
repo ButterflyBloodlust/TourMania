@@ -8,6 +8,10 @@ import android.webkit.MimeTypeMap;
 
 import com.google.android.material.navigation.NavigationView;
 import com.hal9000.tourmania.database.AppDatabase;
+import com.hal9000.tourmania.database.FavouriteTourDAO;
+import com.hal9000.tourmania.database.MyTourDAO;
+import com.hal9000.tourmania.model.FavouriteTour;
+import com.hal9000.tourmania.model.MyTour;
 import com.hal9000.tourmania.model.Tour;
 import com.hal9000.tourmania.model.TourTag;
 import com.hal9000.tourmania.model.TourWaypoint;
@@ -27,6 +31,9 @@ import java.util.concurrent.Future;
 import androidx.fragment.app.FragmentActivity;
 
 public class AppUtils {
+
+    public static int TOUR_TYPE_MY_TOUR = 1;
+    public static int TOUR_TYPE_FAV_TOUR = 2;
 
     public static void hideSoftKeyboard(FragmentActivity fragmentActivity) {
         InputMethodManager inputMethodManager = (InputMethodManager) fragmentActivity.getSystemService(Activity.INPUT_METHOD_SERVICE);
@@ -68,7 +75,7 @@ public class AppUtils {
         return type;
     }
 
-    public static Future<?> saveToursToLocalDb(final List<TourWithWpWithPaths> tourWithWpWithPathsList, final Context context) {
+    public static Future<?> saveToursToLocalDb(final List<TourWithWpWithPaths> tourWithWpWithPathsList, final Context context, final Integer saveAsType) {
         return AppDatabase.databaseWriteExecutor.submit(new Runnable() {
             @Override
             public void run() {
@@ -96,6 +103,20 @@ public class AppUtils {
                 }
                 appDatabase.tourTagDAO().insertTourTags(tourTags);
                 appDatabase.tourWaypointDAO().insertTourWps(tourWaypoints);
+
+                if (saveAsType == TOUR_TYPE_MY_TOUR) {
+                    MyTourDAO myTourDAO = appDatabase.myTourDAO();
+                    List<MyTour> myTours = new ArrayList<>(tourIds.length);
+                    for (long tourId : tourIds)
+                        myTours.add(new MyTour((int)tourId));
+                    myTourDAO.insertMyTours(myTours);
+                } else if (saveAsType == TOUR_TYPE_FAV_TOUR) {
+                    FavouriteTourDAO favouriteTourDAO = appDatabase.favouriteTourDAO();
+                    List<FavouriteTour> favouriteTours = new ArrayList<>(tourIds.length);
+                    for (long tourId : tourIds)
+                        favouriteTours.add(new FavouriteTour((int) tourId));
+                    favouriteTourDAO.insertFavouriteTours(favouriteTours);
+                }
             }
         });
     }

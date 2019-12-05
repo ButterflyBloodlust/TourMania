@@ -36,9 +36,11 @@ public abstract class TourDAO {
     @Query("SELECT * FROM Tours")
     public abstract List<TourWithWpWithPaths> getToursWithTourWps();
 
+    /*
     @Transaction
     @Query("SELECT * FROM Tours WHERE user_id = 0")
     public abstract List<TourWithWpWithPaths> getMyToursWithTourWps();
+     */
 
     @Transaction
     @Query("SELECT * FROM Tours WHERE id = :tourId")
@@ -56,6 +58,9 @@ public abstract class TourDAO {
     @Delete
     public abstract void deleteTourWp(Tour tour);
 
+    @Query("DELETE FROM Tours WHERE id = :tourId")
+    public abstract void deleteTourWpByTourId(int tourId);
+
     public long insertWithTimestamp(Tour tour) {
         tour.setModifiedAt(System.currentTimeMillis());
         return insertTour(tour);
@@ -66,10 +71,21 @@ public abstract class TourDAO {
         updateTour(tour);
     }
 
-    @Query("SELECT server_tour_id FROM Tours WHERE user_id IN (0, :userId)")
+    @Query("SELECT server_tour_id FROM Tours WHERE id IN (SELECT DISTINCT(tour_id) FROM MyTours) AND user_id IN (0, :userId)")
     public abstract List<String> getServerMyTourIds(int userId);
+
+    @Query("SELECT server_tour_id FROM Tours WHERE id IN (SELECT DISTINCT(tour_id) FROM FavouriteTours) AND user_id IN (0, :userId)")
+    public abstract List<String> getServerFavTourIds(int userId);
 
     @Transaction
     @Query("SELECT * FROM Tours WHERE server_tour_id = :serverTourId")
     public abstract TourWithWpWithPaths getTourByServerTourIds(String serverTourId);
+
+    @Transaction
+    @Query("SELECT * FROM Tours WHERE id IN (SELECT DISTINCT(tour_id) FROM FavouriteTours)")
+    public abstract List<TourWithWpWithPaths> getFavouriteToursWithTourWps();
+
+    @Transaction
+    @Query("SELECT * FROM Tours WHERE id IN (SELECT DISTINCT(tour_id) FROM MyTours)")
+    public abstract List<TourWithWpWithPaths> getMyToursWithTourWps();
 }

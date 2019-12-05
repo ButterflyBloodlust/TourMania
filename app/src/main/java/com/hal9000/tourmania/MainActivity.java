@@ -4,15 +4,19 @@ import android.Manifest;
 import android.content.Context;
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.view.GravityCompat;
 import androidx.navigation.NavController;
+import androidx.navigation.NavDestination;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
 import com.google.android.material.navigation.NavigationView;
 import com.hal9000.tourmania.database.AppDatabase;
+import com.hal9000.tourmania.rest_api.RestClient;
 
 import androidx.drawerlayout.widget.DrawerLayout;
 
@@ -52,11 +56,19 @@ public class MainActivity extends AppCompatActivity {
         NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
         NavigationUI.setupWithNavController(navigationView, navController);
 
+        navController.addOnDestinationChangedListener(new NavController.OnDestinationChangedListener() {
+            @Override
+            public void onDestinationChanged(@NonNull NavController controller, @NonNull NavDestination destination, @Nullable Bundle arguments) {
+                //arguments.get
+            }
+        });
+
         navigationView.getMenu().findItem(R.id.sign_out).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
                 SharedPrefUtils.removeItem(getBaseContext(), getLoginTokenKey());
                 SharedPrefUtils.removeItem(getBaseContext(), getUsernameKey());
+                RestClient.clearAuth();
                 AppDatabase.databaseWriteExecutor.submit(
                         new Runnable() {
                             @Override

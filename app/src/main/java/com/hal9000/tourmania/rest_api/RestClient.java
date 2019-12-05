@@ -63,6 +63,13 @@ public abstract class RestClient {
         return retrofit.create(serviceClass);
     }
 
+    public static void clearAuth() {
+        httpClient.interceptors().clear();
+        httpClient.networkInterceptors().clear();
+        builder.client(httpClient.build());
+        retrofit = builder.build();
+    }
+
     @NonNull
     public static RequestBody createPartFromString(String descriptionString) {
         return RequestBody.create(

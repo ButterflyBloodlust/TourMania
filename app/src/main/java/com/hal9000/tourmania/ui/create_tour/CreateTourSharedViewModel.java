@@ -10,6 +10,11 @@ import com.hal9000.tourmania.FileUtil;
 import com.hal9000.tourmania.MainActivity;
 import com.hal9000.tourmania.SharedPrefUtils;
 import com.hal9000.tourmania.database.AppDatabase;
+import com.hal9000.tourmania.database.FavouriteTourDAO;
+import com.hal9000.tourmania.database.MyTourDAO;
+import com.hal9000.tourmania.database.TourDAO;
+import com.hal9000.tourmania.model.FavouriteTour;
+import com.hal9000.tourmania.model.MyTour;
 import com.hal9000.tourmania.model.Tour;
 import com.hal9000.tourmania.model.TourTag;
 import com.hal9000.tourmania.model.TourWaypoint;
@@ -28,6 +33,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import androidx.lifecycle.LiveData;
@@ -53,6 +59,11 @@ public class CreateTourSharedViewModel extends ViewModel {
     private boolean editingEnabled = true;
     private boolean editingInitialised = false;
     private boolean editingPossible = false;
+    private int viewType = -1;
+    private boolean checkedForCacheLink = false;
+
+    static int VIEW_TYPE_MY_TOUR = 1;
+    static int VIEW_TYPE_FAV_TOUR = 2;
 
     public CreateTourSharedViewModel() {
         //Log.d("crashTest", "CreateTourSharedViewModel.CreateTourSharedViewModel()");
@@ -83,39 +94,142 @@ public class CreateTourSharedViewModel extends ViewModel {
         return tour;
     }
 
-    public Future saveTourToDb(final Context context) {
+    public Future saveTourToDb(final Context context, final int saveAsType) {
         // Currently does NOT handle additional waypoint pics (PicturePath / TourWpWithPicPaths)
         //Log.d("crashTest", "saveTourToDb()");
-        Future future = saveTourToLocalDb(context);
-        if (AppUtils.isUserLoggedIn(context))
+        final Future future = saveTourToLocalDb(context, saveAsType);
+        if (AppUtils.isUserLoggedIn(context) && editingPossible && saveAsType == VIEW_TYPE_MY_TOUR)
             saveTourToServerDb(context);
+        else if (saveAsType == VIEW_TYPE_FAV_TOUR)
+            addTourToServerFavs(context);
         return future;
     }
 
-    private Future<?> saveTourToLocalDb(final Context context) {
+    private Future<?> saveTourToLocalDb(final Context context, final int saveAsType) {
         return AppDatabase.databaseWriteExecutor.submit(new Runnable() {
             @Override
             public void run() {
-                //Log.d("crashTest", "run()");
-                AppDatabase appDatabase = AppDatabase.getInstance(context);
-                int tourId = (int)appDatabase.tourDAO().insertWithTimestamp(getTour());
-                getTour().setTourId(tourId);
-                LinkedList<TourWaypoint> tourWps = new LinkedList<>();
-                for (int i = 0; i < tourWaypointList.size(); i++) {
-                    TourWaypoint tourWaypoint = tourWaypointList.get(i).tourWaypoint;
-                    tourWaypoint.setTourId(tourId);
-                    tourWaypoint.setWpOrder(i);
-                    tourWps.addLast(tourWaypoint);
-                }
-                long[] wpsIds = appDatabase.tourWaypointDAO().insertTourWps(tourWps);
-                for (int i = 0; i < wpsIds.length; i++) {
-                    tourWaypointList.get(i).tourWaypoint.setTourWpId((int)wpsIds[i]);
-                }
+                try {
+                    //Log.d("crashTest", "run()");
+                    AppDatabase appDatabase = AppDatabase.getInstance(context);
+                    TourDAO tourDAO = appDatabase.tourDAO();
 
-                for (TourTag tourTag : tourTagsList) {
-                    tourTag.setTourId(tourId);
+                    TourWithWpWithPaths tourWithWpWithPaths = tourDAO.getTourByServerTourIds(getTour().getServerTourId());
+                    int tourId = -1;
+                    if (saveAsType == VIEW_TYPE_MY_TOUR ||
+                            ((tourWithWpWithPaths == null || TextUtils.isEmpty(getTour().getServerTourId()))
+                                    && saveAsType == VIEW_TYPE_FAV_TOUR)) {
+                        // Insert the tour into Room db
+                        tourId = (int) tourDAO.insertWithTimestamp(getTour());
+                        getTour().setTourId(tourId);
+                        LinkedList<TourWaypoint> tourWps = new LinkedList<>();
+                        for (int i = 0; i < tourWaypointList.size(); i++) {
+                            TourWaypoint tourWaypoint = tourWaypointList.get(i).tourWaypoint;
+                            tourWaypoint.setTourId(tourId);
+                            tourWaypoint.setWpOrder(i);
+                            tourWps.addLast(tourWaypoint);
+                        }
+                        long[] wpsIds = appDatabase.tourWaypointDAO().insertTourWps(tourWps);
+                        for (int i = 0; i < wpsIds.length; i++) {
+                            tourWaypointList.get(i).tourWaypoint.setTourWpId((int) wpsIds[i]);
+                        }
+
+                        for (TourTag tourTag : tourTagsList) {
+                            tourTag.setTourId(tourId);
+                        }
+                        appDatabase.tourTagDAO().insertTourTags(tourTagsList);
+                    } else {
+                        tourId = tourWithWpWithPaths.tour.getTourId();
+                    }
+
+                    if (saveAsType == VIEW_TYPE_MY_TOUR) {
+                        MyTourDAO myTourDAO = appDatabase.myTourDAO();
+                        MyTour myTour = myTourDAO.getMyTourByTourId(tourId);
+                        if (myTour == null)
+                            myTourDAO.insertMyTour(new MyTour(tourId));
+                        else {
+                            myTour.setTourId(tourId);
+                            myTourDAO.updateMyTour(myTour);
+                        }
+                    } else if (saveAsType == VIEW_TYPE_FAV_TOUR) {
+                        FavouriteTourDAO favouriteTourDAO = appDatabase.favouriteTourDAO();
+                        FavouriteTour favouriteTour = favouriteTourDAO.getFavouriteTourByTourId(tourId);
+                        if (favouriteTour == null)
+                            favouriteTourDAO.insertFavouriteTour(new FavouriteTour(tourId));
+                        else {
+                            favouriteTour.setTourId(tourId);
+                            favouriteTourDAO.updateFavouriteTour(favouriteTour);
+                        }
+                        getTour().setInFavs(true);
+                    } else {
+                        throw new RuntimeException("Unknown 'save as' type for given tour");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-                appDatabase.tourTagDAO().insertTourTags(tourTagsList);
+            }
+        });
+    }
+
+    public void addTourToServerFavs(final Context context) {
+        ToursService client = RestClient.createService(ToursService.class,
+                SharedPrefUtils.getString(context, MainActivity.getLoginTokenKey()));
+        // Add tour to favourites on server
+        Call<ResponseBody> call = client.addTourToFavs(getTour().getServerTourId());
+        call.enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                getTour().setInFavs(true);
+                Log.d("crashTest", "addTourToFavs onResponse()");
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                Log.d("crashTest", "addTourToFavs onFailure()");
+            }
+        });
+    }
+
+    public void deleteTourFromFavs(final Context context) {
+        AppDatabase appDatabase = AppDatabase.getInstance(context);
+        FavouriteTourDAO favouriteTourDAO = appDatabase.favouriteTourDAO();
+        FavouriteTour favouriteTour = favouriteTourDAO.getFavouriteTourByTourId(getTour().getTourId());
+        // Remove tour from favourites
+        if (favouriteTour != null) {
+            favouriteTourDAO.deleteFavouriteTour(favouriteTour);
+            MyTourDAO myTourDAO = appDatabase.myTourDAO();
+            MyTour myTour = myTourDAO.getMyTourByTourId(favouriteTour.getTourId());
+            if (myTour == null) {
+                // Delete tour from db / files cache
+                TourDAO tourDAO = appDatabase.tourDAO();
+                TourWithWpWithPaths tourWithWpWithPaths = tourDAO.getTourWithTourWps(favouriteTour.getTourId());
+                tourDAO.deleteTourWp(tourWithWpWithPaths.tour);
+                // delete files related to tour, stored in app's dirs
+                String mainImgPath = tourWithWpWithPaths.tour.getTourImgPath();
+                if (mainImgPath != null)
+                    new File(context.getExternalCacheDir(), new File(mainImgPath).getName()).delete();
+                for (TourWpWithPicPaths tourWpWithPicPaths : tourWithWpWithPaths._tourWpsWithPicPaths) {
+                    mainImgPath = tourWpWithPicPaths.tourWaypoint.getMainImgPath();
+                    if (mainImgPath != null)
+                        new File(context.getExternalCacheDir(), new File(mainImgPath).getName()).delete();
+                }
+            }
+        }
+        getTour().setInFavs(false);
+        ToursService client = RestClient.createService(ToursService.class,
+                SharedPrefUtils.getString(context, MainActivity.getLoginTokenKey()));
+        Call<ResponseBody> call = client.deleteTourFromFavs(getTour().getServerTourId());
+        call.enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                Log.d("crashTest", "deleteTourFromFavs onResponse()");
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
+                Log.d("crashTest", "deleteTourFromFavs onFailure()");
             }
         });
     }
@@ -238,6 +352,20 @@ public class CreateTourSharedViewModel extends ViewModel {
         return null;
     }
 
+    // Needs to be called from non-ui thread
+    private void detectViewType(final Context context, final int tourId) {
+        AppDatabase appDatabase = AppDatabase.getInstance(context);
+        MyTour myTour = appDatabase.myTourDAO().getMyTourByTourId(tourId);
+        if (myTour != null)
+            viewType = VIEW_TYPE_MY_TOUR;
+        else
+            viewType = VIEW_TYPE_FAV_TOUR;
+    }
+
+    public int getViewType() {
+        return viewType;
+    }
+
     public Future loadTourFromDb(final int tourId, final Context context) {
         return AppDatabase.databaseWriteExecutor.submit(new Runnable() {
             @Override
@@ -249,15 +377,26 @@ public class CreateTourSharedViewModel extends ViewModel {
                     tourWaypointList.addAll(tourWpWithPicPaths.getSortedTourWpsWithPicPaths());
                     tourTagsList.addAll(tourWpWithPicPaths.tourTags);
                     loadedFromDb = true;
+                    detectViewType(context, tourWpWithPicPaths.tour.getTourId());
                 }
             }
         });
     }
 
+    public boolean checkIfInCachedFavs(final Context context) {
+        AppDatabase appDatabase = AppDatabase.getInstance(context);
+        FavouriteTourDAO favouriteTourDAO = appDatabase.favouriteTourDAO();
+        int tourId = getTour().getTourId();
+        FavouriteTour favouriteTour = favouriteTourDAO.getFavouriteTourByTourId(tourId);
+        ToursService client = RestClient.createService(ToursService.class,
+                SharedPrefUtils.getString(context, MainActivity.getLoginTokenKey()));
+        return favouriteTour != null;
+    }
+
     public void loadTourFromServerDb(final String tourServerId, final Context context, final String subDirName) {
         if (!loadedFromServerDb) {
             ToursService client = RestClient.createService(ToursService.class);
-            Call<TourWithWpWithPaths> call = client.getTour(tourServerId);
+            Call<TourWithWpWithPaths> call = client.getTour(tourServerId, SharedPrefUtils.getString(context, MainActivity.getUsernameKey()));
             call.enqueue(new Callback<TourWithWpWithPaths>() {
                 @Override
                 public void onResponse(Call<TourWithWpWithPaths> call, final Response<TourWithWpWithPaths> response) {
@@ -269,6 +408,7 @@ public class CreateTourSharedViewModel extends ViewModel {
                             tourTagsList.addAll(tourWithTourWps.tourTags);
                             tourWaypointList.addAll(tourWithTourWps.getSortedTourWpsWithPicPaths());
 
+                            linkToCacheIfExistsWithSrvId(context);
                             loadTourImagesFromServerDb(tourServerId, context, subDirName);
                         }
                     }
@@ -337,6 +477,20 @@ public class CreateTourSharedViewModel extends ViewModel {
         }
     }
 
+    public void linkToCacheIfExistsWithSrvId(final Context context) {
+        AppDatabase.databaseWriteExecutor.submit(new Runnable() {
+            @Override
+            public void run() {
+                AppDatabase appDatabase = AppDatabase.getInstance(context);
+                TourWithWpWithPaths tourWithWpWithPaths = appDatabase.tourDAO().getTourByServerTourIds(getTour().getServerTourId());
+                if (tourWithWpWithPaths != null)
+                    getTour().setTourId(tourWithWpWithPaths.tour.getTourId());
+                checkedForCacheLink = true;
+                tour.setValue(getTour());
+            }
+        });
+    }
+
     public boolean isEditingEnabled() {
         return editingEnabled;
     }
@@ -362,6 +516,10 @@ public class CreateTourSharedViewModel extends ViewModel {
 
     public void setEditingPossible(boolean editingPossible) {
         this.editingPossible = editingPossible;
+    }
+
+    public boolean isCheckedForCacheLink() {
+        return checkedForCacheLink;
     }
 
     /*

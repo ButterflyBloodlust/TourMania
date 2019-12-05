@@ -30,7 +30,6 @@ import android.widget.Toast;
 import com.hal9000.tourmania.AppUtils;
 import com.hal9000.tourmania.ui.InfiniteTourAdapter;
 import com.hal9000.tourmania.MainActivity;
-import com.hal9000.tourmania.OnLoadMoreListener;
 import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.model.TourWithWpWithPaths;
 import com.hal9000.tourmania.rest_api.RestClient;
@@ -100,7 +99,9 @@ public class SearchFragment extends Fragment {
                 mAdapter.notifyItemRangeRemoved(0, oldSize);
                 pageNumber = 1;
                 reachedEnd = false;
-                loadToursFromServerDb(queryText);
+                SearchFragment.this.queryText = queryText;
+                mAdapter.setLoading();
+                loadToursFromServerDb();
                 return true;
             }
 
@@ -135,8 +136,7 @@ public class SearchFragment extends Fragment {
         }
     }
 
-    private void loadToursFromServerDb(String queryText) {
-        this.queryText = queryText;
+    private void loadToursFromServerDb() {
         ToursService client = RestClient.createService(ToursService.class);
         //Log.d("crashTest", "Missing tour: " + Integer.toString(missingTourIds.size()));
         Call<List<TourWithWpWithPaths>> call = client.searchToursByPhrase(queryText, pageNumber++);
@@ -262,9 +262,10 @@ public class SearchFragment extends Fragment {
             @Override
             public void onLoadMore() {
                 if (!reachedEnd) {
-                    mAdapter.showProgressBar();
-                    loadToursFromServerDb(queryText);
+                    loadToursFromServerDb();
                 }
+                else
+                    mAdapter.setLoaded();
             }
         });
         recyclerView.setAdapter(mAdapter);

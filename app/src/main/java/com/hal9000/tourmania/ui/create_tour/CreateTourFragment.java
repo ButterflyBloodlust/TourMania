@@ -29,6 +29,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelStoreOwner;
 import androidx.navigation.Navigation;
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -52,10 +53,21 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.hal9000.tourmania.AppUtils;
+import com.hal9000.tourmania.MainActivity;
 import com.hal9000.tourmania.R;
+import com.hal9000.tourmania.SharedPrefUtils;
+import com.hal9000.tourmania.database.AppDatabase;
+import com.hal9000.tourmania.database.FavouriteTourDAO;
+import com.hal9000.tourmania.database.MyTourDAO;
+import com.hal9000.tourmania.database.TourDAO;
+import com.hal9000.tourmania.model.FavouriteTour;
+import com.hal9000.tourmania.model.MyTour;
 import com.hal9000.tourmania.model.Tour;
 import com.hal9000.tourmania.model.TourWaypoint;
+import com.hal9000.tourmania.model.TourWithWpWithPaths;
 import com.hal9000.tourmania.model.TourWpWithPicPaths;
+import com.hal9000.tourmania.rest_api.RestClient;
+import com.hal9000.tourmania.rest_api.tours.ToursService;
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
 import com.mapbox.api.directions.v5.DirectionsCriteria;
@@ -86,6 +98,7 @@ import com.mapbox.services.android.navigation.v5.navigation.NavigationRoute;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -95,6 +108,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import static android.content.Context.LOCATION_SERVICE;
+import static com.hal9000.tourmania.ui.create_tour.CreateTourSharedViewModel.VIEW_TYPE_FAV_TOUR;
+import static com.hal9000.tourmania.ui.create_tour.CreateTourSharedViewModel.VIEW_TYPE_MY_TOUR;
 import static com.hal9000.tourmania.ui.search.SearchFragment.TOUR_SEARCH_CACHE_DIR_NAME;
 import static com.mapbox.mapboxsdk.style.layers.Property.TEXT_ANCHOR_BOTTOM;
 import static com.mapbox.mapboxsdk.style.layers.Property.TEXT_JUSTIFY_AUTO;
@@ -115,6 +130,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
     private DirectionsRoute currentRoute;
     private static final String TAG = "DirectionsAPI";
     private NavigationMapRoute navigationMapRoute;
+    private Observer<Tour> observerFavIcon;
 
     private View annotationInfoView;
     private long selectedSymbolId = -1;
@@ -147,30 +163,74 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
         // The callback can be enabled or disabled here or in handleOnBackPressed()
     }
 
-    /*
     @Override
-    public void onCreateOptionsMenu(@NonNull Menu menu, MenuInflater inflater) {
-        inflater.inflate(R.menu.create_tour_toolbar_menu, menu);
-        super.onCreateOptionsMenu(menu, inflater);
-    }
-    */
-
-    @Override
-    public void onPrepareOptionsMenu(Menu menu) {
-        menu.clear();
-        MenuInflater inflater = requireActivity().getMenuInflater();
-        inflater.inflate(R.menu.main, menu);
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         if(createTourSharedViewModel.isEditingEnabled()) {
             inflater.inflate(R.menu.create_tour_toolbar_menu, menu);
         }
-        else if (createTourSharedViewModel.isEditingPossible()){
-            inflater.inflate(R.menu.create_tour_toolbar_menu_editing_disabled, menu);
+        else {
+            if (createTourSharedViewModel.isEditingPossible()) {
+                inflater.inflate(R.menu.create_tour_toolbar_menu_editing_disabled, menu);
+            }
+            else {
+                inflater.inflate(R.menu.create_tour_toolbar_menu_favs, menu);
+                final MenuItem item = menu.findItem(R.id.action_add_tour_to_favourites);
+                if (observerFavIcon != null)
+                    createTourSharedViewModel.getTourLiveData().removeObserver(observerFavIcon);
+                observerFavIcon = new Observer<Tour>() {
+                    @Override
+                    public void onChanged(@Nullable final Tour tour) {
+                        AppDatabase.databaseWriteExecutor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    //Log.d("crashTest", "observer: tour.getTourId() : " + tour.getTourId());
+                                    if (tour.isInFavs()) {
+                                        requireActivity().runOnUiThread(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                item.setIcon(R.drawable.ic_star_white_filled_50dp);
+                                                item.setVisible(true);
+                                            }
+                                        });
+                                    }
+                                    else if (tour.getTourId() != 0) {
+                                        AppDatabase appDatabase = AppDatabase.getInstance(requireContext());
+                                        final FavouriteTour favouriteTour = appDatabase.favouriteTourDAO().getFavouriteTourByTourId(tour.getTourId());
+                                        requireActivity().runOnUiThread(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                if (favouriteTour == null)
+                                                    item.setIcon(R.drawable.ic_star_white_border_50dp);
+                                                else
+                                                    item.setIcon(R.drawable.ic_star_white_filled_50dp);
+                                                item.setVisible(true);
+                                            }
+                                        });
+                                    }
+                                    else if (createTourSharedViewModel.isCheckedForCacheLink()) {
+                                        requireActivity().runOnUiThread(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                item.setVisible(true);
+                                            }
+                                        });
+                                    }
+                                } catch (Exception e ) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        });
+                    }
+                };
+                createTourSharedViewModel.getTourLiveData().observe(this, observerFavIcon);
+            }
         }
-        super.onPrepareOptionsMenu(menu);
+        super.onCreateOptionsMenu(menu,inflater);
     }
 
     @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
+    public boolean onOptionsItemSelected(final MenuItem item) {
         // Handle item selection
         switch (item.getItemId()) {
             case R.id.action_save_route:
@@ -184,7 +244,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                             public void onClick(DialogInterface dialog, int which) {
                                 Toast savinToast = Toast.makeText(requireContext(),"Saving ...",Toast.LENGTH_SHORT);
                                 savinToast.show();
-                                Future future = createTourSharedViewModel.saveTourToDb(requireContext());
+                                Future future = createTourSharedViewModel.saveTourToDb(requireContext(), VIEW_TYPE_MY_TOUR);
                                 try {
                                     future.get();
                                 } catch (ExecutionException | InterruptedException e) {
@@ -211,6 +271,41 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                 createTourSharedViewModel.setEditingEnabled(true);
                 requireActivity().invalidateOptionsMenu();
                 enableEditing();
+                return true;
+            case R.id.action_add_tour_to_favourites:
+                //Log.d("crashTest", "action_add_tour_to_favourites");
+                AppDatabase.databaseWriteExecutor.submit(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            if (!createTourSharedViewModel.getTour().isInFavs() && !createTourSharedViewModel.checkIfInCachedFavs(requireContext())) {
+                                // Save tour to db
+                                Future future = createTourSharedViewModel.saveTourToDb(requireContext(), VIEW_TYPE_FAV_TOUR);
+                                requireActivity().runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        item.setIcon(R.drawable.ic_star_white_filled_50dp);
+                                    }
+                                });
+                                try {
+                                    future.get();
+                                } catch (ExecutionException | InterruptedException ex) {
+                                    ex.printStackTrace();
+                                }
+                            } else {
+                                createTourSharedViewModel.deleteTourFromFavs(requireContext());
+                                requireActivity().runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        item.setIcon(R.drawable.ic_star_white_border_50dp);
+                                    }
+                                });
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -301,14 +396,18 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
             if (actionBar != null) {
                 actionBar.setTitle("Tour");
             }
-            createTourSharedViewModel.setEditingPossible(true);
-            createTourSharedViewModel.setInitialEditingEnabled(false);
             Future future = createTourSharedViewModel.loadTourFromDb(tourId, requireContext());
             try {
                 future.get();
             } catch (ExecutionException | InterruptedException e) {
                 e.printStackTrace();
             }
+            if (createTourSharedViewModel.getViewType() == VIEW_TYPE_MY_TOUR)
+                createTourSharedViewModel.setEditingPossible(true);
+            else
+                createTourSharedViewModel.setEditingPossible(false);
+            createTourSharedViewModel.setInitialEditingEnabled(false);
+            //requireActivity().invalidateOptionsMenu();
         }
         else if (tourServerId != null) {
             if (actionBar != null) {

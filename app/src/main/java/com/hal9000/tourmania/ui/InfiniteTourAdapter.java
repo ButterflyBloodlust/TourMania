@@ -3,6 +3,7 @@ package com.hal9000.tourmania.ui;
 import android.content.Context;
 import android.net.Uri;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,7 +13,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.hal9000.tourmania.MainActivity;
-import com.hal9000.tourmania.OnLoadMoreListener;
+import com.hal9000.tourmania.ui.search.OnLoadMoreListener;
 import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.SharedPrefUtils;
 import com.hal9000.tourmania.database.AppDatabase;
@@ -88,28 +89,35 @@ public class InfiniteTourAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                     super.onScrolled(recyclerView, dx, dy);
 
                     totalItemCount = linearLayoutManager.getItemCount();
-                    lastVisibleItem = linearLayoutManager
-                            .findLastVisibleItemPosition();
-                    if (!loading
-                            && totalItemCount <= (lastVisibleItem + visibleThreshold)) {
+                    lastVisibleItem = linearLayoutManager.findLastVisibleItemPosition();
+                    if (!loading && totalItemCount <= (lastVisibleItem + visibleThreshold)) {
                         // End has been reached
                         // Do something
                         if (onLoadMoreListener != null) {
-                            onLoadMoreListener.onLoadMore();
+                            setLoading();
                             //Log.d("crashTest", "onLoadMore");
+                            onLoadMoreListener.onLoadMore();
                         }
-                        loading = true;
                     }
                 }
             });
         }
     }
 
+    public void setLoading() {
+        loading = true;
+        showProgressBar();
+    }
+
     public void showProgressBar() {
         //add null , so the adapter will check view_type and show progress bar at bottom
-        mDataset.add(null);
-        progressBarPosition = mDataset.size() - 1;
-        notifyItemInserted(progressBarPosition);
+        try {
+            mDataset.add(null);
+            progressBarPosition = mDataset.size() - 1;
+            notifyItemInserted(progressBarPosition);
+        } catch (Exception e ) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -229,11 +237,14 @@ public class InfiniteTourAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     public void setLoaded() {
         if (loading) {
             loading = false;
+            //Log.d("crashTest", "setLoaded()");
             // Remove progress item
-            if (progressBarPosition < mDataset.size()) {
+            if (progressBarPosition < mDataset.size() && progressBarPosition >= 0) {
                 mDataset.remove(progressBarPosition);
                 notifyItemRemoved(progressBarPosition);
+                progressBarPosition = -1;
             }
+
         }
     }
 
