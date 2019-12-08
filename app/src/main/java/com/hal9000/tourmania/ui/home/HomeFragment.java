@@ -170,7 +170,7 @@ public class HomeFragment extends Fragment {
                 .addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
-                        Log.d("crashTest", "Error trying to get last location");
+                        //Log.d("crashTest", "Error trying to get last location");
                         e.printStackTrace();
                         Context context = getContext();
                         if (context != null)
@@ -260,9 +260,8 @@ public class HomeFragment extends Fragment {
                         // process main tour image
                         if (entry.getKey().equals("0")) {
                             //Log.d("crashTest", "updating main tour image");
-                            int i = 0;
                             int oldSize = mAdapter.mDataset.size();
-                            for (int j = 0; j < mAdapter.mDataset.size(); j++) {
+                            for (int i = 0; i < mAdapter.mDataset.size(); i++) {
                                 TourWithWpWithPaths t = mAdapter.mDataset.get(i);
                                 //Log.d("crashTest", t.tour.getServerTourId());
                                 if (t.tour.getServerTourId().equals(fileDownloadResponse.tourServerId)) {
@@ -271,9 +270,7 @@ public class HomeFragment extends Fragment {
                                     mAdapter.notifyItemChanged(i);
                                     break;
                                 }
-                                i++;
                             }
-                            //mAdapter.notifyItemRangeChanged(0);
                         }
                     }
                 }

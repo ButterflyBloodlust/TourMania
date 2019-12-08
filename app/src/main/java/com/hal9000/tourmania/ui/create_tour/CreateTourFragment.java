@@ -190,6 +190,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                                             @Override
                                             public void run() {
                                                 item.setIcon(R.drawable.ic_star_white_filled_50dp);
+                                                item.setTitle(R.string.action_remove_from_favourites);
                                                 item.setVisible(true);
                                             }
                                         });
@@ -200,10 +201,14 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                                         requireActivity().runOnUiThread(new Runnable() {
                                             @Override
                                             public void run() {
-                                                if (favouriteTour == null)
+                                                if (favouriteTour == null) {
                                                     item.setIcon(R.drawable.ic_star_white_border_50dp);
-                                                else
+                                                    item.setTitle(R.string.action_add_to_favourites);
+                                                }
+                                                else {
                                                     item.setIcon(R.drawable.ic_star_white_filled_50dp);
+                                                    item.setTitle(R.string.action_remove_from_favourites);
+                                                }
                                                 item.setVisible(true);
                                             }
                                         });
@@ -285,6 +290,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                                     @Override
                                     public void run() {
                                         item.setIcon(R.drawable.ic_star_white_filled_50dp);
+                                        item.setTitle(R.string.action_remove_from_favourites);
                                     }
                                 });
                                 try {
@@ -298,6 +304,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                                     @Override
                                     public void run() {
                                         item.setIcon(R.drawable.ic_star_white_border_50dp);
+                                        item.setTitle(R.string.action_add_to_favourites);
                                     }
                                 });
                             }
@@ -511,7 +518,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
             Location location = null;
             LocationManager locationManager = (LocationManager) requireContext().getSystemService(LOCATION_SERVICE);
             if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                location = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
+                location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
             }
 
             if (location != null) {
