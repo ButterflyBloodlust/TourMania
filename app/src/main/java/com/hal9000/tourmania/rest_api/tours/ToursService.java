@@ -33,6 +33,9 @@ public interface ToursService {
     @GET("tour/search/{phrase}")
     Call<List<TourWithWpWithPaths>> searchToursByPhrase(@Path("phrase") String phrase, @Query("page_num") int pageNumber);
 
+    @GET("tour/near")
+    Call<List<TourWithWpWithPaths>> getNearbyTours(@Query("long") double longitude, @Query("lat") double latitude, @Query("page_num") int pageNumber);
+
     @GET("tour/id/{tourId}")
     Call<TourWithWpWithPaths> getTour(@Path("tourId") String tourId);
 

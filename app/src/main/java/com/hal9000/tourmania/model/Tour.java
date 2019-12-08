@@ -51,6 +51,7 @@ public class Tour {
     @ColumnInfo(name = "user_id")
     private int userId = 0;
 
+    @Exclude
     @SerializedName("in_favs") @Ignore
     private boolean inFavs = false;
 

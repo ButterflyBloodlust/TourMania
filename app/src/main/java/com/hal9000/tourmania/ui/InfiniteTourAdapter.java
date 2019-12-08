@@ -45,6 +45,7 @@ public class InfiniteTourAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     private boolean loading;
     private int progressBarPosition;
     private OnLoadMoreListener onLoadMoreListener;
+    private RecyclerView recyclerView;
 
     // Provide a reference to the views for each data item
     // Complex data items may need more than one view per item, and
@@ -77,6 +78,7 @@ public class InfiniteTourAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         mDataset = toursWithTourWps;
         this.callback = callback;
         this.rowLayoutId = rowLayoutId;
+        this.recyclerView = recyclerView;
 
         if (recyclerView.getLayoutManager() instanceof LinearLayoutManager) {
             final LinearLayoutManager linearLayoutManager = (LinearLayoutManager) recyclerView
@@ -114,7 +116,12 @@ public class InfiniteTourAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         try {
             mDataset.add(null);
             progressBarPosition = mDataset.size() - 1;
-            notifyItemInserted(progressBarPosition);
+            recyclerView.post(new Runnable() {
+                public void run() {
+                    notifyDataSetChanged();
+                    //notifyItemInserted(progressBarPosition);
+                }
+            });
         } catch (Exception e ) {
             e.printStackTrace();
         }
@@ -241,7 +248,12 @@ public class InfiniteTourAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             // Remove progress item
             if (progressBarPosition < mDataset.size() && progressBarPosition >= 0) {
                 mDataset.remove(progressBarPosition);
-                notifyItemRemoved(progressBarPosition);
+                recyclerView.post(new Runnable() {
+                    public void run() {
+                        notifyDataSetChanged();
+                        //notifyItemRemoved(progressBarPosition);
+                    }
+                });
                 progressBarPosition = -1;
             }
 

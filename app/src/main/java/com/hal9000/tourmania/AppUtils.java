@@ -2,6 +2,8 @@ package com.hal9000.tourmania;
 
 import android.app.Activity;
 import android.content.Context;
+import android.location.LocationManager;
+import android.net.wifi.WifiManager;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.webkit.MimeTypeMap;
@@ -191,5 +193,25 @@ public class AppUtils {
             return true;
         else
             return dir.delete();
+    }
+
+    public static boolean isWifiEnabled(final Context context) {
+        WifiManager wifiManager = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        return wifiManager.isWifiEnabled();
+    }
+
+    public static boolean isLocationEnabled(final Context context) {
+        LocationManager lm = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+        boolean gps_enabled = false;
+        boolean network_enabled = false;
+
+        try {
+            gps_enabled = lm.isProviderEnabled(LocationManager.GPS_PROVIDER);
+        } catch(Exception ex) {}
+
+        try {
+            network_enabled = lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+        } catch(Exception ex) {}
+        return gps_enabled && network_enabled;
     }
 }

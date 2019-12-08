@@ -714,14 +714,16 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                         });
                     }
 
-                    ArrayList<TourWpWithPicPaths> tourWpWithPicPaths = createTourSharedViewModel.getTourWaypointList();
-                    if (!createTourSharedViewModel.getTourWaypointList().isEmpty()) {
-                        TourWaypoint tourWaypoint = tourWpWithPicPaths.get(0).tourWaypoint;
-                        CameraPosition position = new CameraPosition.Builder()
-                                .target(new LatLng(tourWaypoint.getLatitude(), tourWaypoint.getLongitude()))
-                                .zoom(10)
-                                .build();
-                        mapboxMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
+                    if (mapboxMap != null) {
+                        ArrayList<TourWpWithPicPaths> tourWpWithPicPaths = createTourSharedViewModel.getTourWaypointList();
+                        if (!tourWpWithPicPaths.isEmpty()) {
+                            TourWaypoint tourWaypoint = tourWpWithPicPaths.get(0).tourWaypoint;
+                            CameraPosition position = new CameraPosition.Builder()
+                                    .target(new LatLng(tourWaypoint.getLatitude(), tourWaypoint.getLongitude()))
+                                    .zoom(10)
+                                    .build();
+                            mapboxMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
+                        }
                     }
                 } catch (Exception e) {
                     e.printStackTrace();

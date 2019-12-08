@@ -163,7 +163,9 @@ public class SearchFragment extends Fragment {
             @Override
             public void onFailure(Call<List<TourWithWpWithPaths>> call, Throwable t) {
                 mAdapter.setLoaded();
-                Toast.makeText(requireContext(),"An error has occurred",Toast.LENGTH_SHORT).show();
+                Context context = getContext();
+                if (context != null)
+                    Toast.makeText(context,"An error has occurred",Toast.LENGTH_SHORT).show();
                 //Log.d("crashTest", "onQueryTextChange onFailure");
             }
         });
