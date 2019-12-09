@@ -8,6 +8,7 @@
     android:layout_marginBottom="4dp"
     android:layout_marginStart="8dp"
     android:layout_marginEnd="8dp"
+    app:cardBackgroundColor="@color/cardViewColor"
     app:cardCornerRadius="4dp"
     app:cardElevation="4dp">
 
@@ -18,8 +19,6 @@
         android:minHeight="80dp"
         android:gravity="center_vertical"
         android:padding="3dip" >
-
-        <!--  ListRow Left side Thumbnail image -->
 
         <ImageView
             android:id="@+id/tour_list_image"
