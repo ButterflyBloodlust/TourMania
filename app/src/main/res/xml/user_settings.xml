@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <PreferenceCategory
+        android:title="Basic preferences">
+
+        <CheckBoxPreference
+            android:key="tour_guide_checkbox"
+            android:title="Tour guide status"
+            android:summary="Enable if you want to be shown on tour guides' list"/>
+
+        <EditTextPreference
+            android:key="phone_num_edittext"
+            android:dependency="tour_guide_checkbox"
+            android:title="Phone number (tour guide profile)"
+            android:summary="Shown on your tour guide profile"
+            app:useSimpleSummaryProvider="true"
+            android:dialogTitle="Edit your phone number"/>
+
+        <SwitchPreferenceCompat
+            android:key="share_location_switch"
+            android:title="Allow sharing of your location"
+            android:summary="When enabled, you'll be given option to enable location sharing on per tour basis"/>
+    </PreferenceCategory>
+
+</PreferenceScreen>

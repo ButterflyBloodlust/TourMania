@@ -29,9 +29,9 @@
     <item android:title="User account">
         <menu>
             <item
-                android:id="@+id/nav_share"
+                android:id="@+id/nav_user_settings"
                 android:icon="@drawable/ic_menu_share"
-                android:title="@string/menu_share" />
+                android:title="@string/menu_user_settings" />
             <item
                 android:id="@+id/nav_sign_in"
                 android:icon="@drawable/ic_person_black_24dp"

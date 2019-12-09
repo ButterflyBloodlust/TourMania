@@ -40,10 +40,9 @@
         tools:layout="@layout/fragment_join_tour" />
 
     <fragment
-        android:id="@+id/nav_share"
-        android:name="com.hal9000.tourmania.ui.share.ShareFragment"
-        android:label="@string/menu_share"
-        tools:layout="@layout/fragment_share" />
+        android:id="@+id/nav_user_settings"
+        android:name="com.hal9000.tourmania.ui.user_settings.UserSettingsFragment"
+        android:label="@string/menu_user_settings" />
 
     <fragment
         android:id="@+id/nav_fav_tours"
