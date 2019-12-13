@@ -19,7 +19,7 @@ import androidx.room.RoomDatabase;
 
 
 @Database(entities = {Tour.class, TourWaypoint.class, PicturePath.class, TourTag.class, User.class,
-        FavouriteTour.class, MyTour.class}, version = 2, exportSchema = false)
+        FavouriteTour.class, MyTour.class}, version = 3, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
     private static final String LOG_TAG = AppDatabase.class.getSimpleName();
     private static final Object LOCK = new Object();

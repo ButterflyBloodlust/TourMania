@@ -3,38 +3,26 @@ package com.hal9000.tourmania.ui;
 import android.content.Context;
 import android.net.Uri;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import com.hal9000.tourmania.MainActivity;
-import com.hal9000.tourmania.ui.search.OnLoadMoreListener;
 import com.hal9000.tourmania.R;
-import com.hal9000.tourmania.SharedPrefUtils;
-import com.hal9000.tourmania.database.AppDatabase;
-import com.hal9000.tourmania.model.TourWithWpWithPaths;
-import com.hal9000.tourmania.model.TourWpWithPicPaths;
-import com.hal9000.tourmania.rest_api.RestClient;
-import com.hal9000.tourmania.rest_api.tours.ToursService;
+import com.hal9000.tourmania.model.User;
+import com.hal9000.tourmania.ui.search.OnLoadMoreListener;
 import com.squareup.picasso.Picasso;
 
-import java.io.File;
 import java.util.List;
 
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
-public class InfiniteTourAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>{
-    public List<TourWithWpWithPaths> mDataset;
-    private InfiniteTourAdapter.ToursAdapterCallback callback;
+public class InfiniteTourGuideAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>{
+    public List<User> mDataset;
+    private InfiniteTourGuideAdapter.ToursAdapterCallback callback;
     private int rowLayoutId;
 
     private final int VIEW_ITEM = 1;
@@ -43,7 +31,7 @@ public class InfiniteTourAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     private int visibleThreshold = 3;
     private int lastVisibleItem, totalItemCount;
     private boolean loading;
-    private int progressBarPosition = -1;
+    private int progressBarPosition;
     private OnLoadMoreListener onLoadMoreListener;
     private RecyclerView recyclerView;
 
@@ -53,13 +41,11 @@ public class InfiniteTourAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     public static class MyViewHolder extends RecyclerView.ViewHolder {
         // each data item is just a string in this case
         public TextView textView;
-        public ImageView tourImageView;
-        public ImageButton deleteImageButton;
+        public ImageView userImageView;
         public MyViewHolder(View v) {
             super(v);
-            textView = v.findViewById(R.id.tour_title);
-            tourImageView = v.findViewById(R.id.tour_list_image);
-            deleteImageButton = v.findViewById(R.id.buttonDeleteTour);
+            textView = v.findViewById(R.id.tour_guide_title);
+            userImageView = v.findViewById(R.id.tour_guide_list_image);
         }
     }
 
@@ -73,9 +59,9 @@ public class InfiniteTourAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     }
 
     // Provide a suitable constructor (depends on the kind of dataset)
-    public InfiniteTourAdapter(List<TourWithWpWithPaths> toursWithTourWps, InfiniteTourAdapter.ToursAdapterCallback callback,
-                               int rowLayoutId, RecyclerView recyclerView) {
-        mDataset = toursWithTourWps;
+    public InfiniteTourGuideAdapter(List<User> users, InfiniteTourGuideAdapter.ToursAdapterCallback callback,
+                                    int rowLayoutId, RecyclerView recyclerView) {
+        mDataset = users;
         this.callback = callback;
         this.rowLayoutId = rowLayoutId;
         this.recyclerView = recyclerView;
@@ -107,23 +93,23 @@ public class InfiniteTourAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     }
 
     public void setLoading() {
-        if (!loading) {
-            loading = true;
-            showProgressBar();
-        }
+        loading = true;
+        showProgressBar();
     }
 
     public void showProgressBar() {
         //add null , so the adapter will check view_type and show progress bar at bottom
-        if (progressBarPosition == -1) {
+        try {
             mDataset.add(null);
             progressBarPosition = mDataset.size() - 1;
             recyclerView.post(new Runnable() {
                 public void run() {
-                    //notifyDataSetChanged();
-                    notifyItemInserted(progressBarPosition);
+                    notifyDataSetChanged();
+                    //notifyItemInserted(progressBarPosition);
                 }
             });
+        } catch (Exception e ) {
+            e.printStackTrace();
         }
     }
 
@@ -158,18 +144,18 @@ public class InfiniteTourAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         // - get element from your dataset at this position
         // - replace the contents of the view with that element
         if (holder instanceof MyViewHolder) {
-            ((MyViewHolder) holder).textView.setText(mDataset.get(position).tour.getTitle());
+            ((MyViewHolder) holder).textView.setText(mDataset.get(position).getUsername());
 
-            String mainImgPath = mDataset.get(position).tour.getTourImgPath();
+            String mainImgPath = mDataset.get(position).getUserImgPath();
             //Log.d("crashTest", mainImgPath == null ? "null" : mainImgPath);
             if (!TextUtils.isEmpty(mainImgPath)) {
                 // asynchronous image loading
                 Picasso.get() //
                         .load(Uri.parse(mainImgPath)) //
                         .fit() //
-                        .into(((MyViewHolder) holder).tourImageView);
+                        .into(((MyViewHolder) holder).userImageView);
             } else {
-                ((MyViewHolder) holder).tourImageView.setImageResource(R.drawable.ic_menu_gallery);
+                ((MyViewHolder) holder).userImageView.setImageResource(R.drawable.ic_person_black_24dp);
             }
 
             holder.itemView.setOnClickListener(new View.OnClickListener() {
@@ -178,52 +164,6 @@ public class InfiniteTourAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                     callback.navigateToViewTour(holder.getAdapterPosition());
                 }
             });
-
-            if (((MyViewHolder) holder).deleteImageButton != null) {
-                ((MyViewHolder) holder).deleteImageButton.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        final TourWithWpWithPaths tourWithWpWithPaths = mDataset.remove(holder.getAdapterPosition());
-                        //Log.d("crashTest", "delete tour from server db");
-                        notifyItemRemoved(holder.getAdapterPosition());
-                        AppDatabase.databaseWriteExecutor.submit(new Runnable() {
-                            @Override
-                            public void run() {
-                                // delete tour from local db
-                                AppDatabase appDatabase = AppDatabase.getInstance(callback.getContext());
-                                appDatabase.tourDAO().deleteTourWp(tourWithWpWithPaths.tour);
-                            }
-                        });
-
-                        // delete files related to tour, stored in app's dirs
-                        String mainImgPath = tourWithWpWithPaths.tour.getTourImgPath();
-                        if (mainImgPath != null)
-                            new File(callback.getContext().getExternalCacheDir(), new File(mainImgPath).getName()).delete();
-                        for (TourWpWithPicPaths tourWpWithPicPaths : tourWithWpWithPaths._tourWpsWithPicPaths) {
-                            mainImgPath = tourWpWithPicPaths.tourWaypoint.getMainImgPath();
-                            if (mainImgPath != null)
-                                new File(callback.getContext().getExternalCacheDir(), new File(mainImgPath).getName()).delete();
-                        }
-
-                        // delete tour from server db
-                        ToursService client = RestClient.createService(ToursService.class,
-                                SharedPrefUtils.getString(callback.getContext(), MainActivity.getLoginTokenKey()));
-                        Call<Void> call = client.deleteTourById(tourWithWpWithPaths.tour.getServerTourId());
-                        call.enqueue(new Callback<Void>() {
-                            @Override
-                            public void onResponse(Call<Void> call, Response<Void> response) {
-                                //Log.d("crashTest", "deleteImageButton onResponse");
-                            }
-
-                            @Override
-                            public void onFailure(Call<Void> call, Throwable t) {
-                                t.printStackTrace();
-                                //Log.d("crashTest", "deleteImageButton onFailure");
-                            }
-                        });
-                    }
-                });
-            }
         }//if (holder instanceof StudentViewHolder) {
         else {
             ((ProgressViewHolder) holder).progressBar.setIndeterminate(true);
@@ -244,17 +184,19 @@ public class InfiniteTourAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     public void setLoaded() {
         if (loading) {
             loading = false;
+            //Log.d("crashTest", "setLoaded()");
             // Remove progress item
             if (progressBarPosition < mDataset.size() && progressBarPosition >= 0) {
                 mDataset.remove(progressBarPosition);
                 recyclerView.post(new Runnable() {
                     public void run() {
-                        //notifyDataSetChanged();
-                        notifyItemRemoved(progressBarPosition);
+                        notifyDataSetChanged();
+                        //notifyItemRemoved(progressBarPosition);
                     }
                 });
                 progressBarPosition = -1;
             }
+
         }
     }
 

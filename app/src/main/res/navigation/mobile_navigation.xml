@@ -31,7 +31,11 @@
         android:id="@+id/nav_tour_guides"
         android:name="com.hal9000.tourmania.ui.tour_guides.TourGuidesFragment"
         android:label="@string/menu_tour_guides"
-        tools:layout="@layout/fragment_tour_guides" />
+        tools:layout="@layout/fragment_tour_guides" >
+        <action
+            android:id="@+id/action_nav_tour_guides_to_nav_tour_guide_details"
+            app:destination="@id/nav_tour_guide_details" />
+    </fragment>
 
     <fragment
         android:id="@+id/nav_join_tour"
@@ -112,4 +116,13 @@
         android:name="com.hal9000.tourmania.ui.search.SearchFragment"
         android:label=""
         tools:layout="@layout/fragment_search" />
+    <fragment
+        android:id="@+id/nav_tour_guide_details"
+        android:name="com.hal9000.tourmania.ui.tour_guide_details.TourGuideDetailsFragment"
+        android:label=" "
+        tools:layout="@layout/fragment_tour_guide_details" >
+        <argument
+            android:name="tourGuideServerId"
+            app:argType="string" />
+    </fragment>
 </navigation>

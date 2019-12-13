@@ -571,6 +571,15 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                         markerIconDrawable.draw(canvas);
                         style.addImage(ID_ICON_MARKER_SELECTED, bitmap);
 
+                        // Add custom marker to style
+                        markerIconDrawable = ContextCompat.getDrawable(requireActivity(), R.drawable.ic_tour_guide_pos_24dp);
+                        bitmap = Bitmap.createBitmap((int)(markerIconDrawable.getIntrinsicWidth() * ICON_MARKER_SCALE),
+                                (int)(markerIconDrawable.getIntrinsicHeight() * ICON_MARKER_SCALE), Bitmap.Config.ARGB_8888);
+                        canvas = new Canvas(bitmap);
+                        markerIconDrawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+                        markerIconDrawable.draw(canvas);
+                        style.addImage("aaa", bitmap);
+
                         // Map is set up and the style has loaded. Now you can add data or make other map adjustments
                         enableLocationComponent(style);
 
@@ -595,14 +604,14 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                         symbolManager.setIconTranslate(new Float[]{0f, -20f});
                         symbolManager.setTextVariableAnchor(new String[]{TEXT_ANCHOR_BOTTOM});
 
-                        /*
+
                         // DEBUG ANNOTATION
-                        SymbolOptions symbolOptions = new SymbolOptions()
-                                .withLatLng(new LatLng(10, 10))
-                                .withIconImage(ID_ICON_MARKER)
-                                .withTextField("Annotation text");
-                        symbolManager.create(symbolOptions);
-                        */
+                        SymbolOptions symbolOptions2 = new SymbolOptions()
+                                .withLatLng(new LatLng(51.108, 17.072))
+                                .withIconImage("aaa")
+                                .withTextField("Tour\nGuide");
+                        symbolManager.create(symbolOptions2);
+
 
                         // Add an annotation on long click on the map
                         CreateTourFragment.this.mapboxMap.addOnMapLongClickListener(new MapboxMap.OnMapLongClickListener() {

@@ -6,14 +6,4 @@ import androidx.lifecycle.ViewModel;
 
 public class JoinTourViewModel extends ViewModel {
 
-    private MutableLiveData<String> mText;
-
-    public JoinTourViewModel() {
-        mText = new MutableLiveData<>();
-        mText.setValue("This is join_tour fragment");
-    }
-
-    public LiveData<String> getText() {
-        return mText;
-    }
 }
