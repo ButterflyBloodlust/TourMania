@@ -82,7 +82,6 @@ public class InfiniteTourGuideAdapter extends RecyclerView.Adapter<RecyclerView.
                         // End has been reached
                         // Do something
                         if (onLoadMoreListener != null) {
-                            setLoading();
                             //Log.d("crashTest", "onLoadMore");
                             onLoadMoreListener.onLoadMore();
                         }
@@ -93,23 +92,25 @@ public class InfiniteTourGuideAdapter extends RecyclerView.Adapter<RecyclerView.
     }
 
     public void setLoading() {
-        loading = true;
-        showProgressBar();
+        if (!loading) {
+            loading = true;
+            showProgressBar();
+        }
     }
 
     public void showProgressBar() {
         //add null , so the adapter will check view_type and show progress bar at bottom
-        try {
-            mDataset.add(null);
-            progressBarPosition = mDataset.size() - 1;
+        if (progressBarPosition == -1) {
             recyclerView.post(new Runnable() {
                 public void run() {
-                    notifyDataSetChanged();
-                    //notifyItemInserted(progressBarPosition);
+                    //notifyDataSetChanged();
+                    if (progressBarPosition == -1) {
+                        mDataset.add(null);
+                        progressBarPosition = mDataset.size() - 1;
+                        notifyItemInserted(progressBarPosition);
+                    }
                 }
             });
-        } catch (Exception e ) {
-            e.printStackTrace();
         }
     }
 
@@ -183,20 +184,23 @@ public class InfiniteTourGuideAdapter extends RecyclerView.Adapter<RecyclerView.
 
     public void setLoaded() {
         if (loading) {
-            loading = false;
-            //Log.d("crashTest", "setLoaded()");
-            // Remove progress item
             if (progressBarPosition < mDataset.size() && progressBarPosition >= 0) {
-                mDataset.remove(progressBarPosition);
                 recyclerView.post(new Runnable() {
                     public void run() {
-                        notifyDataSetChanged();
-                        //notifyItemRemoved(progressBarPosition);
+                        if (loading) {
+                            loading = false;
+                            if (progressBarPosition < mDataset.size() && progressBarPosition >= 0) {
+                                mDataset.remove(progressBarPosition);
+                                //notifyDataSetChanged();
+                                notifyItemRemoved(progressBarPosition);
+                                progressBarPosition = -1;
+                            }
+                        }
                     }
                 });
-                progressBarPosition = -1;
             }
-
+            else
+                loading = false;
         }
     }
 

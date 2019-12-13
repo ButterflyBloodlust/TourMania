@@ -142,11 +142,11 @@ public class TourGuidesFragment extends Fragment {
             @Override
             public void onLoadMore() {
                 if (!reachedEnd) {
+                    mAdapter.setLoading();
                     //loadToursFromServerDb();
+                    reachedEnd = true; // temporary, until backend support is implemented
                     mAdapter.setLoaded();
                 }
-                else
-                    mAdapter.setLoaded();
             }
         });
         recyclerView.setAdapter(mAdapter);

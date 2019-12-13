@@ -96,7 +96,6 @@ public class InfiniteTourAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                         // End has been reached
                         // Do something
                         if (onLoadMoreListener != null) {
-                            setLoading();
                             //Log.d("crashTest", "onLoadMore");
                             onLoadMoreListener.onLoadMore();
                         }
@@ -116,12 +115,14 @@ public class InfiniteTourAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     public void showProgressBar() {
         //add null , so the adapter will check view_type and show progress bar at bottom
         if (progressBarPosition == -1) {
-            mDataset.add(null);
-            progressBarPosition = mDataset.size() - 1;
             recyclerView.post(new Runnable() {
                 public void run() {
                     //notifyDataSetChanged();
-                    notifyItemInserted(progressBarPosition);
+                    if (progressBarPosition == -1) {
+                        mDataset.add(null);
+                        progressBarPosition = mDataset.size() - 1;
+                        notifyItemInserted(progressBarPosition);
+                    }
                 }
             });
         }
@@ -243,18 +244,23 @@ public class InfiniteTourAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
     public void setLoaded() {
         if (loading) {
-            loading = false;
-            // Remove progress item
             if (progressBarPosition < mDataset.size() && progressBarPosition >= 0) {
-                mDataset.remove(progressBarPosition);
                 recyclerView.post(new Runnable() {
                     public void run() {
-                        //notifyDataSetChanged();
-                        notifyItemRemoved(progressBarPosition);
+                        if (loading) {
+                            loading = false;
+                            if (progressBarPosition < mDataset.size() && progressBarPosition >= 0) {
+                                mDataset.remove(progressBarPosition);
+                                //notifyDataSetChanged();
+                                notifyItemRemoved(progressBarPosition);
+                                progressBarPosition = -1;
+                            }
+                        }
                     }
                 });
-                progressBarPosition = -1;
             }
+            else
+                loading = false;
         }
     }
 
