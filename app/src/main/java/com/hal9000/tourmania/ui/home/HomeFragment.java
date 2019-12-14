@@ -73,8 +73,10 @@ public class HomeFragment extends Fragment {
     private boolean reachedEnd = false;
     private double longitude = 0.0;
     private double latitude = 0.0;
+    private int retries = 0;
 
     public static final String TOUR_RECOMMENDED_CACHE_DIR_NAME = "recommended";
+    private static final int RETRIES_LIMIT = 0;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -215,7 +217,9 @@ public class HomeFragment extends Fragment {
                 mAdapter.setLoaded();
                 Context context = getContext();
                 if (context != null)
-                    Toast.makeText(context,"An error has occurred",Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context,"A connection error has occurred\nRetries left: " + (RETRIES_LIMIT - retries),Toast.LENGTH_SHORT).show();
+                if (retries++ >= RETRIES_LIMIT)
+                    reachedEnd = true;
                 //Log.d("crashTest", "onQueryTextChange onFailure");
             }
         });

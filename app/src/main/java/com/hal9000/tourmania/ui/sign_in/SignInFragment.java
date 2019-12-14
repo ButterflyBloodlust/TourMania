@@ -4,6 +4,7 @@ import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.ViewModelProviders;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -15,7 +16,9 @@ import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.internal.EverythingIsNonNull;
 
+import android.preference.PreferenceManager;
 import android.text.Editable;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -31,7 +34,12 @@ import com.hal9000.tourmania.database.AppDatabase;
 import com.hal9000.tourmania.model.User;
 import com.hal9000.tourmania.rest_api.login.LoginResponse;
 import com.hal9000.tourmania.rest_api.RestClient;
+import com.hal9000.tourmania.rest_api.login.LoginResponsePrefs;
 import com.hal9000.tourmania.rest_api.login.UserLogin;
+
+import static com.hal9000.tourmania.ui.user_settings.UserSettingsFragment.PHONE_NUM_KEY;
+import static com.hal9000.tourmania.ui.user_settings.UserSettingsFragment.SHARE_LOCATION_KEY;
+import static com.hal9000.tourmania.ui.user_settings.UserSettingsFragment.TOUR_GUIDE_STATUS_KEY;
 
 public class SignInFragment extends Fragment {
 
@@ -64,8 +72,20 @@ public class SignInFragment extends Fragment {
                                 Context ctx = requireContext();
                                 FragmentActivity fragmentActivity = requireActivity();
                                 LoginResponse loginResponse = response.body();
-                                SharedPrefUtils.putString(ctx, MainActivity.getLoginTokenKey(), loginResponse.data.token);
-                                SharedPrefUtils.putString(ctx, MainActivity.getUsernameKey(), username.toString());
+                                SharedPrefUtils.putEncryptedString(ctx, MainActivity.getLoginTokenKey(), loginResponse.data.token);
+                                SharedPrefUtils.putEncryptedString(ctx, MainActivity.getUsernameKey(), username.toString());
+                                LoginResponsePrefs loginResponsePrefs = loginResponse.data.loginResponsePrefs;
+                                if (loginResponsePrefs != null) {
+                                    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(ctx);
+                                    SharedPreferences.Editor editor = prefs.edit();
+                                    if (loginResponsePrefs.isGuide != null)
+                                        editor.putBoolean(TOUR_GUIDE_STATUS_KEY, loginResponsePrefs.isGuide);
+                                    if (loginResponsePrefs.phoneNum != null)
+                                        editor.putString(PHONE_NUM_KEY, loginResponsePrefs.phoneNum);
+                                    if (loginResponsePrefs.shareLoc != null)
+                                        editor.putBoolean(SHARE_LOCATION_KEY, loginResponsePrefs.shareLoc);
+                                    editor.apply();
+                                }
                                 AppDatabase.databaseWriteExecutor.submit(
                                         new Runnable() {
                                             public void run() {

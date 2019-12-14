@@ -33,7 +33,6 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import androidx.lifecycle.LiveData;
@@ -173,7 +172,7 @@ public class CreateTourSharedViewModel extends ViewModel {
 
     public void addTourToServerFavs(final Context context) {
         ToursService client = RestClient.createService(ToursService.class,
-                SharedPrefUtils.getString(context, MainActivity.getLoginTokenKey()));
+                SharedPrefUtils.getDecryptedString(context, MainActivity.getLoginTokenKey()));
         // Add tour to favourites on server
         Call<ResponseBody> call = client.addTourToFavs(getTour().getServerTourId());
         call.enqueue(new Callback<ResponseBody>() {
@@ -218,7 +217,7 @@ public class CreateTourSharedViewModel extends ViewModel {
         }
         getTour().setInFavs(false);
         ToursService client = RestClient.createService(ToursService.class,
-                SharedPrefUtils.getString(context, MainActivity.getLoginTokenKey()));
+                SharedPrefUtils.getDecryptedString(context, MainActivity.getLoginTokenKey()));
         Call<ResponseBody> call = client.deleteTourFromFavs(getTour().getServerTourId());
         call.enqueue(new Callback<ResponseBody>() {
             @Override
@@ -235,7 +234,7 @@ public class CreateTourSharedViewModel extends ViewModel {
     }
 
     private void saveTourToServerDb(final Context context) {
-        ToursService client = RestClient.createService(ToursService.class, SharedPrefUtils.getString(context, MainActivity.getLoginTokenKey()));
+        ToursService client = RestClient.createService(ToursService.class, SharedPrefUtils.getDecryptedString(context, MainActivity.getLoginTokenKey()));
         Call<TourUpsertResponse> call = client.upsertTour(new TourWithWpWithPaths(getTour(), tourTagsList, tourWaypointList));
         call.enqueue(new Callback<TourUpsertResponse>() {
             @Override
@@ -307,7 +306,7 @@ public class CreateTourSharedViewModel extends ViewModel {
         RequestBody description = RestClient.createPartFromString(getTour().getServerTourId());
 
         // create upload service client
-        FileUploadDownloadService service = RestClient.createService(FileUploadDownloadService.class, SharedPrefUtils.getString(context, MainActivity.getLoginTokenKey()));
+        FileUploadDownloadService service = RestClient.createService(FileUploadDownloadService.class, SharedPrefUtils.getDecryptedString(context, MainActivity.getLoginTokenKey()));
 
         // execute the request
         Call<ResponseBody> call = service.uploadMultipleFilesDynamic(description, parts);
@@ -389,14 +388,14 @@ public class CreateTourSharedViewModel extends ViewModel {
         int tourId = getTour().getTourId();
         FavouriteTour favouriteTour = favouriteTourDAO.getFavouriteTourByTourId(tourId);
         ToursService client = RestClient.createService(ToursService.class,
-                SharedPrefUtils.getString(context, MainActivity.getLoginTokenKey()));
+                SharedPrefUtils.getDecryptedString(context, MainActivity.getLoginTokenKey()));
         return favouriteTour != null;
     }
 
     public void loadTourFromServerDb(final String tourServerId, final Context context, final String subDirName) {
         if (!loadedFromServerDb) {
             ToursService client = RestClient.createService(ToursService.class);
-            Call<TourWithWpWithPaths> call = client.getTour(tourServerId, SharedPrefUtils.getString(context, MainActivity.getUsernameKey()));
+            Call<TourWithWpWithPaths> call = client.getTour(tourServerId, SharedPrefUtils.getDecryptedString(context, MainActivity.getUsernameKey()));
             call.enqueue(new Callback<TourWithWpWithPaths>() {
                 @Override
                 public void onResponse(Call<TourWithWpWithPaths> call, final Response<TourWithWpWithPaths> response) {

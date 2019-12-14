@@ -52,7 +52,7 @@ public class AppUtils {
     }
 
     public static boolean isUserLoggedIn(Context context) {
-        return SharedPrefUtils.getString(context, MainActivity.getLoginTokenKey()) != null;
+        return SharedPrefUtils.getDecryptedString(context, MainActivity.getLoginTokenKey()) != null;
     }
 
     public static void updateUserAccDrawer(FragmentActivity fragmentActivity) {
@@ -61,10 +61,12 @@ public class AppUtils {
             navigationView.getMenu().findItem(R.id.nav_sign_in).setVisible(false);
             navigationView.getMenu().findItem(R.id.nav_sign_up).setVisible(false);
             navigationView.getMenu().findItem(R.id.sign_out).setVisible(true);
+            navigationView.getMenu().findItem(R.id.nav_user_settings).setVisible(true);
         } else {
             navigationView.getMenu().findItem(R.id.nav_sign_in).setVisible(true);
             navigationView.getMenu().findItem(R.id.nav_sign_up).setVisible(true);
             navigationView.getMenu().findItem(R.id.sign_out).setVisible(false);
+            navigationView.getMenu().findItem(R.id.nav_user_settings).setVisible(false);
         }
     }
 

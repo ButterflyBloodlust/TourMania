@@ -64,8 +64,9 @@ public class MainActivity extends AppCompatActivity {
         navigationView.getMenu().findItem(R.id.sign_out).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
-                SharedPrefUtils.removeItem(getBaseContext(), getLoginTokenKey());
-                SharedPrefUtils.removeItem(getBaseContext(), getUsernameKey());
+                Context context = getBaseContext();
+                SharedPrefUtils.removeItem(context, getLoginTokenKey());
+                SharedPrefUtils.removeItem(context, getUsernameKey());
                 RestClient.clearAuth();
                 AppDatabase.databaseWriteExecutor.submit(
                         new Runnable() {
@@ -82,6 +83,7 @@ public class MainActivity extends AppCompatActivity {
                 Navigation.findNavController(MainActivity.this, R.id.nav_host_fragment).navigate(
                         MobileNavigationDirections.actionGlobalNavHome()
                 );
+                SharedPrefUtils.clearSettings(context);
                 return false;
             }
         });

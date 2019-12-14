@@ -2,7 +2,6 @@ package com.hal9000.tourmania.ui.my_tours;
 
 import android.content.Context;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,7 +16,6 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.hal9000.tourmania.AppUtils;
 import com.hal9000.tourmania.MainActivity;
 import com.hal9000.tourmania.R;
@@ -118,14 +116,14 @@ public class MyToursFragment extends Fragment {
                         if (currentFragmentId == R.id.nav_my_tours) {
                             List<String> serverMyTourIds = appDatabase.tourDAO().getServerMyTourIds(-1);
                             call = serverMyTourIds == null || serverMyTourIds.isEmpty() ?
-                                    client.getUserTours(SharedPrefUtils.getString(requireContext(), MainActivity.getUsernameKey())) :
-                                    client.getUserTours(SharedPrefUtils.getString(requireContext(), MainActivity.getUsernameKey()), serverMyTourIds);
+                                    client.getUserTours(SharedPrefUtils.getDecryptedString(requireContext(), MainActivity.getUsernameKey())) :
+                                    client.getUserTours(SharedPrefUtils.getDecryptedString(requireContext(), MainActivity.getUsernameKey()), serverMyTourIds);
                         }
                         else if (currentFragmentId == R.id.nav_fav_tours) {
                             List<String> serverMyTourIds = appDatabase.tourDAO().getServerFavTourIds(-1);
                             call = serverMyTourIds == null || serverMyTourIds.isEmpty() ?
-                                    client.getUserFavTours(SharedPrefUtils.getString(requireContext(), MainActivity.getUsernameKey())) :
-                                    client.getUserFavTours(SharedPrefUtils.getString(requireContext(), MainActivity.getUsernameKey()), serverMyTourIds);
+                                    client.getUserFavTours(SharedPrefUtils.getDecryptedString(requireContext(), MainActivity.getUsernameKey())) :
+                                    client.getUserFavTours(SharedPrefUtils.getDecryptedString(requireContext(), MainActivity.getUsernameKey()), serverMyTourIds);
                         }
                         call.enqueue(new Callback<List<TourWithWpWithPaths>>() {
                             @Override

@@ -33,6 +33,10 @@ import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
 import javax.security.auth.x500.X500Principal;
 
+import static com.hal9000.tourmania.ui.user_settings.UserSettingsFragment.PHONE_NUM_KEY;
+import static com.hal9000.tourmania.ui.user_settings.UserSettingsFragment.SHARE_LOCATION_KEY;
+import static com.hal9000.tourmania.ui.user_settings.UserSettingsFragment.TOUR_GUIDE_STATUS_KEY;
+
 public class SharedPrefUtils {
 
     private static final String TAG = SharedPrefUtils.class.getSimpleName();
@@ -42,7 +46,12 @@ public class SharedPrefUtils {
     private static final String CYPHER = "RSA/ECB/PKCS1Padding";
     private static final String ENCODING = "UTF-8";
 
-    public static void putString(Context context, String key, String value) {
+    public static void clearSettings(Context context) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        prefs.edit().remove(TOUR_GUIDE_STATUS_KEY).remove(PHONE_NUM_KEY).remove(SHARE_LOCATION_KEY).apply();
+    }
+
+    public static void putEncryptedString(Context context, String key, String value) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
         if (value == null) {
             prefs.edit().putString(key, null).apply();
@@ -55,7 +64,7 @@ public class SharedPrefUtils {
         }
     }
 
-    public static String getString(Context context, String key) {
+    public static String getDecryptedString(Context context, String key) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
         final String pref = prefs.getString(key, "");
 

@@ -3,7 +3,6 @@ package com.hal9000.tourmania.ui;
 import android.content.Context;
 import android.net.Uri;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -208,7 +207,7 @@ public class InfiniteTourAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
                         // delete tour from server db
                         ToursService client = RestClient.createService(ToursService.class,
-                                SharedPrefUtils.getString(callback.getContext(), MainActivity.getLoginTokenKey()));
+                                SharedPrefUtils.getDecryptedString(callback.getContext(), MainActivity.getLoginTokenKey()));
                         Call<Void> call = client.deleteTourById(tourWithWpWithPaths.tour.getServerTourId());
                         call.enqueue(new Callback<Void>() {
                             @Override

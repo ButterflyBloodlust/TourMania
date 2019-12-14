@@ -125,7 +125,7 @@ public class ToursAdapter extends RecyclerView.Adapter<ToursAdapter.MyViewHolder
 
                     // delete tour from server db
                     ToursService client = RestClient.createService(ToursService.class,
-                            SharedPrefUtils.getString(callback.getContext(), MainActivity.getLoginTokenKey()));
+                            SharedPrefUtils.getDecryptedString(callback.getContext(), MainActivity.getLoginTokenKey()));
                     Call<Void> call = client.deleteTourById(tourWithWpWithPaths.tour.getServerTourId());
                     call.enqueue(new Callback<Void>() {
                         @Override

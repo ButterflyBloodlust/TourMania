@@ -9,6 +9,9 @@ public class LoginResponseData {
     @SerializedName("token") @Expose @Nullable
     public String token;
 
+    @SerializedName("prefs") @Expose @Nullable
+    public LoginResponsePrefs loginResponsePrefs;
+
     @SerializedName("error_msg") @Expose @Nullable
     public String errorMsg;
 }
