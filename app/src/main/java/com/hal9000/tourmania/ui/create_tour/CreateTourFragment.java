@@ -604,14 +604,14 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                         symbolManager.setIconTranslate(new Float[]{0f, -20f});
                         symbolManager.setTextVariableAnchor(new String[]{TEXT_ANCHOR_BOTTOM});
 
-
+                        /*
                         // DEBUG ANNOTATION
                         SymbolOptions symbolOptions2 = new SymbolOptions()
                                 .withLatLng(new LatLng(51.108, 17.072))
                                 .withIconImage("aaa")
                                 .withTextField("Tour\nGuide");
                         symbolManager.create(symbolOptions2);
-
+                        */
 
                         // Add an annotation on long click on the map
                         CreateTourFragment.this.mapboxMap.addOnMapLongClickListener(new MapboxMap.OnMapLongClickListener() {

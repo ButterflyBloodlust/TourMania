@@ -65,8 +65,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
                 Context context = getBaseContext();
-                SharedPrefUtils.removeItem(context, getLoginTokenKey());
-                SharedPrefUtils.removeItem(context, getUsernameKey());
                 RestClient.clearAuth();
                 AppDatabase.databaseWriteExecutor.submit(
                         new Runnable() {
@@ -84,6 +82,8 @@ public class MainActivity extends AppCompatActivity {
                         MobileNavigationDirections.actionGlobalNavHome()
                 );
                 SharedPrefUtils.clearSettings(context);
+                SharedPrefUtils.removeItem(context, getLoginTokenKey());
+                SharedPrefUtils.removeItem(context, getUsernameKey());
                 return false;
             }
         });
