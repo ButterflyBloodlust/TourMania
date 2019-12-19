@@ -23,6 +23,7 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
+import android.preference.PreferenceManager;
 import android.view.Menu;
 import android.view.MenuItem;
 
@@ -65,6 +66,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
                 Context context = getBaseContext();
+                SharedPrefUtils.clearSettings(context);
+                SharedPrefUtils.removeItem(context, getLoginTokenKey());
+                SharedPrefUtils.removeItem(context, getUsernameKey());
                 RestClient.clearAuth();
                 AppDatabase.databaseWriteExecutor.submit(
                         new Runnable() {
@@ -81,9 +85,6 @@ public class MainActivity extends AppCompatActivity {
                 Navigation.findNavController(MainActivity.this, R.id.nav_host_fragment).navigate(
                         MobileNavigationDirections.actionGlobalNavHome()
                 );
-                SharedPrefUtils.clearSettings(context);
-                SharedPrefUtils.removeItem(context, getLoginTokenKey());
-                SharedPrefUtils.removeItem(context, getUsernameKey());
                 return false;
             }
         });

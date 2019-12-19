@@ -77,6 +77,7 @@ public class HomeFragment extends Fragment {
 
     public static final String TOUR_RECOMMENDED_CACHE_DIR_NAME = "recommended";
     private static final int RETRIES_LIMIT = 0;
+    private static final int PAGE_SIZE = 10;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -202,6 +203,8 @@ public class HomeFragment extends Fragment {
                             Toast.makeText(requireContext(), "No results found", Toast.LENGTH_SHORT).show();
                         reachedEnd = true;
                     } else {
+                        if (toursList.size() < PAGE_SIZE)
+                            reachedEnd = true;
                         int oldSize = mAdapter.mDataset.size();
                         mAdapter.mDataset.addAll(toursList);
                         mAdapter.notifyItemRangeInserted(oldSize, toursList.size());

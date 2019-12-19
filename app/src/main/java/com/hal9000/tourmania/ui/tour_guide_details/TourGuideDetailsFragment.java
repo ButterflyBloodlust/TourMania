@@ -21,9 +21,11 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -33,10 +35,12 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.hal9000.tourmania.AppUtils;
 import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.model.TourWithWpWithPaths;
+import com.hal9000.tourmania.model.User;
 import com.hal9000.tourmania.rest_api.RestClient;
 import com.hal9000.tourmania.rest_api.files_upload_download.FileDownloadImageObj;
 import com.hal9000.tourmania.rest_api.files_upload_download.FileDownloadResponse;
 import com.hal9000.tourmania.rest_api.files_upload_download.FileUploadDownloadService;
+import com.hal9000.tourmania.rest_api.tour_guides.TourGuidesService;
 import com.hal9000.tourmania.rest_api.tours.ToursService;
 import com.hal9000.tourmania.ui.InfiniteTourAdapter;
 import com.hal9000.tourmania.ui.create_tour.CreateTourFragmentArgs;
@@ -62,6 +66,7 @@ public class TourGuideDetailsFragment extends Fragment {
     private boolean reachedEnd = false;
     private double longitude = 0.0;
     private double latitude = 0.0;
+    String tourGuideNickname;
 
     public static TourGuideDetailsFragment newInstance() {
         return new TourGuideDetailsFragment();
@@ -71,19 +76,21 @@ public class TourGuideDetailsFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_tour_guide_details, container, false);
-        String tourGuideServerId = TourGuideDetailsFragmentArgs.fromBundle(requireArguments()).getTourGuideServerId();
+        tourGuideNickname = TourGuideDetailsFragmentArgs.fromBundle(requireArguments()).getTourGuideServerId();
 
         AppCompatActivity appCompatActivity = ((AppCompatActivity)getActivity());
         ActionBar actionBar = null;
         if (appCompatActivity != null)
             actionBar = appCompatActivity.getSupportActionBar();
         if (actionBar != null) {
-            actionBar.setTitle(tourGuideServerId);
+            actionBar.setTitle(tourGuideNickname);
         }
+
+        loadTourGuideDetailsFromServerDb(root);
 
         // ------
         createRecyclerView(root);
-        initRecommendedTours();
+        getTourGuidesOnLastLocation();
 
         return root;
     }
@@ -94,7 +101,78 @@ public class TourGuideDetailsFragment extends Fragment {
         mViewModel = ViewModelProviders.of(this).get(TourGuideDetailsViewModel.class);
     }
 
+    private void loadTourGuideDetailsFromServerDb(final View root) {
+        TourGuidesService client = RestClient.createService(TourGuidesService.class);
+        //Log.d("crashTest", "Missing tour: " + Integer.toString(missingTourIds.size()));
+        Call<User> call = client.getTourGuideDetails(tourGuideNickname);
+        call.enqueue(new Callback<User>() {
+            @Override
+            public void onResponse(Call<User> call, Response<User> response) {
+                //Log.d("crashTest", "loadTourGuideDetailsFromServerDb onResponse");
+                User tourGuide = response.body();
+                if (tourGuide != null) {
+                    if (!TextUtils.isEmpty(tourGuide.getPhoneNumber())) {
+                        TextView textViewPhoneNum = root.findViewById(R.id.tour_guide_phone_num_textview);
+                        textViewPhoneNum.setText(tourGuide.getPhoneNumber());
+                        textViewPhoneNum.setVisibility(View.VISIBLE);
+                        root.findViewById(R.id.tour_guide_phone_num_label).setVisibility(View.VISIBLE);
+                    }
+                    TextView textViewEmail = root.findViewById(R.id.tour_guide_email_textview);
+                    textViewEmail.setText(tourGuide.getEmail());
+                }
+                else {
+                    mAdapter.setLoaded();
+                    Toast.makeText(requireContext(), "No results found", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<User> call, Throwable t) {
+                mAdapter.setLoaded();
+                Context context = getContext();
+                if (context != null)
+                    Toast.makeText(context,"An error has occurred",Toast.LENGTH_SHORT).show();
+                //Log.d("crashTest", "onQueryTextChange onFailure");
+            }
+        });
+    }
+
     // ------------------------------------------
+
+    private void getTourGuidesOnLastLocation(){
+        Context context = requireContext();
+        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+            return;
+
+        FusedLocationProviderClient mFusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext());
+        mFusedLocationClient.getLastLocation()
+                .addOnSuccessListener(new OnSuccessListener<Location>() {
+                    @Override
+                    public void onSuccess(Location location) {
+                        if (location != null) {
+                            longitude = location.getLongitude();
+                            latitude = location.getLatitude();
+                            initRecommendedTours();
+                        }
+                        else {
+                            Context context = getContext();
+                            if (context != null)
+                                Toast.makeText(context,"Could not access user location",Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        //Log.d("crashTest", "Error trying to get last location");
+                        e.printStackTrace();
+                        Context context = getContext();
+                        if (context != null)
+                            Toast.makeText(context,"Could not access user location",Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
 
     private void initRecommendedTours() {
         mAdapter.setLoading();
@@ -104,7 +182,7 @@ public class TourGuideDetailsFragment extends Fragment {
     private void loadToursFromServerDb() {
         ToursService client = RestClient.createService(ToursService.class);
         //Log.d("crashTest", "Missing tour: " + Integer.toString(missingTourIds.size()));
-        Call<List<TourWithWpWithPaths>> call = client.getNearbyTours(longitude, latitude, pageNumber++);
+        Call<List<TourWithWpWithPaths>> call = client.getUserToursOverviews(tourGuideNickname, longitude, latitude, pageNumber++);
         call.enqueue(new Callback<List<TourWithWpWithPaths>>() {
             @Override
             public void onResponse(Call<List<TourWithWpWithPaths>> call, Response<List<TourWithWpWithPaths>> response) {

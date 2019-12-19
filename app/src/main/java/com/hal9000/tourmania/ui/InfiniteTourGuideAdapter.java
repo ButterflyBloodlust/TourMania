@@ -31,7 +31,7 @@ public class InfiniteTourGuideAdapter extends RecyclerView.Adapter<RecyclerView.
     private int visibleThreshold = 3;
     private int lastVisibleItem, totalItemCount;
     private boolean loading;
-    private int progressBarPosition;
+    private int progressBarPosition = -1;
     private OnLoadMoreListener onLoadMoreListener;
     private RecyclerView recyclerView;
 

@@ -27,6 +27,11 @@ public interface ToursService {
     @POST("tour/u/{username}/")
     Call<List<TourWithWpWithPaths>> getUserTours(@Path("username") String username);
 
+    @GET("tour/u/{username}/overviews")
+    Call<List<TourWithWpWithPaths>> getUserToursOverviews(
+            @Path("username") String username, @Query("long") double longitude,
+            @Query("lat") double latitude, @Query("page_num") int pageNumber);
+
     @DELETE("tour/delete/{tourId}/")
     Call<Void> deleteTourById(@Path("tourId") String tourId);
 

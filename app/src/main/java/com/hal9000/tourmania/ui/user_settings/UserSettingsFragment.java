@@ -40,10 +40,13 @@ public class UserSettingsFragment extends PreferenceFragmentCompat {
             @Override
             public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
                 //Log.d("crashTest", "onChanged key : " + key);
+                Context context = getContext();
+                if (context == null || !sharedPreferences.contains(key))
+                    return;
                 if (key.equals(TOUR_GUIDE_STATUS_KEY)) {
                     // Send preference to server
                     UsersService client = RestClient.createService(UsersService.class,
-                            SharedPrefUtils.getDecryptedString(getContext(), MainActivity.getLoginTokenKey()));
+                            SharedPrefUtils.getDecryptedString(context, MainActivity.getLoginTokenKey()));
                     boolean isGuide = sharedPreferences.getBoolean(TOUR_GUIDE_STATUS_KEY, false);
                     Call<ResponseBody> call = client.updateUserPrefsIsGuide(isGuide);
                     call.enqueue(new Callback<ResponseBody>() {

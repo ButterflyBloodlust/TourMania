@@ -1,42 +1,47 @@
 package com.hal9000.tourmania.ui.tour_guides;
 
+import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageManager;
+import android.location.Location;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
+import android.widget.Toast;
 
-import androidx.annotation.Nullable;
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SearchView;
+import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProviders;
-import androidx.navigation.ActionOnlyNavDirections;
-import androidx.navigation.NavAction;
 import androidx.navigation.NavDirections;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.hal9000.tourmania.AppUtils;
 import com.hal9000.tourmania.MainActivity;
-import com.hal9000.tourmania.MobileNavigationDirections;
 import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.model.TourWithWpWithPaths;
 import com.hal9000.tourmania.model.User;
-import com.hal9000.tourmania.ui.InfiniteTourAdapter;
+import com.hal9000.tourmania.rest_api.RestClient;
+import com.hal9000.tourmania.rest_api.tour_guides.TourGuidesService;
+import com.hal9000.tourmania.rest_api.tours.ToursService;
 import com.hal9000.tourmania.ui.InfiniteTourGuideAdapter;
-import com.hal9000.tourmania.ui.create_tour.CreateTourFragmentArgs;
 import com.hal9000.tourmania.ui.search.OnLoadMoreListener;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -47,10 +52,16 @@ public class TourGuidesFragment extends Fragment {
     private RecyclerView recyclerView;
     private InfiniteTourGuideAdapter mAdapter;
     private RecyclerView.LayoutManager layoutManager;
-    private List<User> users = new ArrayList<>(100);
+    private List<User> tourGuides = new ArrayList<>(100);
     private int pageNumber = 1;
     private int currentFragmentId;
     private boolean reachedEnd = false;
+    private double longitude = 0.0;
+    private double latitude = 0.0;
+    private int retries = 0;
+
+    private static final int RETRIES_LIMIT = 0;
+    private static final int PAGE_SIZE = 10;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -58,9 +69,101 @@ public class TourGuidesFragment extends Fragment {
         tourGuidesViewModel = ViewModelProviders.of(this).get(TourGuidesViewModel.class);
         View root = inflater.inflate(R.layout.fragment_tour_guides, container, false);
 
-        generateTestDataset(40);
-        createRecyclerView(root);
+        //generateTestDataset(40);
+
+        Context context = requireContext();
+        if (AppUtils.isWifiEnabled(context) && AppUtils.isLocationEnabled(context)) {
+            createRecyclerView(root);
+            getTourGuidesOnLastLocation();
+        }
+        else {
+            root.findViewById(R.id.text_enable_wifi_loc_msg).setVisibility(View.VISIBLE);
+        }
         return root;
+    }
+
+    private void getTourGuidesOnLastLocation(){
+        Context context = requireContext();
+        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+            return;
+
+        FusedLocationProviderClient mFusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext());
+        mFusedLocationClient.getLastLocation()
+                .addOnSuccessListener(new OnSuccessListener<Location>() {
+                    @Override
+                    public void onSuccess(Location location) {
+                        if (location != null) {
+                            longitude = location.getLongitude();
+                            latitude = location.getLatitude();
+                            initRecommendedTourGuides();
+                        }
+                        else {
+                            Context context = getContext();
+                            if (context != null)
+                                Toast.makeText(context,"Could not access user location",Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        //Log.d("crashTest", "Error trying to get last location");
+                        e.printStackTrace();
+                        Context context = getContext();
+                        if (context != null)
+                            Toast.makeText(context,"Could not access user location",Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void initRecommendedTourGuides() {
+        mAdapter.setLoading();
+        loadTourGuidesFromServerDb();
+    }
+
+    private void loadTourGuidesFromServerDb() {
+        TourGuidesService client = RestClient.createService(TourGuidesService.class);
+        //Log.d("crashTest", "Missing tour: " + Integer.toString(missingTourIds.size()));
+        Call<List<User>> call = client.getNearbyTourGuides(longitude, latitude, pageNumber++);
+        call.enqueue(new Callback<List<User>>() {
+            @Override
+            public void onResponse(Call<List<User>> call, Response<List<User>> response) {
+                //Log.d("crashTest", "loadTourGuidesFromServerDb onResponse");
+                List<User> tourGuidesList = response.body();
+                if (tourGuidesList != null) {
+                    //Log.d("crashTest", "tourGuidesList size = " + tourGuidesList.size());
+                    if (tourGuidesList.isEmpty()) {
+                        if (pageNumber == 1)
+                            Toast.makeText(requireContext(), "No results found", Toast.LENGTH_SHORT).show();
+                        reachedEnd = true;
+                        mAdapter.setLoaded();
+                    } else {
+                        if (tourGuidesList.size() < PAGE_SIZE)
+                            reachedEnd = true;
+                        int oldSize = mAdapter.mDataset.size();
+                        mAdapter.mDataset.addAll(tourGuidesList);
+                        mAdapter.notifyItemRangeInserted(oldSize, tourGuidesList.size());
+                        mAdapter.setLoaded();
+                        //loadToursImagesFromServerDb(tourGuidesList);
+                    }
+                }
+                else
+                    mAdapter.setLoaded();
+            }
+
+            @Override
+            public void onFailure(Call<List<User>> call, Throwable t) {
+                mAdapter.setLoaded();
+                t.printStackTrace();
+                Context context = getContext();
+                if (context != null)
+                    Toast.makeText(context,"A connection error has occurred\nRetries left: " + (RETRIES_LIMIT - retries),Toast.LENGTH_SHORT).show();
+                if (retries++ >= RETRIES_LIMIT)
+                    reachedEnd = true;
+                //Log.d("crashTest", "loadTourGuidesFromServerDb onFailure");
+            }
+        });
     }
 
     @Override
@@ -101,7 +204,7 @@ public class TourGuidesFragment extends Fragment {
         Random r = new Random();
         for (int i = 0; i < usersAmount; i++) {
             char gender = r.nextInt(2) == 0 ? 'M' : 'F';
-            users.add(new User(
+            tourGuides.add(new User(
                     (gender == 'M' ? maleNamePool[r.nextInt(maleNamePool.length)] : femaleNamePool[r.nextInt(femaleNamePool.length)]) + " " +
                             (surnamePool[r.nextInt(surnamePool.length)])));
         }
@@ -116,7 +219,7 @@ public class TourGuidesFragment extends Fragment {
         recyclerView.setLayoutManager(layoutManager);
 
         // specify an adapter
-        mAdapter = new InfiniteTourGuideAdapter(users,
+        mAdapter = new InfiniteTourGuideAdapter(tourGuides,
                 new InfiniteTourGuideAdapter.ToursAdapterCallback() {
                     @Override
                     public Context getContext() {
@@ -128,10 +231,10 @@ public class TourGuidesFragment extends Fragment {
                         /*
                         Navigation.findNavController(requireView()).navigate(R.id.nav_nested_create_tour,
                                 new CreateTourFragmentArgs.Builder().setTourServerId(
-                                        users.get(position).getServerTourGdId()).build().toBundle());
+                                        tourGuides.get(position).getServerTourGdId()).build().toBundle());
                          */
                         NavDirections navDirections =  TourGuidesFragmentDirections
-                                .actionNavTourGuidesToNavTourGuideDetails(users.get(position).getUsername());
+                                .actionNavTourGuidesToNavTourGuideDetails(tourGuides.get(position).getUsername());
                         Navigation.findNavController(requireView()).navigate(navDirections);
                     }
                 },
@@ -143,9 +246,9 @@ public class TourGuidesFragment extends Fragment {
             public void onLoadMore() {
                 if (!reachedEnd) {
                     mAdapter.setLoading();
-                    //loadToursFromServerDb();
-                    reachedEnd = true; // temporary, until backend support is implemented
-                    mAdapter.setLoaded();
+                    loadTourGuidesFromServerDb();
+                    //reachedEnd = true;  // temporary, until backend support is implemented
+                    //mAdapter.setLoaded();  // temporary, until backend support is implemented
                 }
             }
         });

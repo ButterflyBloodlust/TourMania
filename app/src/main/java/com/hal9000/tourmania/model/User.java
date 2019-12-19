@@ -16,6 +16,7 @@ public class User {
     @ColumnInfo(name = "id")
     private int userId;
 
+    @SerializedName("nickname")
     @ColumnInfo(name = "username")
     private String username;
 
@@ -30,8 +31,9 @@ public class User {
     @ColumnInfo(name = "rating")
     private double rating;
 
+    @SerializedName("phone_num")
     @ColumnInfo(name = "phone_num")
-    private String phoneNumber;
+    private String phoneNumber = "";
 
     @ColumnInfo(name = "email")
     private String email;
