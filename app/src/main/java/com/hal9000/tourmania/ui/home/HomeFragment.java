@@ -25,7 +25,9 @@ import androidx.core.content.ContextCompat;
 import androidx.core.view.MenuItemCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelProviders;
+import androidx.lifecycle.ViewModelStoreOwner;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -41,6 +43,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.hal9000.tourmania.AppUtils;
 import com.hal9000.tourmania.MainActivity;
+import com.hal9000.tourmania.MainActivityViewModel;
 import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.SharedPrefUtils;
 import com.hal9000.tourmania.model.TourWithWpWithPaths;
@@ -51,6 +54,7 @@ import com.hal9000.tourmania.rest_api.files_upload_download.FileUploadDownloadSe
 import com.hal9000.tourmania.rest_api.tours.ToursService;
 import com.hal9000.tourmania.ui.InfiniteTourAdapter;
 import com.hal9000.tourmania.ui.ToursAdapter;
+import com.hal9000.tourmania.ui.create_tour.CreateTourFragment;
 import com.hal9000.tourmania.ui.create_tour.CreateTourFragmentArgs;
 import com.hal9000.tourmania.ui.search.OnLoadMoreListener;
 
@@ -64,6 +68,7 @@ import static android.content.Context.LOCATION_SERVICE;
 public class HomeFragment extends Fragment {
 
     private HomeViewModel homeViewModel;
+    private MainActivityViewModel activityViewModel;
     private RecyclerView recyclerView;
     private InfiniteTourAdapter mAdapter;
     private RecyclerView.LayoutManager layoutManager;
@@ -74,10 +79,25 @@ public class HomeFragment extends Fragment {
     private double longitude = 0.0;
     private double latitude = 0.0;
     private int retries = 0;
+    private int checkingDetailsTourIndex = -1;
 
     public static final String TOUR_RECOMMENDED_CACHE_DIR_NAME = "recommended";
     private static final int RETRIES_LIMIT = 0;
     private static final int PAGE_SIZE = 10;
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        activityViewModel = ViewModelProviders.of(requireActivity()).get(MainActivityViewModel.class);
+        if (toursWithTourWps == null) {
+            // should always be null here; TODO move this to ViewModel's onCleared when implemented
+            String dirPath = requireContext().getExternalCacheDir() + File.separator + TOUR_RECOMMENDED_CACHE_DIR_NAME;
+            File projDir = new File(dirPath);
+            if (projDir.exists()) {
+                AppUtils.deleteDir(projDir, -1);
+            }
+        }
+    }
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -117,10 +137,17 @@ public class HomeFragment extends Fragment {
             singUpButton.setVisibility(View.VISIBLE);
         }
 
-        String dirPath = requireContext().getExternalCacheDir() + File.separator + TOUR_RECOMMENDED_CACHE_DIR_NAME;
-        File projDir = new File(dirPath);
-        if (projDir.exists()) {
-            AppUtils.deleteDir(projDir, -1);
+        if (!toursWithTourWps.isEmpty()) {
+            Bundle bundle = activityViewModel.getAndClearBundle(CreateTourFragment.class);
+            if (bundle != null) {
+                float newRatingVal = bundle.getFloat(CreateTourFragment.NEW_TOUR_RATING_VAL_BUNDLE_KEY, -1.0f);
+                int newRatingCount = bundle.getInt(CreateTourFragment.NEW_TOUR_RATING_COUNT_BUNDLE_KEY, -1);
+                if (newRatingVal != -1.0f && newRatingCount != -1) {
+                    toursWithTourWps.get(checkingDetailsTourIndex).tour.setRateVal(newRatingVal);
+                    toursWithTourWps.get(checkingDetailsTourIndex).tour.setRateCount(newRatingCount);
+                    mAdapter.notifyItemChanged(checkingDetailsTourIndex);
+                }
+            }
         }
 
         Context context = requireContext();
@@ -262,6 +289,9 @@ public class HomeFragment extends Fragment {
     private void loadToursImagesFromServerDbProcessResponse(List<FileDownloadResponse> res) {
         //Log.d("crashTest", "Missing tour: " + Integer.toString(res.size()));
         // for each tour
+        Context context = getContext();
+        if (context == null)
+            return;
         for (FileDownloadResponse fileDownloadResponse : res) {
             //Log.d("crashTest", fileDownloadResponse.tourServerId);
             if (fileDownloadResponse.images != null) {
@@ -270,7 +300,7 @@ public class HomeFragment extends Fragment {
                     FileDownloadImageObj fileDownloadImageObj = entry.getValue();
                     //Log.d("crashTest", entry.getKey() + " / " + entry.getValue());
                     if (fileDownloadImageObj.base64 != null && fileDownloadImageObj.mime != null) {
-                        File file = AppUtils.saveImageFromBase64(requireContext(), fileDownloadImageObj.base64, fileDownloadImageObj.mime, TOUR_RECOMMENDED_CACHE_DIR_NAME);
+                        File file = AppUtils.saveImageFromBase64(context, fileDownloadImageObj.base64, fileDownloadImageObj.mime, TOUR_RECOMMENDED_CACHE_DIR_NAME);
                         // process main tour image
                         if (entry.getKey().equals("0")) {
                             //Log.d("crashTest", "updating main tour image");
@@ -310,6 +340,7 @@ public class HomeFragment extends Fragment {
 
                     @Override
                     public void navigateToViewTour(int position) {
+                        checkingDetailsTourIndex = position;
                         Navigation.findNavController(requireView()).navigate(R.id.nav_nested_create_tour,
                                 new CreateTourFragmentArgs.Builder().setTourServerId(
                                         toursWithTourWps.get(position).tour.getServerTourId()).build().toBundle());

@@ -32,8 +32,17 @@ public class Tour {
     @ColumnInfo(name = "img_path")
     private String tourImgPath;
 
-    @ColumnInfo(name = "rating")
-    private float rating;
+    @SerializedName("rateVal")
+    @ColumnInfo(name = "rate_val")
+    private float rateVal;
+
+    @SerializedName("rateCount")
+    @ColumnInfo(name = "rate_count")
+    private int rateCount;
+
+    @SerializedName("myRating")
+    @ColumnInfo(name = "my_rating")
+    private float myRating = 0.0f;
 
     @Exclude
     @ColumnInfo(name = "server_synced")
@@ -58,10 +67,9 @@ public class Tour {
     public Tour() {}
 
     @Ignore
-    public Tour(String title, String tourImgPath, float rating) {
+    public Tour(String title, String tourImgPath) {
         this.title = title;
         this.tourImgPath = tourImgPath;
-        this.rating = rating;
     }
 
     public int getTourId() {
@@ -86,14 +94,6 @@ public class Tour {
 
     public void setTourImgPath(String tourImgPath) {
         this.tourImgPath = tourImgPath;
-    }
-
-    public float getRating() {
-        return rating;
-    }
-
-    public void setRating(float rating) {
-        this.rating = rating;
     }
 
     public boolean isServerSynced() {
@@ -134,5 +134,29 @@ public class Tour {
 
     public void setInFavs(boolean inFavs) {
         this.inFavs = inFavs;
+    }
+
+    public float getRateVal() {
+        return rateVal;
+    }
+
+    public void setRateVal(float rateVal) {
+        this.rateVal = rateVal;
+    }
+
+    public int getRateCount() {
+        return rateCount;
+    }
+
+    public void setRateCount(int rateCount) {
+        this.rateCount = rateCount;
+    }
+
+    public float getMyRating() {
+        return myRating;
+    }
+
+    public void setMyRating(float myRating) {
+        this.myRating = myRating;
     }
 }

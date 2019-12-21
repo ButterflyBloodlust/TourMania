@@ -3,12 +3,14 @@ package com.hal9000.tourmania.ui;
 import android.content.Context;
 import android.net.Uri;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.RatingBar;
 import android.widget.TextView;
 
 import com.hal9000.tourmania.MainActivity;
@@ -54,11 +56,15 @@ public class InfiniteTourAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         public TextView textView;
         public ImageView tourImageView;
         public ImageButton deleteImageButton;
+        public TextView tourRatingTextView;
+        public RatingBar ratingBar;
         public MyViewHolder(View v) {
             super(v);
             textView = v.findViewById(R.id.tour_title);
             tourImageView = v.findViewById(R.id.tour_list_image);
             deleteImageButton = v.findViewById(R.id.buttonDeleteTour);
+            tourRatingTextView = v.findViewById(R.id.tour_rating);
+            ratingBar = v.findViewById(R.id.tour_rating_bar);
         }
     }
 
@@ -178,6 +184,13 @@ public class InfiniteTourAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                     callback.navigateToViewTour(holder.getAdapterPosition());
                 }
             });
+
+            int rateCount = mDataset.get(position).tour.getRateCount();
+            if (rateCount > 0) {
+                float rating = mDataset.get(position).tour.getRateVal() / (float)rateCount;
+                ((MyViewHolder) holder).tourRatingTextView.setText(String.format("%.2f", rating));
+                ((MyViewHolder) holder).ratingBar.setRating(rating);
+            }
 
             if (((MyViewHolder) holder).deleteImageButton != null) {
                 ((MyViewHolder) holder).deleteImageButton.setOnClickListener(new View.OnClickListener() {

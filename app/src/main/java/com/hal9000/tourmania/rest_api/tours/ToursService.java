@@ -44,8 +44,8 @@ public interface ToursService {
     @GET("tour/id/{tourId}")
     Call<TourWithWpWithPaths> getTour(@Path("tourId") String tourId);
 
-    @GET("tour/id/{tourId}")
-    Call<TourWithWpWithPaths> getTour(@Path("tourId") String tourId, @Query("username") String username);
+    @POST("tour/id/{tourId}/rate") @FormUrlEncoded
+    Call<ResponseBody> rateTour(@Path("tourId") String tourId, @Field("rating") float tourRating);
 
     @POST("user/favs/add/") @FormUrlEncoded
     Call<ResponseBody> addTourToFavs(@Field("trSrvrId") String serverTourId);

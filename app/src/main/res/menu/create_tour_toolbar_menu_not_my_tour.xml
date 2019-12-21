@@ -8,4 +8,9 @@
         app:showAsAction="ifRoom"
         android:icon="@drawable/ic_star_white_border_50dp"
         android:visible="false"/>
+    <item
+        android:id="@+id/action_rate_tour"
+        android:orderInCategory="190"
+        android:title="@string/action_rate_tour"
+        app:showAsAction="never" />
 </menu>

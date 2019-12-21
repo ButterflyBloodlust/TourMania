@@ -6,6 +6,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.hal9000.tourmania.AppUtils;
+import com.hal9000.tourmania.BuildConfig;
 import com.hal9000.tourmania.FileUtil;
 import com.hal9000.tourmania.MainActivity;
 import com.hal9000.tourmania.SharedPrefUtils;
@@ -179,13 +180,13 @@ public class CreateTourSharedViewModel extends ViewModel {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                 getTour().setInFavs(true);
-                Log.d("crashTest", "addTourToFavs onResponse()");
+                //Log.d("crashTest", "addTourToFavs onResponse()");
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 t.printStackTrace();
-                Log.d("crashTest", "addTourToFavs onFailure()");
+                //Log.d("crashTest", "addTourToFavs onFailure()");
             }
         });
     }
@@ -394,8 +395,8 @@ public class CreateTourSharedViewModel extends ViewModel {
 
     public void loadTourFromServerDb(final String tourServerId, final Context context, final String subDirName) {
         if (!loadedFromServerDb) {
-            ToursService client = RestClient.createService(ToursService.class);
-            Call<TourWithWpWithPaths> call = client.getTour(tourServerId, SharedPrefUtils.getDecryptedString(context, MainActivity.getUsernameKey()));
+            ToursService client = RestClient.createService(ToursService.class, SharedPrefUtils.getDecryptedString(context, MainActivity.getLoginTokenKey()));
+            Call<TourWithWpWithPaths> call = client.getTour(tourServerId);
             call.enqueue(new Callback<TourWithWpWithPaths>() {
                 @Override
                 public void onResponse(Call<TourWithWpWithPaths> call, final Response<TourWithWpWithPaths> response) {
@@ -488,6 +489,60 @@ public class CreateTourSharedViewModel extends ViewModel {
                 tour.setValue(getTour());
             }
         });
+    }
+
+    public void saveTourRatingToLocalDb(final Context context) {
+        AppDatabase.databaseWriteExecutor.submit(new Runnable() {
+            @Override
+            public void run() {
+                AppDatabase appDatabase = AppDatabase.getInstance(context);
+                TourWithWpWithPaths tourWithWpWithPaths = appDatabase.tourDAO().getTourByServerTourIds(getTour().getServerTourId());
+                if (tourWithWpWithPaths != null) {
+                    Tour dbTour = tourWithWpWithPaths.tour;
+                    Tour thisTour = getTour();
+                    dbTour.setRateCount(thisTour.getRateCount());
+                    dbTour.setRateVal(thisTour.getRateVal());
+                    dbTour.setMyRating(thisTour.getMyRating());
+                    appDatabase.tourDAO().updateTour(dbTour);
+                }
+            }
+        });
+    }
+
+    public void saveTourRatingToServerDb(final Context context) {
+        ToursService client = RestClient.createService(ToursService.class, SharedPrefUtils.getDecryptedString(context, MainActivity.getLoginTokenKey()));
+        //Log.d("crashTest", "Missing tour: " + Integer.toString(missingTourIds.size()));
+        Call<ResponseBody> call = client.rateTour(getTour().getServerTourId(), getTour().getMyRating());
+        call.enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                //Log.d("crashTest", "saveTourRatingToServerDb onResponse");
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                if (BuildConfig.DEBUG)
+                    t.printStackTrace();
+                //Log.d("crashTest", "saveTourRatingToServerDb onFailure");
+            }
+        });
+    }
+
+    public void updateTourRating(final Context context, float newRating) {
+        Tour tour = getTour();
+        float oldRating = tour.getMyRating();
+        // if tour was not rated before by current user
+        if (oldRating == 0.0f) {
+            tour.setRateCount(tour.getRateCount() + 1);
+            tour.setRateVal(tour.getRateVal() + newRating);
+        }
+        else {
+            tour.setRateVal(tour.getRateVal() + newRating - oldRating);
+        }
+        tour.setMyRating(newRating);
+
+        saveTourRatingToServerDb(context);
+        saveTourRatingToLocalDb(context);
     }
 
     public boolean isEditingEnabled() {

@@ -12,6 +12,7 @@
     <string name="action_edit_tour">Edit tour</string>
     <string name="action_add_to_favourites">Add to favourites</string>
     <string name="action_remove_from_favourites">Remove from favourites</string>
+    <string name="action_rate_tour">Rate this tour</string>
 
     <string name="menu_home">Home</string>
     <string name="menu_my_tours">My Tours</string>

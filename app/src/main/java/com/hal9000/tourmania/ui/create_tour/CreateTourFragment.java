@@ -27,6 +27,7 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProviders;
 import androidx.lifecycle.ViewModelStoreOwner;
 import androidx.navigation.Navigation;
 import okhttp3.ResponseBody;
@@ -49,25 +50,23 @@ import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.RatingBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.hal9000.tourmania.AppUtils;
 import com.hal9000.tourmania.MainActivity;
+import com.hal9000.tourmania.MainActivityViewModel;
 import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.SharedPrefUtils;
 import com.hal9000.tourmania.database.AppDatabase;
-import com.hal9000.tourmania.database.FavouriteTourDAO;
-import com.hal9000.tourmania.database.MyTourDAO;
-import com.hal9000.tourmania.database.TourDAO;
 import com.hal9000.tourmania.model.FavouriteTour;
-import com.hal9000.tourmania.model.MyTour;
 import com.hal9000.tourmania.model.Tour;
 import com.hal9000.tourmania.model.TourWaypoint;
-import com.hal9000.tourmania.model.TourWithWpWithPaths;
 import com.hal9000.tourmania.model.TourWpWithPicPaths;
 import com.hal9000.tourmania.rest_api.RestClient;
 import com.hal9000.tourmania.rest_api.tours.ToursService;
+import com.hal9000.tourmania.ui.home.HomeViewModel;
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
 import com.mapbox.api.directions.v5.DirectionsCriteria;
@@ -98,7 +97,6 @@ import com.mapbox.services.android.navigation.v5.navigation.NavigationRoute;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -140,6 +138,9 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
     private static final String ID_ICON_MARKER_SELECTED = "place-marker-yellow-24";
     private static final double ICON_MARKER_SCALE = 2d;
     private static int PICK_IMAGE_REQUEST_CODE = 100;
+    public static final String NEW_TOUR_RATING_BUNDLE_KEY = "new_tour_rating";
+    public static final String NEW_TOUR_RATING_VAL_BUNDLE_KEY = "new_tour_val_rating";
+    public static final String NEW_TOUR_RATING_COUNT_BUNDLE_KEY = "new_tour_count_rating";
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -170,10 +171,10 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
         }
         else {
             if (createTourSharedViewModel.isEditingPossible()) {
-                inflater.inflate(R.menu.create_tour_toolbar_menu_editing_disabled, menu);
+                inflater.inflate(R.menu.create_tour_toolbar_menu_my_tour, menu);
             }
             else {
-                inflater.inflate(R.menu.create_tour_toolbar_menu_favs, menu);
+                inflater.inflate(R.menu.create_tour_toolbar_menu_not_my_tour, menu);
                 final MenuItem item = menu.findItem(R.id.action_add_tour_to_favourites);
                 if (observerFavIcon != null)
                     createTourSharedViewModel.getTourLiveData().removeObserver(observerFavIcon);
@@ -313,6 +314,46 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                         }
                     }
                 });
+                return true;
+            case R.id.action_rate_tour:
+                final View dialogView = getLayoutInflater().inflate(R.layout.dialog_rating_bar, null);
+                ((RatingBar) dialogView.findViewById(R.id.rating_bar)).setRating(createTourSharedViewModel.getTour().getMyRating());
+                final AlertDialog.Builder builder = new AlertDialog.Builder(requireContext())
+                        .setIcon(R.drawable.ic_star_white_border_50dp)
+                        .setTitle("Rate this tour")
+                        .setView(dialogView)
+                        .setCancelable(true)
+                        .setPositiveButton("Done", null)
+                        .setNegativeButton("Cancel", null);
+                final AlertDialog alertDialog = builder.create();
+                alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+                    @Override
+                    public void onShow(DialogInterface dialog) {
+                        alertDialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                RatingBar ratingBar = dialogView.findViewById(R.id.rating_bar);
+                                float rating = ratingBar.getRating();
+                                if (rating > 0) {
+                                    createTourSharedViewModel.updateTourRating(requireContext(), rating);
+
+                                    Tour tour = createTourSharedViewModel.getTour();
+                                    MainActivityViewModel activityViewModel = ViewModelProviders.of(requireActivity()).get(MainActivityViewModel.class);
+                                    Bundle bundle = new Bundle();
+                                    bundle.putFloat(NEW_TOUR_RATING_BUNDLE_KEY, rating);
+                                    bundle.putFloat(NEW_TOUR_RATING_VAL_BUNDLE_KEY, tour.getRateVal());
+                                    bundle.putInt(NEW_TOUR_RATING_COUNT_BUNDLE_KEY, tour.getRateCount());
+                                    activityViewModel.putToBundle(CreateTourFragment.class, bundle);
+
+                                    alertDialog.dismiss();
+                                }
+                                else
+                                    Toast.makeText(requireContext(),"Rating above 0 required",Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
+                });
+                alertDialog.show();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
