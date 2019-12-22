@@ -18,13 +18,13 @@ import retrofit2.internal.EverythingIsNonNull;
 
 import android.preference.PreferenceManager;
 import android.text.Editable;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.Toast;
 
+import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.hal9000.tourmania.AppUtils;
 import com.hal9000.tourmania.MainActivity;
@@ -93,9 +93,11 @@ public class SignInFragment extends Fragment {
                                                 appDatabase.userDAO().insertUser(new User(username.toString()));
                                             }
                                         });
+                                AppUtils.setUsernameInNavDrawerHeader((NavigationView)fragmentActivity.findViewById(R.id.nav_view),
+                                        fragmentActivity, username.toString());
                                 AppUtils.hideSoftKeyboard(fragmentActivity);
                                 Toast.makeText(ctx,"Logged in", Toast.LENGTH_SHORT).show();
-                                AppUtils.updateUserAccDrawer(fragmentActivity);
+                                AppUtils.updateUserAccDrawerItems(fragmentActivity);
                                 Navigation.findNavController(requireView()).popBackStack();
                             } else {
                                 //System.out.println(response.errorBody());

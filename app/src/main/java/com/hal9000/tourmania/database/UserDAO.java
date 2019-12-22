@@ -16,7 +16,7 @@ public interface UserDAO {
     @Query("SELECT * FROM Users")
     List<User> getTourTags();
 
-    @Query("SELECT * FROM Users WHERE id = :userId")
+    @Query("SELECT * FROM Users WHERE user_id_pk = :userId")
     User getUserTag(int userId);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

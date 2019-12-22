@@ -11,7 +11,7 @@ import androidx.room.PrimaryKey;
 
 @Entity(tableName = "MyTours",
         foreignKeys = @ForeignKey(entity = Tour.class,
-                parentColumns = "id",
+                parentColumns = "tour_id_pk",
                 childColumns = "tour_id",
                 onDelete = ForeignKey.CASCADE),
         indices=@Index(value="tour_id", unique=true))

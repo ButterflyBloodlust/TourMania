@@ -7,6 +7,7 @@ import android.net.wifi.WifiManager;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.webkit.MimeTypeMap;
+import android.widget.TextView;
 
 import com.google.android.material.navigation.NavigationView;
 import com.hal9000.tourmania.database.AppDatabase;
@@ -55,7 +56,7 @@ public class AppUtils {
         return SharedPrefUtils.getDecryptedString(context, MainActivity.getLoginTokenKey()) != null;
     }
 
-    public static void updateUserAccDrawer(FragmentActivity fragmentActivity) {
+    public static void updateUserAccDrawerItems(FragmentActivity fragmentActivity) {
         NavigationView navigationView = fragmentActivity.findViewById(R.id.nav_view);
         if (AppUtils.isUserLoggedIn(fragmentActivity.getBaseContext())) {
             navigationView.getMenu().findItem(R.id.nav_sign_in).setVisible(false);
@@ -83,43 +84,48 @@ public class AppUtils {
         return AppDatabase.databaseWriteExecutor.submit(new Runnable() {
             @Override
             public void run() {
-                //Log.d("crashTest", "run()");
-                AppDatabase appDatabase = AppDatabase.getInstance(context);
-                ArrayList<Tour> tours = new ArrayList<>(tourWithWpWithPathsList.size());
-                for (TourWithWpWithPaths tourWithWpWithPaths : tourWithWpWithPathsList) {
-                    tours.add(tourWithWpWithPaths.tour);
-                }
-                long[] tourIds = appDatabase.tourDAO().insertTours(tours);
-
-                LinkedList<TourTag> tourTags = new LinkedList<>();
-                LinkedList<TourWaypoint> tourWaypoints = new LinkedList<>();
-                for (int i = 0; i < tourWithWpWithPathsList.size(); i++) {
-                    int tourId = (int) tourIds[i];
-                    tourWithWpWithPathsList.get(i).tour.setTourId(tourId);
-                    for (TourTag tourTag : tourWithWpWithPathsList.get(i).tourTags) {
-                        tourTag.setTourId(tourId);
-                        tourTags.add(tourTag);
+                try {
+                    //Log.d("crashTest", "run()");
+                    AppDatabase appDatabase = AppDatabase.getInstance(context);
+                    ArrayList<Tour> tours = new ArrayList<>(tourWithWpWithPathsList.size());
+                    for (TourWithWpWithPaths tourWithWpWithPaths : tourWithWpWithPathsList) {
+                        tours.add(tourWithWpWithPaths.tour);
                     }
-                    for (TourWpWithPicPaths tourWpWithPicPaths : tourWithWpWithPathsList.get(i)._tourWpsWithPicPaths) {
-                        tourWpWithPicPaths.tourWaypoint.setTourId(tourId);
-                        tourWaypoints.add(tourWpWithPicPaths.tourWaypoint);
-                    }
-                }
-                appDatabase.tourTagDAO().insertTourTags(tourTags);
-                appDatabase.tourWaypointDAO().insertTourWps(tourWaypoints);
+                    long[] tourIds = appDatabase.tourDAO().insertTours(tours);
 
-                if (saveAsType == TOUR_TYPE_MY_TOUR) {
-                    MyTourDAO myTourDAO = appDatabase.myTourDAO();
-                    List<MyTour> myTours = new ArrayList<>(tourIds.length);
-                    for (long tourId : tourIds)
-                        myTours.add(new MyTour((int)tourId));
-                    myTourDAO.insertMyTours(myTours);
-                } else if (saveAsType == TOUR_TYPE_FAV_TOUR) {
-                    FavouriteTourDAO favouriteTourDAO = appDatabase.favouriteTourDAO();
-                    List<FavouriteTour> favouriteTours = new ArrayList<>(tourIds.length);
-                    for (long tourId : tourIds)
-                        favouriteTours.add(new FavouriteTour((int) tourId));
-                    favouriteTourDAO.insertFavouriteTours(favouriteTours);
+                    LinkedList<TourTag> tourTags = new LinkedList<>();
+                    LinkedList<TourWaypoint> tourWaypoints = new LinkedList<>();
+                    for (int i = 0; i < tourWithWpWithPathsList.size(); i++) {
+                        int tourId = (int) tourIds[i];
+                        tourWithWpWithPathsList.get(i).tour.setTourId(tourId);
+                        for (TourTag tourTag : tourWithWpWithPathsList.get(i).tourTags) {
+                            tourTag.setTourId(tourId);
+                            tourTags.add(tourTag);
+                        }
+                        for (TourWpWithPicPaths tourWpWithPicPaths : tourWithWpWithPathsList.get(i)._tourWpsWithPicPaths) {
+                            tourWpWithPicPaths.tourWaypoint.setTourId(tourId);
+                            tourWaypoints.add(tourWpWithPicPaths.tourWaypoint);
+                        }
+                    }
+                    appDatabase.tourTagDAO().insertTourTags(tourTags);
+                    appDatabase.tourWaypointDAO().insertTourWps(tourWaypoints);
+
+                    if (saveAsType == TOUR_TYPE_MY_TOUR) {
+                        MyTourDAO myTourDAO = appDatabase.myTourDAO();
+                        List<MyTour> myTours = new ArrayList<>(tourIds.length);
+                        for (long tourId : tourIds)
+                            myTours.add(new MyTour((int) tourId));
+                        myTourDAO.insertMyTours(myTours);
+                    } else if (saveAsType == TOUR_TYPE_FAV_TOUR) {
+                        FavouriteTourDAO favouriteTourDAO = appDatabase.favouriteTourDAO();
+                        List<FavouriteTour> favouriteTours = new ArrayList<>(tourIds.length);
+                        for (long tourId : tourIds)
+                            favouriteTours.add(new FavouriteTour((int) tourId));
+                        favouriteTourDAO.insertFavouriteTours(favouriteTours);
+                    }
+                } catch (Exception e) {
+                    if (BuildConfig.DEBUG)
+                        e.printStackTrace();
                 }
             }
         });
@@ -215,5 +221,17 @@ public class AppUtils {
             network_enabled = lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
         } catch(Exception ex) {}
         return gps_enabled && network_enabled;
+    }
+
+    public static void setUsernameInNavDrawerHeader(NavigationView navigationView, FragmentActivity fragmentActivity, String username) {
+        View headerView = navigationView.getHeaderView(0);
+        TextView textView = headerView.findViewById(R.id.username_textView);
+        textView.setText(String.format(fragmentActivity.getString(R.string.logged_in_as), username));
+    }
+
+    public static void unsetUsernameInNavDrawerHeader(NavigationView navigationView) {
+        View headerView = navigationView.getHeaderView(0);
+        TextView textView = headerView.findViewById(R.id.username_textView);
+        textView.setText("");
     }
 }

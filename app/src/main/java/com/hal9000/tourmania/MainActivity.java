@@ -4,12 +4,9 @@ import android.Manifest;
 import android.content.Context;
 import android.os.Bundle;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.view.GravityCompat;
 import androidx.navigation.NavController;
-import androidx.navigation.NavDestination;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
@@ -23,8 +20,6 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
-import android.preference.PreferenceManager;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
@@ -44,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
 
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
-        NavigationView navigationView = findViewById(R.id.nav_view);
+        final NavigationView navigationView = findViewById(R.id.nav_view);
         // Passing each menu ID as a set of Ids because each
         // menu should be considered as top level destinations.
         mAppBarConfiguration = new AppBarConfiguration.Builder(
@@ -64,6 +59,9 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         */
+        if (AppUtils.isUserLoggedIn(getBaseContext()))
+            AppUtils.setUsernameInNavDrawerHeader(navigationView, this,
+                    SharedPrefUtils.getDecryptedString(getBaseContext(), MainActivity.getUsernameKey()));
 
         navigationView.getMenu().findItem(R.id.sign_out).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
             @Override
@@ -84,7 +82,8 @@ public class MainActivity extends AppCompatActivity {
                         });
                 DrawerLayout drawer = findViewById(R.id.drawer_layout);
                 drawer.closeDrawer(GravityCompat.START);
-                AppUtils.updateUserAccDrawer(MainActivity.this);
+                AppUtils.unsetUsernameInNavDrawerHeader(navigationView);
+                AppUtils.updateUserAccDrawerItems(MainActivity.this);
                 Navigation.findNavController(MainActivity.this, R.id.nav_host_fragment).navigate(
                         MobileNavigationDirections.actionGlobalNavHome()
                 );
@@ -128,7 +127,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        AppUtils.updateUserAccDrawer(this);
+        AppUtils.updateUserAccDrawerItems(this);
     }
 
 }

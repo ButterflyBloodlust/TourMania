@@ -2,11 +2,13 @@ package com.hal9000.tourmania.ui.my_tours;
 
 import android.content.Context;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProviders;
 import androidx.navigation.Navigation;
@@ -18,8 +20,10 @@ import retrofit2.Response;
 
 import com.hal9000.tourmania.AppUtils;
 import com.hal9000.tourmania.MainActivity;
+import com.hal9000.tourmania.MainActivityViewModel;
 import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.SharedPrefUtils;
+import com.hal9000.tourmania.model.Tour;
 import com.hal9000.tourmania.model.TourWaypoint;
 import com.hal9000.tourmania.rest_api.RestClient;
 import com.hal9000.tourmania.rest_api.files_upload_download.FileDownloadImageObj;
@@ -29,6 +33,7 @@ import com.hal9000.tourmania.rest_api.tours.ToursService;
 import com.hal9000.tourmania.ui.ToursAdapter;
 import com.hal9000.tourmania.database.AppDatabase;
 import com.hal9000.tourmania.model.TourWithWpWithPaths;
+import com.hal9000.tourmania.ui.create_tour.CreateTourFragment;
 import com.hal9000.tourmania.ui.create_tour.CreateTourFragmentArgs;
 
 import java.io.File;
@@ -40,14 +45,23 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+// Used for displaying cached tours - either user's own or favourite tours.
 public class MyToursFragment extends Fragment {
 
     private MyToursViewModel myToursViewModel;
+    private MainActivityViewModel activityViewModel;
     private RecyclerView recyclerView;
     private ToursAdapter mAdapter;
     private RecyclerView.LayoutManager layoutManager;
     private List<TourWithWpWithPaths> toursWithTourWps;
     private int currentFragmentId;
+    private int checkingDetailsTourIndex = -1;
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        activityViewModel = ViewModelProviders.of(requireActivity()).get(MainActivityViewModel.class);
+    }
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -70,6 +84,19 @@ public class MyToursFragment extends Fragment {
                 }
             });
             fab.setVisibility(View.VISIBLE);
+        }
+
+        if (toursWithTourWps != null && !toursWithTourWps.isEmpty()) {
+            Bundle bundle = activityViewModel.getAndClearBundle(CreateTourFragment.class);
+            if (bundle != null) {
+                float newRatingVal = bundle.getFloat(CreateTourFragment.NEW_TOUR_RATING_VAL_BUNDLE_KEY, -1.0f);
+                int newRatingCount = bundle.getInt(CreateTourFragment.NEW_TOUR_RATING_COUNT_BUNDLE_KEY, -1);
+                if (newRatingVal != -1.0f && newRatingCount != -1) {
+                    toursWithTourWps.get(checkingDetailsTourIndex).tour.setRateVal(newRatingVal);
+                    toursWithTourWps.get(checkingDetailsTourIndex).tour.setRateCount(newRatingCount);
+                    mAdapter.notifyItemChanged(checkingDetailsTourIndex);
+                }
+            }
         }
 
         Future future = loadToursFromRoomDb();
@@ -276,6 +303,7 @@ public class MyToursFragment extends Fragment {
 
                     @Override
                     public void navigateToViewTour(int position) {
+                        checkingDetailsTourIndex = position;
                         Navigation.findNavController(requireView()).navigate(R.id.nav_nested_create_tour,
                                 new CreateTourFragmentArgs.Builder().setTourId(toursWithTourWps.get(position).tour.getTourId()).build().toBundle());
                     }

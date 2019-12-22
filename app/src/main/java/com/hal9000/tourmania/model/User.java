@@ -13,7 +13,7 @@ public class User {
 
     @Exclude
     @PrimaryKey(autoGenerate = true)
-    @ColumnInfo(name = "id")
+    @ColumnInfo(name = "user_id_pk")
     private int userId;
 
     @SerializedName("nickname")

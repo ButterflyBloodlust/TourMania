@@ -5,6 +5,7 @@ import com.google.gson.annotations.SerializedName;
 import java.util.Collections;
 import java.util.List;
 
+import androidx.annotation.Nullable;
 import androidx.room.Embedded;
 import androidx.room.Relation;
 
@@ -13,12 +14,16 @@ public class TourWithWpWithPaths {
     @SerializedName("tour")
     public Tour tour;
 
+    @Embedded
+    @SerializedName("author")
+    public User user;
+
     @SerializedName("tags")
-    @Relation(parentColumn = "id", entityColumn = "tour_id", entity=TourTag.class)
+    @Relation(parentColumn = "tour_id_pk", entityColumn = "tour_id", entity=TourTag.class)
     public List<TourTag> tourTags;
 
     @SerializedName("wpsWPics")
-    @Relation(parentColumn = "id", entityColumn = "tour_id", entity=TourWaypoint.class)
+    @Relation(parentColumn = "tour_id_pk", entityColumn = "tour_id", entity=TourWaypoint.class)
     public List<TourWpWithPicPaths> _tourWpsWithPicPaths;
 
     public TourWithWpWithPaths () {}

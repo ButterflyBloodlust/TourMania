@@ -12,17 +12,18 @@ import androidx.room.Ignore;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
-@Entity(tableName = "Tours",/*
+@Entity(tableName = "Tours",
         foreignKeys = @ForeignKey(entity = User.class,
-                parentColumns = "id",
+                parentColumns = "user_id_pk",
                 childColumns = "user_id",
-                onDelete = ForeignKey.SET_NULL),*/
-        indices=@Index(value="server_tour_id"))
+                onDelete = ForeignKey.SET_NULL),
+        indices={@Index(value="server_tour_id"),
+                @Index(value="user_id")})
 public class Tour {
 
     @Exclude
     @PrimaryKey(autoGenerate = true)
-    @ColumnInfo(name = "id")
+    @ColumnInfo(name = "tour_id_pk")
     private int tourId;
 
     @ColumnInfo(name = "title")
@@ -58,7 +59,7 @@ public class Tour {
 
     @Exclude
     @ColumnInfo(name = "user_id")
-    private int userId = 0;
+    private Integer userId = null;
 
     @Exclude
     @SerializedName("in_favs") @Ignore
@@ -120,11 +121,11 @@ public class Tour {
         this.modifiedAt = modifiedAt;
     }
 
-    public int getUserId() {
+    public Integer getUserId() {
         return userId;
     }
 
-    public void setUserId(int userId) {
+    public void setUserId(Integer userId) {
         this.userId = userId;
     }
 

@@ -20,11 +20,11 @@ public abstract class TourDAO {
     @Query("SELECT * FROM Tours")
     public abstract List<Tour> getTours();
 
-    @Query("SELECT * FROM Tours WHERE id = :tourId")
+    @Query("SELECT * FROM Tours WHERE tour_id_pk = :tourId")
     public abstract Tour getTour(int tourId);
 
     @Transaction
-    @Query("SELECT * FROM Tours WHERE server_synced = :serverSynced")
+    @Query("SELECT * FROM Tours LEFT JOIN Users ON user_id = user_id_pk WHERE server_synced = :serverSynced")
     public abstract List<TourWithWpWithPaths> getToursBySynced(boolean serverSynced);
 
     public List<TourWithWpWithPaths> getUnsyncedTours() {
@@ -33,7 +33,7 @@ public abstract class TourDAO {
 
     //@Query("SELECT * FROM Tours WHERE id IN (SELECT DISTINCT(tour_id) FROM TourWaypoints)")
     @Transaction
-    @Query("SELECT * FROM Tours")
+    @Query("SELECT * FROM Tours LEFT JOIN Users ON user_id = user_id_pk")
     public abstract List<TourWithWpWithPaths> getToursWithTourWps();
 
     /*
@@ -43,7 +43,7 @@ public abstract class TourDAO {
      */
 
     @Transaction
-    @Query("SELECT * FROM Tours WHERE id = :tourId")
+    @Query("SELECT * FROM Tours LEFT JOIN Users ON user_id = user_id_pk WHERE tour_id_pk = :tourId")
     public abstract TourWithWpWithPaths getTourWithTourWps(int tourId);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -58,7 +58,7 @@ public abstract class TourDAO {
     @Delete
     public abstract void deleteTourWp(Tour tour);
 
-    @Query("DELETE FROM Tours WHERE id = :tourId")
+    @Query("DELETE FROM Tours WHERE tour_id_pk = :tourId")
     public abstract void deleteTourWpByTourId(int tourId);
 
     public long insertWithTimestamp(Tour tour) {
@@ -71,21 +71,21 @@ public abstract class TourDAO {
         updateTour(tour);
     }
 
-    @Query("SELECT server_tour_id FROM Tours WHERE id IN (SELECT DISTINCT(tour_id) FROM MyTours) AND user_id IN (0, :userId)")
+    @Query("SELECT server_tour_id FROM Tours WHERE tour_id_pk IN (SELECT DISTINCT(tour_id) FROM MyTours) AND user_id IN (0, :userId)")
     public abstract List<String> getServerMyTourIds(int userId);
 
-    @Query("SELECT server_tour_id FROM Tours WHERE id IN (SELECT DISTINCT(tour_id) FROM FavouriteTours) AND user_id IN (0, :userId)")
+    @Query("SELECT server_tour_id FROM Tours WHERE tour_id_pk IN (SELECT DISTINCT(tour_id) FROM FavouriteTours) AND user_id IN (0, :userId)")
     public abstract List<String> getServerFavTourIds(int userId);
 
     @Transaction
-    @Query("SELECT * FROM Tours WHERE server_tour_id = :serverTourId")
+    @Query("SELECT * FROM Tours LEFT JOIN Users ON user_id = user_id_pk WHERE server_tour_id = :serverTourId")
     public abstract TourWithWpWithPaths getTourByServerTourIds(String serverTourId);
 
     @Transaction
-    @Query("SELECT * FROM Tours WHERE id IN (SELECT DISTINCT(tour_id) FROM FavouriteTours)")
+    @Query("SELECT * FROM Tours LEFT JOIN Users ON Tours.user_id = Users.user_id_pk WHERE tour_id_pk IN (SELECT DISTINCT(tour_id) FROM FavouriteTours)")
     public abstract List<TourWithWpWithPaths> getFavouriteToursWithTourWps();
 
     @Transaction
-    @Query("SELECT * FROM Tours WHERE id IN (SELECT DISTINCT(tour_id) FROM MyTours)")
+    @Query("SELECT * FROM Tours LEFT JOIN Users ON user_id = user_id_pk WHERE tour_id_pk IN (SELECT DISTINCT(tour_id) FROM MyTours)")
     public abstract List<TourWithWpWithPaths> getMyToursWithTourWps();
 }
