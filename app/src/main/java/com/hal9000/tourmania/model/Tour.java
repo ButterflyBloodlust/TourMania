@@ -41,8 +41,8 @@ public class Tour {
     @ColumnInfo(name = "rate_count")
     private int rateCount;
 
-    @SerializedName("myRating")
-    @ColumnInfo(name = "my_rating")
+    @SerializedName("rating")
+    @ColumnInfo(name = "tr_rating")
     private float myRating = 0.0f;
 
     @Exclude

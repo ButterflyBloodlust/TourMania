@@ -30,12 +30,10 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProviders;
 import androidx.lifecycle.ViewModelStoreOwner;
 import androidx.navigation.Navigation;
-import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -55,18 +53,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.hal9000.tourmania.AppUtils;
-import com.hal9000.tourmania.MainActivity;
 import com.hal9000.tourmania.MainActivityViewModel;
 import com.hal9000.tourmania.R;
-import com.hal9000.tourmania.SharedPrefUtils;
 import com.hal9000.tourmania.database.AppDatabase;
 import com.hal9000.tourmania.model.FavouriteTour;
 import com.hal9000.tourmania.model.Tour;
 import com.hal9000.tourmania.model.TourWaypoint;
 import com.hal9000.tourmania.model.TourWpWithPicPaths;
-import com.hal9000.tourmania.rest_api.RestClient;
-import com.hal9000.tourmania.rest_api.tours.ToursService;
-import com.hal9000.tourmania.ui.home.HomeViewModel;
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
 import com.mapbox.api.directions.v5.DirectionsCriteria;
@@ -108,7 +101,7 @@ import java.util.concurrent.Future;
 import static android.content.Context.LOCATION_SERVICE;
 import static com.hal9000.tourmania.ui.create_tour.CreateTourSharedViewModel.VIEW_TYPE_FAV_TOUR;
 import static com.hal9000.tourmania.ui.create_tour.CreateTourSharedViewModel.VIEW_TYPE_MY_TOUR;
-import static com.hal9000.tourmania.ui.search.SearchFragment.TOUR_SEARCH_CACHE_DIR_NAME;
+import static com.hal9000.tourmania.ui.search_tours.SearchToursFragment.TOUR_SEARCH_CACHE_DIR_NAME;
 import static com.mapbox.mapboxsdk.style.layers.Property.TEXT_ANCHOR_BOTTOM;
 import static com.mapbox.mapboxsdk.style.layers.Property.TEXT_JUSTIFY_AUTO;
 
@@ -167,7 +160,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         if(createTourSharedViewModel.isEditingEnabled()) {
-            inflater.inflate(R.menu.create_tour_toolbar_menu, menu);
+            inflater.inflate(R.menu.create_tour_toolbar_menu_edit_mode, menu);
         }
         else {
             if (createTourSharedViewModel.isEditingPossible()) {
@@ -419,8 +412,8 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        View root = inflater.inflate(R.layout.fragment_create_tour, container, false);
         setHasOptionsMenu(true);
+        View root = inflater.inflate(R.layout.fragment_create_tour, container, false);
         //createTourSharedViewModel = ViewModelProviders.of(requireActivity()).get(CreateTourSharedViewModel.class);
         return root;
     }

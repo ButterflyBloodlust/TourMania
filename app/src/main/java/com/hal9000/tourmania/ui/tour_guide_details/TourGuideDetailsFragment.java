@@ -1,12 +1,14 @@
 package com.hal9000.tourmania.ui.tour_guide_details;
 
 import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.lifecycle.ViewModelProviders;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
@@ -17,14 +19,20 @@ import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.RatingBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -33,7 +41,11 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.hal9000.tourmania.AppUtils;
+import com.hal9000.tourmania.BuildConfig;
+import com.hal9000.tourmania.MainActivity;
+import com.hal9000.tourmania.MainActivityViewModel;
 import com.hal9000.tourmania.R;
+import com.hal9000.tourmania.SharedPrefUtils;
 import com.hal9000.tourmania.model.TourWithWpWithPaths;
 import com.hal9000.tourmania.model.User;
 import com.hal9000.tourmania.rest_api.RestClient;
@@ -43,8 +55,9 @@ import com.hal9000.tourmania.rest_api.files_upload_download.FileUploadDownloadSe
 import com.hal9000.tourmania.rest_api.tour_guides.TourGuidesService;
 import com.hal9000.tourmania.rest_api.tours.ToursService;
 import com.hal9000.tourmania.ui.InfiniteTourAdapter;
+import com.hal9000.tourmania.ui.create_tour.CreateTourFragment;
 import com.hal9000.tourmania.ui.create_tour.CreateTourFragmentArgs;
-import com.hal9000.tourmania.ui.search.OnLoadMoreListener;
+import com.hal9000.tourmania.ui.OnLoadMoreListener;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -56,7 +69,7 @@ import static com.hal9000.tourmania.ui.home.HomeFragment.TOUR_RECOMMENDED_CACHE_
 public class TourGuideDetailsFragment extends Fragment {
 
     private TourGuideDetailsViewModel mViewModel;
-
+    private MainActivityViewModel activityViewModel;
     private RecyclerView recyclerView;
     private InfiniteTourAdapter mAdapter;
     private RecyclerView.LayoutManager layoutManager;
@@ -66,15 +79,28 @@ public class TourGuideDetailsFragment extends Fragment {
     private boolean reachedEnd = false;
     private double longitude = 0.0;
     private double latitude = 0.0;
-    String tourGuideNickname;
+    private int checkingDetailsTourIndex = -1;
+    private String tourGuideNickname;
+    private User tourGuide;
+
+    public static final String NEW_TOUR_GUIDE_RATING_BUNDLE_KEY = "new_tour_guide_rating";
+    public static final String NEW_TOUR_GUIDE_RATING_VAL_BUNDLE_KEY = "new_tour_guide_val_rating";
+    public static final String NEW_TOUR_GUIDE_RATING_COUNT_BUNDLE_KEY = "new_tour_guide_count_rating";
 
     public static TourGuideDetailsFragment newInstance() {
         return new TourGuideDetailsFragment();
     }
 
     @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        activityViewModel = ViewModelProviders.of(requireActivity()).get(MainActivityViewModel.class);
+    }
+
+    @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
+        setHasOptionsMenu(true);
         View root = inflater.inflate(R.layout.fragment_tour_guide_details, container, false);
         tourGuideNickname = TourGuideDetailsFragmentArgs.fromBundle(requireArguments()).getTourGuideServerId();
 
@@ -86,11 +112,22 @@ public class TourGuideDetailsFragment extends Fragment {
             actionBar.setTitle(tourGuideNickname);
         }
 
-        loadTourGuideDetailsFromServerDb(root);
+        if (!toursWithTourWps.isEmpty() && checkingDetailsTourIndex != -1) {
+            Bundle bundle = activityViewModel.getAndClearBundle(CreateTourFragment.class);
+            if (bundle != null) {
+                float newRatingVal = bundle.getFloat(CreateTourFragment.NEW_TOUR_RATING_VAL_BUNDLE_KEY, -1.0f);
+                int newRatingCount = bundle.getInt(CreateTourFragment.NEW_TOUR_RATING_COUNT_BUNDLE_KEY, -1);
+                if (newRatingVal != -1.0f && newRatingCount != -1) {
+                    toursWithTourWps.get(checkingDetailsTourIndex).tour.setRateVal(newRatingVal);
+                    toursWithTourWps.get(checkingDetailsTourIndex).tour.setRateCount(newRatingCount);
+                    mAdapter.notifyItemChanged(checkingDetailsTourIndex);
+                }
+            }
+        }
 
-        // ------
+        loadTourGuideDetailsFromServerDb(root);
         createRecyclerView(root);
-        getTourGuidesOnLastLocation();
+        getTourGuideToursOnLastLocation();
 
         return root;
     }
@@ -101,6 +138,97 @@ public class TourGuideDetailsFragment extends Fragment {
         mViewModel = ViewModelProviders.of(this).get(TourGuideDetailsViewModel.class);
     }
 
+    @Override
+    public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        if (!tourGuideNickname.equals(SharedPrefUtils.getDecryptedString(requireContext(), MainActivity.getUsernameKey())))
+            inflater.inflate(R.menu.tour_guide_details_toolbar_menu, menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_rate_tour_guide:
+                final View dialogView = getLayoutInflater().inflate(R.layout.dialog_rating_bar, null);
+                ((RatingBar) dialogView.findViewById(R.id.rating_bar)).setRating(tourGuide.getMyRating());
+                final AlertDialog.Builder builder = new AlertDialog.Builder(requireContext())
+                        .setIcon(R.drawable.ic_star_white_border_50dp)
+                        .setTitle("Rate this tour guide")
+                        .setView(dialogView)
+                        .setCancelable(true)
+                        .setPositiveButton("Done", null)
+                        .setNegativeButton("Cancel", null);
+                final AlertDialog alertDialog = builder.create();
+                alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+                    @Override
+                    public void onShow(DialogInterface dialog) {
+                        alertDialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                RatingBar ratingBar = dialogView.findViewById(R.id.rating_bar);
+                                float rating = ratingBar.getRating();
+                                if (rating > 0) {
+                                    //createTourSharedViewModel.updateTourGuideRating(requireContext(), rating);
+                                    updateTourGuideRating(rating);
+                                    MainActivityViewModel activityViewModel = ViewModelProviders.of(requireActivity()).get(MainActivityViewModel.class);
+                                    Bundle bundle = new Bundle();
+                                    bundle.putFloat(NEW_TOUR_GUIDE_RATING_BUNDLE_KEY, rating);
+                                    bundle.putFloat(NEW_TOUR_GUIDE_RATING_VAL_BUNDLE_KEY, tourGuide.getRateVal());
+                                    bundle.putInt(NEW_TOUR_GUIDE_RATING_COUNT_BUNDLE_KEY, tourGuide.getRateCount());
+                                    activityViewModel.putToBundle(TourGuideDetailsFragment.class, bundle);
+
+                                    float globalRating = tourGuide.getRateVal() / (float)tourGuide.getRateCount();
+                                    ((RatingBar)requireView().findViewById(R.id.tour_guide_rating_bar)).setRating(globalRating);
+
+                                    alertDialog.dismiss();
+                                }
+                                else
+                                    Toast.makeText(requireContext(),"Rating above 0 required",Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
+                });
+                alertDialog.show();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    private void updateTourGuideRating(float newRating) {
+        float oldRating = tourGuide.getMyRating();
+        // if tour was not rated before by current user
+        if (oldRating == 0.0f) {
+            tourGuide.setRateCount(tourGuide.getRateCount() + 1);
+            tourGuide.setRateVal(tourGuide.getRateVal() + newRating);
+        }
+        else {
+            tourGuide.setRateVal(tourGuide.getRateVal() + newRating - oldRating);
+        }
+        tourGuide.setMyRating(newRating);
+
+        saveTourGuideRatingToServerDb();
+    }
+
+    private void saveTourGuideRatingToServerDb() {
+        TourGuidesService client = RestClient.createService(TourGuidesService.class, SharedPrefUtils.getDecryptedString(requireContext(), MainActivity.getLoginTokenKey()));
+        //Log.d("crashTest", "Missing tour: " + Integer.toString(missingTourIds.size()));
+        Call<ResponseBody> call = client.rateTourGuide(tourGuideNickname, tourGuide.getMyRating());
+        call.enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                Log.d("crashTest", "saveTourGuideRatingToServerDb onResponse");
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                if (BuildConfig.DEBUG)
+                    t.printStackTrace();
+                Log.d("crashTest", "saveTourGuideRatingToServerDb onFailure");
+            }
+        });
+    }
+
     private void loadTourGuideDetailsFromServerDb(final View root) {
         TourGuidesService client = RestClient.createService(TourGuidesService.class);
         //Log.d("crashTest", "Missing tour: " + Integer.toString(missingTourIds.size()));
@@ -109,7 +237,7 @@ public class TourGuideDetailsFragment extends Fragment {
             @Override
             public void onResponse(Call<User> call, Response<User> response) {
                 //Log.d("crashTest", "loadTourGuideDetailsFromServerDb onResponse");
-                User tourGuide = response.body();
+                tourGuide = response.body();
                 if (tourGuide != null) {
                     if (!TextUtils.isEmpty(tourGuide.getPhoneNumber())) {
                         TextView textViewPhoneNum = root.findViewById(R.id.tour_guide_phone_num_textview);
@@ -119,6 +247,9 @@ public class TourGuideDetailsFragment extends Fragment {
                     }
                     TextView textViewEmail = root.findViewById(R.id.tour_guide_email_textview);
                     textViewEmail.setText(tourGuide.getEmail());
+                    float rating = tourGuide.getRateVal() / (float)tourGuide.getRateCount();
+                    RatingBar ratingBar = root.findViewById(R.id.tour_guide_rating_bar);
+                    ratingBar.setRating(rating);
                 }
                 else {
                     mAdapter.setLoaded();
@@ -137,9 +268,7 @@ public class TourGuideDetailsFragment extends Fragment {
         });
     }
 
-    // ------------------------------------------
-
-    private void getTourGuidesOnLastLocation(){
+    private void getTourGuideToursOnLastLocation(){
         Context context = requireContext();
         if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED)
@@ -153,7 +282,7 @@ public class TourGuideDetailsFragment extends Fragment {
                         if (location != null) {
                             longitude = location.getLongitude();
                             latitude = location.getLatitude();
-                            initRecommendedTours();
+                            initTourGuideTours();
                         }
                         else {
                             Context context = getContext();
@@ -174,7 +303,7 @@ public class TourGuideDetailsFragment extends Fragment {
                 });
     }
 
-    private void initRecommendedTours() {
+    private void initTourGuideTours() {
         mAdapter.setLoading();
         loadToursFromServerDb();
     }
@@ -260,7 +389,6 @@ public class TourGuideDetailsFragment extends Fragment {
                         // process main tour image
                         if (entry.getKey().equals("0")) {
                             //Log.d("crashTest", "updating main tour image");
-                            int oldSize = mAdapter.mDataset.size();
                             for (int i = 0; i < mAdapter.mDataset.size(); i++) {
                                 TourWithWpWithPaths t = mAdapter.mDataset.get(i);
                                 //Log.d("crashTest", t.tour.getServerTourId());
@@ -296,6 +424,7 @@ public class TourGuideDetailsFragment extends Fragment {
 
                     @Override
                     public void navigateToViewTour(int position) {
+                        checkingDetailsTourIndex = position;
                         Navigation.findNavController(requireView()).navigate(R.id.nav_nested_create_tour,
                                 new CreateTourFragmentArgs.Builder().setTourServerId(
                                         toursWithTourWps.get(position).tour.getServerTourId()).build().toBundle());

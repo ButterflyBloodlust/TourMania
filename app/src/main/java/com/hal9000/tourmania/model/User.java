@@ -28,8 +28,17 @@ public class User {
     @ColumnInfo(name = "server_tour_guide_id")
     private String serverTourGdId = "";
 
-    @ColumnInfo(name = "rating")
-    private double rating;
+    @SerializedName("rateVal")
+    @ColumnInfo(name = "usr_rate_val")
+    private float rateVal;
+
+    @SerializedName("rateCount")
+    @ColumnInfo(name = "usr_rate_count")
+    private int rateCount;
+
+    @SerializedName("rating")
+    @ColumnInfo(name = "usr_rating")
+    private float myRating = 0.0f;
 
     @SerializedName("phone_num")
     @ColumnInfo(name = "phone_num")
@@ -77,14 +86,6 @@ public class User {
         this.serverTourGdId = serverTourGdId;
     }
 
-    public double getRating() {
-        return rating;
-    }
-
-    public void setRating(double rating) {
-        this.rating = rating;
-    }
-
     public String getPhoneNumber() {
         return phoneNumber;
     }
@@ -99,5 +100,29 @@ public class User {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public float getRateVal() {
+        return rateVal;
+    }
+
+    public void setRateVal(float rateVal) {
+        this.rateVal = rateVal;
+    }
+
+    public int getRateCount() {
+        return rateCount;
+    }
+
+    public void setRateCount(int rateCount) {
+        this.rateCount = rateCount;
+    }
+
+    public float getMyRating() {
+        return myRating;
+    }
+
+    public void setMyRating(float myRating) {
+        this.myRating = myRating;
     }
 }

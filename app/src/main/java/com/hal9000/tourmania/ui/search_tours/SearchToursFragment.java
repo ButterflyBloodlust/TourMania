@@ -1,4 +1,4 @@
-package com.hal9000.tourmania.ui.search;
+package com.hal9000.tourmania.ui.search_tours;
 
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
@@ -28,6 +28,7 @@ import android.view.ViewGroup;
 import android.widget.Toast;
 
 import com.hal9000.tourmania.AppUtils;
+import com.hal9000.tourmania.MainActivityViewModel;
 import com.hal9000.tourmania.ui.InfiniteTourAdapter;
 import com.hal9000.tourmania.MainActivity;
 import com.hal9000.tourmania.R;
@@ -37,6 +38,8 @@ import com.hal9000.tourmania.rest_api.files_upload_download.FileDownloadImageObj
 import com.hal9000.tourmania.rest_api.files_upload_download.FileDownloadResponse;
 import com.hal9000.tourmania.rest_api.files_upload_download.FileUploadDownloadService;
 import com.hal9000.tourmania.rest_api.tours.ToursService;
+import com.hal9000.tourmania.ui.OnLoadMoreListener;
+import com.hal9000.tourmania.ui.create_tour.CreateTourFragment;
 import com.hal9000.tourmania.ui.create_tour.CreateTourFragmentArgs;
 
 import java.io.File;
@@ -44,9 +47,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class SearchFragment extends Fragment {
+public class SearchToursFragment extends Fragment {
 
-    private SearchViewModel mViewModel;
+    private SearchToursViewModel mViewModel;
+    private MainActivityViewModel activityViewModel;
     private RecyclerView recyclerView;
     private InfiniteTourAdapter mAdapter;
     private RecyclerView.LayoutManager layoutManager;
@@ -55,10 +59,18 @@ public class SearchFragment extends Fragment {
     private Handler handler = new Handler();
     private String queryText = "";
     private boolean reachedEnd = false;
+    private int checkingDetailsTourIndex = -1;
+
     public static final String TOUR_SEARCH_CACHE_DIR_NAME = "search";
 
-    public static SearchFragment newInstance() {
-        return new SearchFragment();
+    public static SearchToursFragment newInstance() {
+        return new SearchToursFragment();
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        activityViewModel = ViewModelProviders.of(requireActivity()).get(MainActivityViewModel.class);
     }
 
     @Override
@@ -66,6 +78,20 @@ public class SearchFragment extends Fragment {
                              @Nullable Bundle savedInstanceState) {
         setHasOptionsMenu(true);
         View root = inflater.inflate(R.layout.fragment_search, container, false);
+
+        if (!toursWithTourWps.isEmpty() && checkingDetailsTourIndex != -1) {
+            Bundle bundle = activityViewModel.getAndClearBundle(CreateTourFragment.class);
+            if (bundle != null) {
+                float newRatingVal = bundle.getFloat(CreateTourFragment.NEW_TOUR_RATING_VAL_BUNDLE_KEY, -1.0f);
+                int newRatingCount = bundle.getInt(CreateTourFragment.NEW_TOUR_RATING_COUNT_BUNDLE_KEY, -1);
+                if (newRatingVal != -1.0f && newRatingCount != -1) {
+                    toursWithTourWps.get(checkingDetailsTourIndex).tour.setRateVal(newRatingVal);
+                    toursWithTourWps.get(checkingDetailsTourIndex).tour.setRateCount(newRatingCount);
+                    mAdapter.notifyItemChanged(checkingDetailsTourIndex);
+                }
+            }
+        }
+
         createRecyclerView(root);
         return root;
     }
@@ -73,7 +99,7 @@ public class SearchFragment extends Fragment {
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        mViewModel = ViewModelProviders.of(this).get(SearchViewModel.class);
+        mViewModel = ViewModelProviders.of(this).get(SearchToursViewModel.class);
     }
 
     @Override
@@ -99,7 +125,7 @@ public class SearchFragment extends Fragment {
                 mAdapter.notifyItemRangeRemoved(0, oldSize);
                 pageNumber = 1;
                 reachedEnd = false;
-                SearchFragment.this.queryText = queryText;
+                SearchToursFragment.this.queryText = queryText;
                 mAdapter.setLoading();
                 loadToursFromServerDb();
                 return true;
@@ -252,6 +278,7 @@ public class SearchFragment extends Fragment {
 
                     @Override
                     public void navigateToViewTour(int position) {
+                        checkingDetailsTourIndex = position;
                         Navigation.findNavController(requireView()).navigate(R.id.nav_nested_create_tour,
                                 new CreateTourFragmentArgs.Builder().setTourServerId(
                                         toursWithTourWps.get(position).tour.getServerTourId()).build().toBundle());

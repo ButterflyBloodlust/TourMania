@@ -86,7 +86,7 @@ public class MyToursFragment extends Fragment {
             fab.setVisibility(View.VISIBLE);
         }
 
-        if (toursWithTourWps != null && !toursWithTourWps.isEmpty()) {
+        if (toursWithTourWps != null && !toursWithTourWps.isEmpty() && checkingDetailsTourIndex != -1) {
             Bundle bundle = activityViewModel.getAndClearBundle(CreateTourFragment.class);
             if (bundle != null) {
                 float newRatingVal = bundle.getFloat(CreateTourFragment.NEW_TOUR_RATING_VAL_BUNDLE_KEY, -1.0f);

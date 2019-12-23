@@ -4,9 +4,7 @@ import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
-import android.location.LocationManager;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -14,20 +12,13 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.NonNull;
-import androidx.appcompat.widget.SearchView;
 import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-import androidx.core.view.MenuItemCompat;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.Observer;
-import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelProviders;
-import androidx.lifecycle.ViewModelStoreOwner;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -40,12 +31,9 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.android.material.snackbar.Snackbar;
 import com.hal9000.tourmania.AppUtils;
-import com.hal9000.tourmania.MainActivity;
 import com.hal9000.tourmania.MainActivityViewModel;
 import com.hal9000.tourmania.R;
-import com.hal9000.tourmania.SharedPrefUtils;
 import com.hal9000.tourmania.model.TourWithWpWithPaths;
 import com.hal9000.tourmania.rest_api.RestClient;
 import com.hal9000.tourmania.rest_api.files_upload_download.FileDownloadImageObj;
@@ -53,17 +41,14 @@ import com.hal9000.tourmania.rest_api.files_upload_download.FileDownloadResponse
 import com.hal9000.tourmania.rest_api.files_upload_download.FileUploadDownloadService;
 import com.hal9000.tourmania.rest_api.tours.ToursService;
 import com.hal9000.tourmania.ui.InfiniteTourAdapter;
-import com.hal9000.tourmania.ui.ToursAdapter;
 import com.hal9000.tourmania.ui.create_tour.CreateTourFragment;
 import com.hal9000.tourmania.ui.create_tour.CreateTourFragmentArgs;
-import com.hal9000.tourmania.ui.search.OnLoadMoreListener;
+import com.hal9000.tourmania.ui.OnLoadMoreListener;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import static android.content.Context.LOCATION_SERVICE;
 
 public class HomeFragment extends Fragment {
 
@@ -74,7 +59,6 @@ public class HomeFragment extends Fragment {
     private RecyclerView.LayoutManager layoutManager;
     private List<TourWithWpWithPaths> toursWithTourWps = new ArrayList<>(100);
     private int pageNumber = 1;
-    private int currentFragmentId;
     private boolean reachedEnd = false;
     private double longitude = 0.0;
     private double latitude = 0.0;
@@ -137,7 +121,7 @@ public class HomeFragment extends Fragment {
             singUpButton.setVisibility(View.VISIBLE);
         }
 
-        if (!toursWithTourWps.isEmpty()) {
+        if (!toursWithTourWps.isEmpty() && checkingDetailsTourIndex != -1) {
             Bundle bundle = activityViewModel.getAndClearBundle(CreateTourFragment.class);
             if (bundle != null) {
                 float newRatingVal = bundle.getFloat(CreateTourFragment.NEW_TOUR_RATING_VAL_BUNDLE_KEY, -1.0f);
@@ -165,14 +149,17 @@ public class HomeFragment extends Fragment {
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
         inflater.inflate(R.menu.action_search_tours, menu);
-        MenuItem item = menu.findItem(R.id.action_search);
-        item.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
-            @Override
-            public boolean onMenuItemClick(MenuItem item) {
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_search:
                 Navigation.findNavController(requireView()).navigate(R.id.nav_search, null);
                 return true;
-            }
-        });
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     private void getToursOnLastLocation(){

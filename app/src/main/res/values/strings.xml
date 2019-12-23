@@ -13,6 +13,7 @@
     <string name="action_add_to_favourites">Add to favourites</string>
     <string name="action_remove_from_favourites">Remove from favourites</string>
     <string name="action_rate_tour">Rate this tour</string>
+    <string name="action_rate_tour_guide">Rate this tour guide</string>
 
     <string name="logged_in_as">Logged in as:\n%s</string>
     <string name="menu_home">Home</string>

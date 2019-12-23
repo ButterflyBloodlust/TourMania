@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -15,6 +14,7 @@ import android.view.ViewGroup;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.widget.SearchView;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
@@ -33,15 +33,16 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.hal9000.tourmania.AppUtils;
 import com.hal9000.tourmania.MainActivity;
+import com.hal9000.tourmania.MainActivityViewModel;
 import com.hal9000.tourmania.R;
-import com.hal9000.tourmania.model.TourWithWpWithPaths;
 import com.hal9000.tourmania.model.User;
 import com.hal9000.tourmania.rest_api.RestClient;
 import com.hal9000.tourmania.rest_api.tour_guides.TourGuidesService;
-import com.hal9000.tourmania.rest_api.tours.ToursService;
 import com.hal9000.tourmania.ui.InfiniteTourGuideAdapter;
-import com.hal9000.tourmania.ui.search.OnLoadMoreListener;
+import com.hal9000.tourmania.ui.OnLoadMoreListener;
+import com.hal9000.tourmania.ui.tour_guide_details.TourGuideDetailsFragment;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -49,19 +50,29 @@ import java.util.Random;
 public class TourGuidesFragment extends Fragment {
 
     private TourGuidesViewModel tourGuidesViewModel;
+    private MainActivityViewModel activityViewModel;
     private RecyclerView recyclerView;
     private InfiniteTourGuideAdapter mAdapter;
     private RecyclerView.LayoutManager layoutManager;
     private List<User> tourGuides = new ArrayList<>(100);
     private int pageNumber = 1;
-    private int currentFragmentId;
     private boolean reachedEnd = false;
     private double longitude = 0.0;
     private double latitude = 0.0;
     private int retries = 0;
+    private int checkingDetailsTourGuideIndex = -1;
+    private String queryText;
+    private boolean inSearchMode = false;
 
     private static final int RETRIES_LIMIT = 0;
     private static final int PAGE_SIZE = 10;
+    public static final String TOUR_GUIDES_SEARCH_CACHE_DIR_NAME = "search";
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        activityViewModel = ViewModelProviders.of(requireActivity()).get(MainActivityViewModel.class);
+    }
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -70,6 +81,19 @@ public class TourGuidesFragment extends Fragment {
         View root = inflater.inflate(R.layout.fragment_tour_guides, container, false);
 
         //generateTestDataset(40);
+
+        if (!tourGuides.isEmpty() && checkingDetailsTourGuideIndex != -1) {
+            Bundle bundle = activityViewModel.getAndClearBundle(TourGuideDetailsFragment.class);
+            if (bundle != null) {
+                float newRatingVal = bundle.getFloat(TourGuideDetailsFragment.NEW_TOUR_GUIDE_RATING_VAL_BUNDLE_KEY, -1.0f);
+                int newRatingCount = bundle.getInt(TourGuideDetailsFragment.NEW_TOUR_GUIDE_RATING_COUNT_BUNDLE_KEY, -1);
+                if (newRatingVal != -1.0f && newRatingCount != -1) {
+                    tourGuides.get(checkingDetailsTourGuideIndex).setRateVal(newRatingVal);
+                    tourGuides.get(checkingDetailsTourGuideIndex).setRateCount(newRatingCount);
+                    mAdapter.notifyItemChanged(checkingDetailsTourGuideIndex);
+                }
+            }
+        }
 
         Context context = requireContext();
         if (AppUtils.isWifiEnabled(context) && AppUtils.isLocationEnabled(context)) {
@@ -125,7 +149,11 @@ public class TourGuidesFragment extends Fragment {
     private void loadTourGuidesFromServerDb() {
         TourGuidesService client = RestClient.createService(TourGuidesService.class);
         //Log.d("crashTest", "Missing tour: " + Integer.toString(missingTourIds.size()));
-        Call<List<User>> call = client.getNearbyTourGuides(longitude, latitude, pageNumber++);
+        Call<List<User>> call;
+        if (inSearchMode)
+            call = client.searchTourGuidesByPhrase(queryText, pageNumber++);
+        else
+            call = client.getNearbyTourGuides(longitude, latitude, pageNumber++);
         call.enqueue(new Callback<List<User>>() {
             @Override
             public void onResponse(Call<List<User>> call, Response<List<User>> response) {
@@ -178,6 +206,12 @@ public class TourGuidesFragment extends Fragment {
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String queryText) {
+                searchView.clearFocus();
+                TourGuidesFragment.this.queryText = queryText;
+                resetState();
+                inSearchMode = true;
+                mAdapter.setLoading();
+                loadTourGuidesFromServerDb();
                 return true;
             }
 
@@ -195,19 +229,26 @@ public class TourGuidesFragment extends Fragment {
 
             @Override
             public boolean onMenuItemActionCollapse(MenuItem item) {
+                resetState();
+                inSearchMode = false;
+                mAdapter.setLoading();
+                loadTourGuidesFromServerDb();
                 return true;
             }
         });
     }
 
-    public void generateTestDataset(int usersAmount) {
-        Random r = new Random();
-        for (int i = 0; i < usersAmount; i++) {
-            char gender = r.nextInt(2) == 0 ? 'M' : 'F';
-            tourGuides.add(new User(
-                    (gender == 'M' ? maleNamePool[r.nextInt(maleNamePool.length)] : femaleNamePool[r.nextInt(femaleNamePool.length)]) + " " +
-                            (surnamePool[r.nextInt(surnamePool.length)])));
+    private void resetState() {
+        String dirPath = requireContext().getExternalCacheDir() + File.separator + TOUR_GUIDES_SEARCH_CACHE_DIR_NAME;
+        File projDir = new File(dirPath);
+        if (projDir.exists()) {
+            AppUtils.deleteDir(projDir, -1);
         }
+        int oldSize = mAdapter.mDataset.size();
+        mAdapter.mDataset.clear();
+        mAdapter.notifyItemRangeRemoved(0, oldSize);
+        pageNumber = 1;
+        reachedEnd = false;
     }
 
     private void createRecyclerView(final View root) {
@@ -228,11 +269,7 @@ public class TourGuidesFragment extends Fragment {
 
                     @Override
                     public void navigateToViewTour(int position) {
-                        /*
-                        Navigation.findNavController(requireView()).navigate(R.id.nav_nested_create_tour,
-                                new CreateTourFragmentArgs.Builder().setTourServerId(
-                                        tourGuides.get(position).getServerTourGdId()).build().toBundle());
-                         */
+                        checkingDetailsTourGuideIndex = position;
                         NavDirections navDirections =  TourGuidesFragmentDirections
                                 .actionNavTourGuidesToNavTourGuideDetails(tourGuides.get(position).getUsername());
                         Navigation.findNavController(requireView()).navigate(navDirections);
@@ -247,730 +284,9 @@ public class TourGuidesFragment extends Fragment {
                 if (!reachedEnd) {
                     mAdapter.setLoading();
                     loadTourGuidesFromServerDb();
-                    //reachedEnd = true;  // temporary, until backend support is implemented
-                    //mAdapter.setLoaded();  // temporary, until backend support is implemented
                 }
             }
         });
         recyclerView.setAdapter(mAdapter);
     }
-
-    // for debug purposes
-    static String[] maleNamePool = new String[] {
-            "JAMES",
-            "JOHN",
-            "ROBERT",
-            "MICHAEL",
-            "WILLIAM",
-            "DAVID",
-            "RICHARD",
-            "CHARLES",
-            "JOSEPH",
-            "THOMAS",
-            "CHRISTOPHER",
-            "DANIEL",
-            "PAUL",
-            "MARK",
-            "DONALD",
-            "GEORGE",
-            "KENNETH",
-            "STEVEN",
-            "EDWARD",
-            "BRIAN",
-            "RONALD",
-            "ANTHONY",
-            "KEVIN",
-            "JASON",
-            "MATTHEW",
-            "GARY",
-            "TIMOTHY",
-            "JOSE",
-            "LARRY",
-            "JEFFREY",
-            "FRANK",
-            "SCOTT",
-            "ERIC",
-            "STEPHEN",
-            "ANDREW",
-            "RAYMOND",
-            "GREGORY",
-            "JOSHUA",
-            "JERRY",
-            "DENNIS",
-            "WALTER",
-            "PATRICK",
-            "PETER",
-            "HAROLD",
-            "DOUGLAS",
-            "HENRY",
-            "CARL",
-            "ARTHUR",
-            "RYAN",
-            "ROGER",
-            "JOE",
-            "JUAN",
-            "JACK",
-            "ALBERT",
-            "JONATHAN",
-            "JUSTIN",
-            "TERRY",
-            "GERALD",
-            "KEITH",
-            "SAMUEL",
-            "WILLIE",
-            "RALPH",
-            "LAWRENCE",
-            "NICHOLAS",
-            "ROY",
-            "BENJAMIN",
-            "BRUCE",
-            "BRANDON",
-            "ADAM",
-            "HARRY",
-            "FRED",
-            "WAYNE",
-            "BILLY",
-            "STEVE",
-            "LOUIS",
-            "JEREMY",
-            "AARON",
-            "RANDY",
-            "HOWARD",
-            "EUGENE",
-            "CARLOS",
-            "RUSSELL",
-            "BOBBY",
-            "VICTOR",
-            "MARTIN",
-            "ERNEST",
-            "PHILLIP",
-            "TODD",
-            "JESSE",
-            "CRAIG",
-            "ALAN",
-            "SHAWN",
-            "CLARENCE",
-            "SEAN",
-            "PHILIP",
-            "CHRIS",
-            "JOHNNY",
-            "EARL",
-            "JIMMY",
-            "ANTONIO",
-            "DANNY",
-            "BRYAN",
-            "TONY",
-            "LUIS",
-            "MIKE",
-            "STANLEY",
-            "LEONARD",
-            "NATHAN",
-            "DALE",
-            "MANUEL",
-            "RODNEY",
-            "CURTIS",
-            "NORMAN",
-            "ALLEN",
-            "MARVIN",
-            "VINCENT",
-            "GLENN",
-            "JEFFERY",
-            "TRAVIS",
-            "JEFF",
-            "CHAD",
-            "JACOB",
-            "LEE",
-            "MELVIN",
-            "ALFRED",
-            "KYLE",
-            "FRANCIS",
-            "BRADLEY",
-            "JESUS",
-            "HERBERT",
-            "FREDERICK",
-            "RAY",
-            "JOEL",
-            "EDWIN",
-            "DON",
-            "EDDIE",
-            "RICKY",
-            "TROY",
-            "RANDALL",
-            "BARRY",
-            "ALEXANDER",
-            "BERNARD",
-            "MARIO",
-            "LEROY",
-            "FRANCISCO",
-            "MARCUS",
-            "MICHEAL",
-            "THEODORE",
-            "CLIFFORD",
-            "MIGUEL",
-            "OSCAR",
-            "JAY",
-            "JIM",
-            "TOM",
-            "CALVIN",
-            "ALEX",
-            "JON",
-            "RONNIE",
-            "BILL",
-            "LLOYD",
-            "TOMMY",
-            "LEON",
-            "DEREK",
-            "WARREN",
-            "DARRELL",
-            "JEROME",
-            "FLOYD",
-            "LEO",
-            "ALVIN",
-            "TIM",
-            "WESLEY",
-            "GORDON",
-            "DEAN",
-            "GREG",
-            "JORGE",
-            "DUSTIN",
-            "PEDRO",
-            "DERRICK",
-            "DAN",
-            "LEWIS",
-            "ZACHARY",
-            "COREY",
-            "HERMAN",
-            "MAURICE",
-            "VERNON",
-            "ROBERTO",
-            "CLYDE",
-            "GLEN",
-            "HECTOR",
-            "SHANE",
-            "RICARDO",
-            "SAM",
-            "RICK",
-            "LESTER",
-            "BRENT",
-            "RAMON",
-            "CHARLIE",
-            "TYLER",
-            "GILBERT",
-            "GENE",
-            "MARC",
-            "REGINALD",
-            "RUBEN",
-            "BRETT",
-            "ANGEL",
-            "NATHANIEL",
-            "RAFAEL",
-            "LESLIE",
-            "EDGAR",
-            "MILTON",
-            "RAUL",
-            "BEN",
-            "CHESTER",
-            "CECIL",
-            "DUANE",
-            "FRANKLIN",
-            "ANDRE",
-            "ELMER",
-            "BRAD",
-            "GABRIEL",
-            "RON",
-            "MITCHELL",
-            "ROLAND",
-            "ARNOLD",
-            "HARVEY",
-            "JARED",
-            "ADRIAN",
-            "KARL",
-            "CORY",
-            "CLAUDE",
-            "ERIK",
-            "DARRYL",
-            "JAMIE",
-            "NEIL",
-            "JESSIE",
-            "CHRISTIAN",
-            "JAVIER",
-            "FERNANDO",
-            "CLINTON",
-            "TED",
-            "MATHEW",
-            "TYRONE",
-            "DARREN",
-            "LONNIE",
-            "LANCE",
-            "CODY",
-            "JULIO",
-            "KELLY",
-            "KURT",
-            "ALLAN",
-            "NELSON",
-            "GUY",
-            "CLAYTON",
-            "HUGH",
-            "MAX",
-            "DWAYNE",
-            "DWIGHT",
-            "ARMANDO",
-            "FELIX",
-            "JIMMIE",
-            "EVERETT",
-            "JORDAN",
-            "IAN",
-            "WALLACE",
-            "KEN",
-            "BOB",
-            "JAIME",
-            "CASEY",
-            "ALFREDO",
-            "ALBERTO",
-            "DAVE",
-            "IVAN",
-            "JOHNNIE",
-            "SIDNEY",
-            "BYRON",
-            "JULIAN",
-            "ISAAC",
-            "MORRIS",
-            "CLIFTON",
-            "WILLARD",
-            "DARYL",
-            "ROSS",
-            "VIRGIL",
-            "ANDY",
-            "MARSHALL",
-            "SALVADOR",
-            "PERRY",
-            "KIRK",
-            "SERGIO",
-            "MARION",
-            "TRACY",
-            "SETH",
-            "KENT",
-            "TERRANCE",
-            "RENE",
-            "EDUARDO",
-            "TERRENCE",
-            "ENRIQUE",
-            "FREDDIE",
-            "WADE",
-            "AUSTIN",
-            "STUART",
-            "FREDRICK",
-            "ARTURO",
-            "ALEJANDRO",
-            "JACKIE",
-            "JOEY",
-            "NICK",
-            "LUTHER",
-            "WENDELL",
-            "JEREMIAH",
-            "EVAN",
-            "JULIUS",
-            "DANA",
-            "DONNIE",
-            "OTIS",
-            "SHANNON",
-            "TREVOR",
-            "OLIVER",
-            "LUKE",
-            "HOMER",
-            "GERARD",
-            "DOUG",
-            "KENNY",
-            "HUBERT",
-            "ANGELO",
-            "SHAUN",
-            "LYLE",
-            "MATT",
-            "LYNN",
-            "ALFONSO",
-            "ORLANDO",
-            "REX",
-            "CARLTON",
-            "ERNESTO",
-            "CAMERON",
-            "NEAL",
-            "PABLO",
-            "LORENZO",
-            "OMAR",
-            "WILBUR",
-            "BLAKE",
-            "GRANT",
-            "HORACE",
-            "RODERICK",
-            "KERRY",
-            "ABRAHAM",
-            "WILLIS",
-            "RICKEY",
-            "JEAN",
-            "IRA",
-            "ANDRES",
-            "CESAR",
-            "JOHNATHAN",
-            "MALCOLM",
-            "RUDOLPH",
-            "DAMON",
-            "KELVIN",
-            "RUDY",
-            "PRESTON",
-            "ALTON",
-            "ARCHIE",
-            "MARCO",
-            "WM",
-            "PETE",
-            "RANDOLPH",
-            "GARRY",
-            "GEOFFREY",
-    };
-
-    static String[] femaleNamePool = new String[] {
-            "ALICEA",
-            "ALICIA",
-            "ALIDA",
-            "ALIDIA",
-            "ALIE",
-            "ALIKA",
-            "ALIKEE",
-            "ALINA",
-            "ALINE",
-            "ALIS",
-            "ALISA",
-            "ALISHA",
-            "ALISON",
-            "ALISSA",
-            "ALISUN",
-            "ALIX",
-            "ALIZA",
-            "ALLA",
-            "ALLEEN",
-            "ALLEGRA",
-            "ALLENE",
-            "ALLI",
-            "ALLIANORA",
-            "ALLIE",
-            "ALLINA",
-            "ALLIS",
-            "ALLISON",
-            "ALLISSA",
-            "ALLIX",
-            "ALLSUN",
-            "ALLX",
-            "ALLY",
-            "ALLYCE",
-            "ALLYN",
-            "ALLYS",
-            "ALLYSON",
-            "ALMA",
-            "ALMEDA",
-            "ALMERIA",
-            "ALMETA",
-            "ALMIRA",
-            "ALMIRE",
-            "ALOISE",
-            "ALOISIA",
-            "ALOYSIA",
-            "ALTA",
-            "ALTHEA",
-            "ALVERA",
-            "ALVERTA",
-            "ALVINA",
-            "ALVINIA",
-            "ALVIRA",
-            "ALYCE",
-            "ALYDA",
-            "ALYS",
-            "ALYSA",
-            "ALYSE",
-            "ALYSIA",
-            "ALYSON",
-            "ALYSS",
-            "ALYSSA",
-            "AMABEL",
-            "AMABELLE",
-            "AMALEA",
-            "AMALEE",
-            "AMALETA",
-            "AMALIA",
-            "AMALIE",
-            "AMALITA",
-            "AMALLE",
-            "AMANDA",
-            "AMANDI",
-            "AMANDIE",
-            "AMANDY",
-            "AMARA",
-            "AMARGO",
-            "AMATA",
-            "AMBER",
-            "AMBERLY",
-            "AMBUR",
-            "AME",
-            "AMELIA",
-            "AMELIE",
-            "AMELINA",
-            "AMELINE",
-            "AMELITA",
-            "AMI",
-            "AMIE",
-            "AMII",
-            "AMIL",
-            "AMITIE",
-            "AMITY",
-            "AMMAMARIA",
-            "AMY",
-            "AMYE",
-            "ANA",
-            "ANABAL",
-            "ANABEL",
-            "ANABELLA",
-            "ANABELLE",
-            "ANALIESE",
-            "ANALISE",
-            "ANALLESE",
-            "ANALLISE",
-            "ANASTASIA",
-            "ANASTASIE",
-            "ANASTASSIA",
-            "ANATOLA",
-            "ANDEE",
-            "ANDEEE",
-            "ANDEREA",
-            "ANDI",
-            "ANDIE",
-            "ANDRA",
-            "ANDREA",
-            "ANDREANA",
-            "ANDREE",
-            "ANDREI",
-            "ANDRIA",
-            "ANDRIANA",
-            "ANDRIETTE",
-            "ANDROMACHE",
-            "ANDY",
-            "ANESTASSIA",
-            "ANET",
-            "ANETT",
-            "ANETTA",
-            "ANETTE",
-            "ANGE",
-            "ANGEL",
-            "ANGELA",
-            "ANGELE",
-            "ANGELIA",
-            "ANGELICA",
-            "ANGELIKA",
-            "ANGELINA",
-            "ANGELINE",
-            "ANGELIQUE",
-            "ANGELITA",
-            "ANGELLE",
-            "ANGIE",
-            "ANGIL",
-            "ANGY",
-            "ANIA",
-            "ANICA",
-            "ANISSA",
-            "ANITA",
-            "ANITRA",
-            "ANJANETTE",
-            "ANJELA",
-            "ANN",
-            "ANN-MARIE",
-            "ANNA",
-            "ANNA-DIANA",
-            "ANNA-DIANE",
-            "ANNA-MARIA",
-            "ANNABAL",
-            "ANNABEL",
-            "ANNABELA",
-            "ANNABELL",
-            "ANNABELLA",
-            "ANNABELLE",
-            "ANNADIANA",
-            "ANNADIANE",
-            "ANNALEE",
-            "ANNALIESE",
-            "ANNALISE",
-            "ANNAMARIA",
-            "ANNAMARIE",
-            "ANNE",
-            "ANNE-CORINNE",
-            "ANNE-MARIE",
-            "ANNECORINNE",
-            "ANNELIESE",
-            "ANNELISE",
-            "ANNEMARIE",
-            "ANNETTA",
-            "ANNETTE",
-            "ANNI",
-            "ANNICE",
-            "ANNIE",
-            "ANNIS",
-            "ANNISSA",
-            "ANNMARIA",
-            "ANNMARIE",
-            "ANNNORA",
-            "ANNORA",
-            "ANNY",
-            "ANSELMA",
-            "ANSLEY",
-            "ANSTICE",
-            "ANTHE",
-            "ANTHEA",
-            "ANTHIA",
-            "ANTHIATHIA",
-            "ANTOINETTE",
-            "ANTONELLA",
-            "ANTONETTA",
-            "ANTONIA",
-            "ANTONIE",
-            "ANTONIETTA",
-            "ANTONINA",
-            "ANYA",
-            "APPOLONIA",
-            "APRIL",
-            "APRILETTE",
-            "ARA",
-            "ARABEL",
-            "ARABELA",
-            "ARABELE",
-            "ARABELLA",
-            "ARABELLE",
-            "ARDA",
-            "ARDATH",
-            "ARDEEN",
-            "ARDELIA",
-            "ARDELIS",
-            "ARDELLA",
-            "ARDELLE",
-            "ARDEN",
-            "ARDENE",
-            "ARDENIA",
-            "ARDINE",
-            "ARDIS",
-            "ARDISJ",
-            "ARDITH",
-            "ARDRA",
-            "ARDYCE",
-            "ARDYS",
-            "ARDYTH",
-            "ARETHA",
-            "ARIADNE",
-            "ARIANA",
-            "ARIDATHA",
-            "ARIEL",
-            "ARIELA",
-            "ARIELLA",
-            "ARIELLE",
-            "ARLANA",
-            "ARLEE",
-            "ARLEEN",
-            "ARLEN",
-            "ARLENA",
-            "ARLENE",
-            "ARLETA",
-            "ARLETTE",
-            "ARLEYNE",
-            "ARLIE",
-            "ARLIENE",
-            "ARLINA",
-            "ARLINDA",
-            "ARLINE",
-            "ARLUENE",
-            "ARLY",
-            "ARLYN",
-            "ARLYNE",
-            "ARYN",
-            "ASHELY",
-            "ASHIA",
-            "ASHIEN",
-            "ASHIL",
-            "ASHLA",
-            "ASHLAN",
-            "ASHLEE",
-            "ASHLEIGH",
-            "ASHLEN",
-            "ASHLEY",
-            "ASHLI",
-            "ASHLIE",
-            "ASHLY"
-    };
-
-    static String[] surnamePool = new String[]{
-            "SMITH",
-            "JOHNSON",
-            "WILLIAMS",
-            "JONES",
-            "BROWN",
-            "DAVIS",
-            "MILLER",
-            "WILSON",
-            "MOORE",
-            "TAYLOR",
-            "ANDERSON",
-            "THOMAS",
-            "JACKSON",
-            "WHITE",
-            "HARRIS",
-            "MARTIN",
-            "THOMPSON",
-            "GARCIA",
-            "MARTINEZ",
-            "ROBINSON",
-            "CLARK",
-            "RODRIGUEZ",
-            "LEWIS",
-            "LEE",
-            "WALKER",
-            "HALL",
-            "ALLEN",
-            "YOUNG",
-            "HERNANDEZ",
-            "KING",
-            "WRIGHT",
-            "LOPEZ",
-            "HILL",
-            "SCOTT",
-            "GREEN",
-            "ADAMS",
-            "BAKER",
-            "GONZALEZ",
-            "NELSON",
-            "CARTER",
-            "MITCHELL",
-            "PEREZ",
-            "ROBERTS",
-            "TURNER",
-            "PHILLIPS",
-            "CAMPBELL",
-            "PARKER",
-            "EVANS",
-            "EDWARDS",
-            "COLLINS",
-            "STEWART",
-            "SANCHEZ",
-            "MORRIS",
-            "ROGERS",
-            "REED",
-            "COOK",
-            "MORGAN",
-            "BELL",
-            "MURPHY",
-            "BAILEY",
-            "RIVERA",
-            "COOPER",
-            "RICHARDSON",
-            "COX",
-            "HOWARD",
-            "WARD",
-            "TORRES",
-            "PETERSON",
-            "GRAY",
-            "RAMIREZ",
-            "JAMES"
-    };
 }

@@ -8,11 +8,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.RatingBar;
 import android.widget.TextView;
 
 import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.model.User;
-import com.hal9000.tourmania.ui.search.OnLoadMoreListener;
 import com.squareup.picasso.Picasso;
 
 import java.util.List;
@@ -42,10 +42,14 @@ public class InfiniteTourGuideAdapter extends RecyclerView.Adapter<RecyclerView.
         // each data item is just a string in this case
         public TextView textView;
         public ImageView userImageView;
+        public TextView tourGuideRatingTextView;
+        public RatingBar ratingBar;
         public MyViewHolder(View v) {
             super(v);
             textView = v.findViewById(R.id.tour_guide_title);
             userImageView = v.findViewById(R.id.tour_guide_list_image);
+            tourGuideRatingTextView = v.findViewById(R.id.tour_guide_rating);
+            ratingBar = v.findViewById(R.id.tour_guide_rating_bar);
         }
     }
 
@@ -165,6 +169,13 @@ public class InfiniteTourGuideAdapter extends RecyclerView.Adapter<RecyclerView.
                     callback.navigateToViewTour(holder.getAdapterPosition());
                 }
             });
+
+            int rateCount = mDataset.get(position).getRateCount();
+            if (rateCount > 0) {
+                float rating = mDataset.get(position).getRateVal() / (float)rateCount;
+                ((MyViewHolder) holder).tourGuideRatingTextView.setText(String.format("%.2f", rating));
+                ((MyViewHolder) holder).ratingBar.setRating(rating);
+            }
         }//if (holder instanceof StudentViewHolder) {
         else {
             ((ProgressViewHolder) holder).progressBar.setIndeterminate(true);

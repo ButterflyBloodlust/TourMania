@@ -21,9 +21,10 @@ android:fillViewport="true">
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="1dp"
-        android:rating="3.5"
+        android:rating="0.0"
         android:numStars="5"
-        android:stepSize=".5" />
+        android:stepSize=".1"
+        android:isIndicator="true" />
 
     <TextView
         android:id="@+id/tour_guide_phone_num_label"
