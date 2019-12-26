@@ -3,8 +3,10 @@ package com.hal9000.tourmania.ui.user_settings;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Toast;
 
+import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.ViewModelProviders;
 import androidx.preference.PreferenceFragmentCompat;
 import okhttp3.ResponseBody;
@@ -21,7 +23,7 @@ import com.hal9000.tourmania.rest_api.users.UsersService;
 public class UserSettingsFragment extends PreferenceFragmentCompat {
 
     private UserSettingsModel userSettingsModel;
-    SharedPreferences.OnSharedPreferenceChangeListener sharedPreferenceChangeListener;
+    private SharedPreferences.OnSharedPreferenceChangeListener sharedPreferenceChangeListener;
 
     public static final String TOUR_GUIDE_STATUS_KEY = "tour_guide_status";
     public static final String PHONE_NUM_KEY = "phone_num";
@@ -39,6 +41,7 @@ public class UserSettingsFragment extends PreferenceFragmentCompat {
         sharedPreferenceChangeListener = new SharedPreferences.OnSharedPreferenceChangeListener() {
             @Override
             public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+                Log.d("crashTest", "OnSharedPreferenceChangeListener onSharedPreferenceChanged()");
                 //Log.d("crashTest", "onChanged key : " + key);
                 Context context = getContext();
                 if (context == null || !sharedPreferences.contains(key))
@@ -90,6 +93,14 @@ public class UserSettingsFragment extends PreferenceFragmentCompat {
                     UsersService client = RestClient.createService(UsersService.class,
                             SharedPrefUtils.getDecryptedString(getContext(), MainActivity.getLoginTokenKey()));
                     boolean shareLocation = sharedPreferences.getBoolean(SHARE_LOCATION_KEY, false);
+                    FragmentActivity fragmentActivity = requireActivity();
+                    if (fragmentActivity instanceof MainActivity) {
+                        if (shareLocation) {
+                            ((MainActivity) fragmentActivity).requestLocationUpdates(null);
+                        } else {
+                            ((MainActivity) fragmentActivity).removeLocationUpdates(null);
+                        }
+                    }
                     Call<ResponseBody> call = client.updateUserPrefsLocationSharing(shareLocation);
                     call.enqueue(new Callback<ResponseBody>() {
                         @Override
@@ -110,5 +121,12 @@ public class UserSettingsFragment extends PreferenceFragmentCompat {
         };
         SharedPreferences sharedPreferences = getPreferenceScreen().getSharedPreferences();
         sharedPreferences.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        SharedPreferences sharedPreferences = getPreferenceScreen().getSharedPreferences();
+        sharedPreferences.unregisterOnSharedPreferenceChangeListener(sharedPreferenceChangeListener);
     }
 }

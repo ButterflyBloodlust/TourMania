@@ -2,7 +2,7 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <PreferenceCategory
-        android:title="Basic preferences">
+        android:title="Tour guide">
 
         <CheckBoxPreference
             android:key="tour_guide_status"
@@ -16,11 +16,15 @@
             android:summary="Shown on your tour guide profile"
             app:useSimpleSummaryProvider="true"
             android:dialogTitle="Edit your phone number"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="Location sharing">
 
         <SwitchPreferenceCompat
             android:key="share_location"
             android:title="Allow sharing of your location"
-            android:summary="When enabled, you'll be given option to enable location sharing on per tour basis"/>
+            android:summary="When enabled, you'll be given option to generate temporary location sharing tokens to give to other users."/>
     </PreferenceCategory>
 
 </PreferenceScreen>
