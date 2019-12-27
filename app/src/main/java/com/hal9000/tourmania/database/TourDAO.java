@@ -71,10 +71,10 @@ public abstract class TourDAO {
         updateTour(tour);
     }
 
-    @Query("SELECT server_tour_id FROM Tours WHERE tour_id_pk IN (SELECT DISTINCT(tour_id) FROM MyTours) AND user_id IN (0, :userId)")
+    @Query("SELECT server_tour_id FROM Tours WHERE tour_id_pk IN (SELECT DISTINCT(tour_id) FROM MyTours) AND (user_id = :userId OR user_id IS NULL)")
     public abstract List<String> getServerMyTourIds(int userId);
 
-    @Query("SELECT server_tour_id FROM Tours WHERE tour_id_pk IN (SELECT DISTINCT(tour_id) FROM FavouriteTours) AND user_id IN (0, :userId)")
+    @Query("SELECT server_tour_id FROM Tours WHERE tour_id_pk IN (SELECT DISTINCT(tour_id) FROM FavouriteTours) AND (user_id = :userId OR user_id IS NULL)")
     public abstract List<String> getServerFavTourIds(int userId);
 
     @Transaction

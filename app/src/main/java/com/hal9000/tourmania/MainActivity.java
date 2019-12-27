@@ -216,12 +216,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
-        Log.d("crashTest", "onRequestPermissionResult");
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        //Log.d("crashTest", "onRequestPermissionResult");
         if (requestCode == REQUEST_PERMISSIONS_ID) {
             if (grantResults.length <= 0) {
-                Log.d("crashTest", "User interaction was cancelled.");
+                //Log.d("crashTest", "User interaction was cancelled.");
             } else if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Log.d("crashTest", "PERMISSION_GRANTED : " + permissions[0]);
+                //Log.d("crashTest", "PERMISSION_GRANTED : " + permissions[0]);
                 if (PreferenceManager.getDefaultSharedPreferences(getBaseContext()).getBoolean(SHARE_LOCATION_KEY, false))
                     requestLocationUpdates(null);
             } else {
