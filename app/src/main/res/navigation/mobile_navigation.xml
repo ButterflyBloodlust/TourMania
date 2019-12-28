@@ -88,6 +88,15 @@
             android:name="com.hal9000.tourmania.ui.tour_tags_list.TourTagsListFragment"
             android:label="@string/title_tour_tags_list"
             tools:layout="@layout/fragment_tour_tags_list" />
+        <fragment
+            android:id="@+id/QRCodeDisplayFragment"
+            android:name="com.hal9000.tourmania.ui.qr_code_display.QRCodeDisplayFragment"
+            android:label="@string/title_location_share_qr_code"
+            tools:layout="@layout/fragment_qr_code_display" >
+            <argument
+                android:name="inputText"
+                app:argType="string" />
+        </fragment>
     </navigation>
 
     <fragment

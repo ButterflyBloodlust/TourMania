@@ -6,4 +6,10 @@
         android:orderInCategory="180"
         android:title="@string/action_edit_tour"
         app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_share_location"
+        android:orderInCategory="182"
+        android:title="@string/action_share_location"
+        app:showAsAction="never" />
 </menu>

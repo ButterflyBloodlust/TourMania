@@ -60,6 +60,7 @@ import com.hal9000.tourmania.model.FavouriteTour;
 import com.hal9000.tourmania.model.Tour;
 import com.hal9000.tourmania.model.TourWaypoint;
 import com.hal9000.tourmania.model.TourWpWithPicPaths;
+import com.hal9000.tourmania.ui.qr_code_display.QRCodeDisplayFragmentArgs;
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
 import com.mapbox.api.directions.v5.DirectionsCriteria;
@@ -347,6 +348,10 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                     }
                 });
                 alertDialog.show();
+                return true;
+            case R.id.action_share_location:
+                Navigation.findNavController(requireView()).navigate(R.id.QRCodeDisplayFragment,
+                        new QRCodeDisplayFragmentArgs.Builder("asdasddsadsa").build().toBundle());
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
