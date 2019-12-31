@@ -1,7 +1,5 @@
 package com.hal9000.tourmania.rest_api.users;
 
-import com.hal9000.tourmania.model.TourWithWpWithPaths;
-
 import java.util.List;
 
 import okhttp3.ResponseBody;
@@ -20,4 +18,7 @@ public interface UsersService {
 
     @POST("user/prefs/") @Multipart
     Call<ResponseBody> updateUserPrefsLocationSharing(@Part("share_loc") boolean phoneNum);
+
+    @POST("user/prefs/") @Multipart
+    Call<ResponseBody> updateUserPrefsLocationSharingTokenLifetime(@Part("share_loc_token_ttl") int shareLocTokenLifetime);
 }

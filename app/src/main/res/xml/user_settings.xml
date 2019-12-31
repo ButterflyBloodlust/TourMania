@@ -2,12 +2,14 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <PreferenceCategory
-        android:title="Tour guide">
+        android:title="Tour guide"
+        app:iconSpaceReserved="false">
 
         <CheckBoxPreference
             android:key="tour_guide_status"
             android:title="Tour guide status"
-            android:summary="Enable if you want to be shown on tour guides' list"/>
+            android:summary="Enable if you want to be shown on tour guides' list"
+            app:iconSpaceReserved="false" />
 
         <EditTextPreference
             android:key="phone_num"
@@ -15,16 +17,40 @@
             android:title="Phone number (tour guide profile)"
             android:summary="Shown on your tour guide profile"
             app:useSimpleSummaryProvider="true"
-            android:dialogTitle="Edit your phone number"/>
+            android:dialogTitle="Edit your phone number"
+            app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
     <PreferenceCategory
-        android:title="Location sharing">
+        android:title="Location sharing"
+        app:iconSpaceReserved="false">
 
         <SwitchPreferenceCompat
             android:key="share_location"
             android:title="Allow sharing of your location"
-            android:summary="When enabled, you'll be given option to generate temporary location sharing tokens to give to other users."/>
+            android:summary="When enabled, you'll be given option to generate temporary location sharing tokens to give to other users."
+            app:iconSpaceReserved="false" />
+
+        <Preference
+            android:key="revoke_location_tokens"
+            android:dependency="share_location"
+            android:title="Revoke active location tokens"
+            android:summary="Removes tracking of your location from all users you shared your location tracking QR code with."
+            app:iconSpaceReserved="false"/>
+
+        <com.hal9000.tourmania.ui.user_settings.TimePreference
+            android:key="location_token_lifetime"
+            android:title="Set location sharing token's hours of lifetime"
+            android:defaultValue="@integer/location_token_lifetime_default_value"
+            android:summary="Set time after which the location sharing token is invalidated for all users (counted from the moment of you generating the token)."
+            android:dependency="share_location"
+            app:iconSpaceReserved="false"/>
+
+        <!--
+        <com.hal9000.tourmania.ui.user_settings.HoursPickerPreference
+            android:key="location_token_lifetime"
+            android:title="Set location sharing token lifetime"/>
+            -->
     </PreferenceCategory>
 
 </PreferenceScreen>

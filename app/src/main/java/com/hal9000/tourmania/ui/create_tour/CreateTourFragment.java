@@ -11,9 +11,15 @@ import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
 import android.Manifest;
+import android.animation.Animator;
+import android.animation.ObjectAnimator;
+import android.animation.TypeEvaluator;
+import android.animation.ValueAnimator;
 import android.app.Activity;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -30,10 +36,14 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProviders;
 import androidx.lifecycle.ViewModelStoreOwner;
 import androidx.navigation.Navigation;
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+import android.preference.PreferenceManager;
+import android.text.TextUtils;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -43,6 +53,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.view.animation.LinearInterpolator;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -53,13 +64,19 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.hal9000.tourmania.AppUtils;
+import com.hal9000.tourmania.MainActivity;
 import com.hal9000.tourmania.MainActivityViewModel;
 import com.hal9000.tourmania.R;
+import com.hal9000.tourmania.SharedPrefUtils;
 import com.hal9000.tourmania.database.AppDatabase;
 import com.hal9000.tourmania.model.FavouriteTour;
 import com.hal9000.tourmania.model.Tour;
 import com.hal9000.tourmania.model.TourWaypoint;
 import com.hal9000.tourmania.model.TourWpWithPicPaths;
+import com.hal9000.tourmania.rest_api.RestClient;
+import com.hal9000.tourmania.rest_api.tour_guides.GetTourGuideLocationResponse;
+import com.hal9000.tourmania.rest_api.tour_guides.LocationShareTokenResponse;
+import com.hal9000.tourmania.rest_api.tour_guides.TourGuidesService;
 import com.hal9000.tourmania.ui.qr_code_display.QRCodeDisplayFragmentArgs;
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
@@ -98,10 +115,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import static android.content.Context.LOCATION_SERVICE;
 import static com.hal9000.tourmania.ui.create_tour.CreateTourSharedViewModel.VIEW_TYPE_FAV_TOUR;
 import static com.hal9000.tourmania.ui.create_tour.CreateTourSharedViewModel.VIEW_TYPE_MY_TOUR;
+import static com.hal9000.tourmania.ui.join_tour.JoinTourFragment.LOCATION_SHARING_TOKEN_KEY;
+import static com.hal9000.tourmania.ui.join_tour.JoinTourFragment.LOCATION_SHARING_TOKEN_TOUR_ID_KEY;
 import static com.hal9000.tourmania.ui.search_tours.SearchToursFragment.TOUR_SEARCH_CACHE_DIR_NAME;
 import static com.mapbox.mapboxsdk.style.layers.Property.TEXT_ANCHOR_BOTTOM;
 import static com.mapbox.mapboxsdk.style.layers.Property.TEXT_JUSTIFY_AUTO;
@@ -123,15 +144,21 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
     private static final String TAG = "DirectionsAPI";
     private NavigationMapRoute navigationMapRoute;
     private Observer<Tour> observerFavIcon;
+    private ScheduledThreadPoolExecutor executor_;
+    private final List<ValueAnimator> animators = new ArrayList<>();
 
     private View annotationInfoView;
     private long selectedSymbolId = -1;
     private Symbol selectedSymbol = null;
+    private Symbol tourGuideSymbol = null;
 
     private static final String ID_ICON_MARKER = "place-marker-red-24";
     private static final String ID_ICON_MARKER_SELECTED = "place-marker-yellow-24";
+    private static final String ID_ICON_MARKER_TOUR_GUIDE_POS = "tour-guide-marker-blue-24";
     private static final double ICON_MARKER_SCALE = 2d;
-    private static int PICK_IMAGE_REQUEST_CODE = 100;
+    private static final int PICK_IMAGE_REQUEST_CODE = 100;
+    private static final int EASE_SYMBOL_DURATION_MS = 500;
+    private static final long TOUR_GUIDE_LOC_UPDATES_DELAY = 5L;
     public static final String NEW_TOUR_RATING_BUNDLE_KEY = "new_tour_rating";
     public static final String NEW_TOUR_RATING_VAL_BUNDLE_KEY = "new_tour_val_rating";
     public static final String NEW_TOUR_RATING_COUNT_BUNDLE_KEY = "new_tour_count_rating";
@@ -224,6 +251,8 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                     }
                 };
                 createTourSharedViewModel.getTourLiveData().observe(this, observerFavIcon);
+                if (createTourSharedViewModel.isLoadedFromServerDb())
+                    observerFavIcon.onChanged(createTourSharedViewModel.getTour());
             }
         }
         super.onCreateOptionsMenu(menu,inflater);
@@ -350,8 +379,35 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                 alertDialog.show();
                 return true;
             case R.id.action_share_location:
-                Navigation.findNavController(requireView()).navigate(R.id.QRCodeDisplayFragment,
-                        new QRCodeDisplayFragmentArgs.Builder("asdasddsadsa").build().toBundle());
+                // Check if user is logged in
+                if (!AppUtils.isUserLoggedIn(requireContext())) {
+                    Toast.makeText(requireContext(), "User not logged in", Toast.LENGTH_SHORT).show();
+                    return true;
+                }
+
+                TourGuidesService client = RestClient.createService(TourGuidesService.class,
+                        SharedPrefUtils.getDecryptedString(getContext(), MainActivity.getLoginTokenKey()));
+                Call<LocationShareTokenResponse> call = client.getTourGuideLocationSharingToken(createTourSharedViewModel.getTour().getServerTourId());
+                call.enqueue(new Callback<LocationShareTokenResponse>() {
+                    @Override
+                    public void onResponse(Call<LocationShareTokenResponse> call, Response<LocationShareTokenResponse> response) {
+                        //Log.d("crashTest", "onSharedPreferenceChanged onResponse");
+                        if (response.isSuccessful()) {
+                            String token = response.body().token;
+                            if (token != null)
+                                Navigation.findNavController(requireView()).navigate(R.id.QRCodeDisplayFragment,
+                                        new QRCodeDisplayFragmentArgs.Builder(token).build().toBundle());
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<LocationShareTokenResponse> call, Throwable t) {
+                        Context context = getContext();
+                        if (context != null)
+                            Toast.makeText(context,"A connection error has occurred",Toast.LENGTH_SHORT).show();
+                        //Log.d("crashTest", "onSharedPreferenceChanged onFailure");
+                    }
+                });
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -423,6 +479,11 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
         return root;
     }
 
+    private boolean hasTourGuideLocationTracking(final String prefsTourServerId) {
+        return !TextUtils.isEmpty(createTourSharedViewModel.getTour().getServerTourId())
+                && createTourSharedViewModel.getTour().getServerTourId().equals(prefsTourServerId);
+    }
+
     @Override
     public void onViewCreated (@NonNull View view, Bundle savedInstanceState) {
 
@@ -430,6 +491,30 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
         ViewModelStoreOwner owner = Navigation.findNavController(view).getViewModelStoreOwner(R.id.nav_nested_create_tour);
         CreateTourSharedViewModelFactory factory = new CreateTourSharedViewModelFactory();
         createTourSharedViewModel = new ViewModelProvider(owner, factory).get(CreateTourSharedViewModel.class);
+
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(requireContext());
+        final String token = prefs.getString(LOCATION_SHARING_TOKEN_KEY, "");
+        final String prefsTourServerId = prefs.getString(LOCATION_SHARING_TOKEN_TOUR_ID_KEY, "");
+        // Handle possible future tour guide location updates
+        createTourSharedViewModel.getTourLiveData().observe(this, new Observer<Tour>() {
+            @Override
+            public void onChanged(@Nullable Tour tour) {
+                //Log.d("crashTest", "ScheduledThreadPoolExecutor onChanged()");
+                // if current tour is the one for which user has location sharing token, then enable tour guide location updates
+                if (hasTourGuideLocationTracking(prefsTourServerId) && (executor_ == null || executor_.isShutdown())) {
+                    executor_ = new ScheduledThreadPoolExecutor(1);
+                    executor_.scheduleWithFixedDelay(new Runnable() {
+                        @Override
+                        public void run() {
+                            //Log.d("crashTest", "ScheduledThreadPoolExecutor run()");
+                            createTourSharedViewModel.handleTourGuideLocation(requireContext(), token);
+                        }
+                    }, 0L, TOUR_GUIDE_LOC_UPDATES_DELAY, TimeUnit.SECONDS);
+                }
+                if (createTourSharedViewModel.isLoadedFromServerDb())
+                    createTourSharedViewModel.getTourLiveData().removeObserver(this);
+            }
+        });
 
         int tourId = CreateTourFragmentArgs.fromBundle(getArguments()).getTourId();
         String tourServerId = CreateTourFragmentArgs.fromBundle(getArguments()).getTourServerId();
@@ -617,7 +702,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                         canvas = new Canvas(bitmap);
                         markerIconDrawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
                         markerIconDrawable.draw(canvas);
-                        style.addImage("aaa", bitmap);
+                        style.addImage(ID_ICON_MARKER_TOUR_GUIDE_POS, bitmap);
 
                         // Map is set up and the style has loaded. Now you can add data or make other map adjustments
                         enableLocationComponent(style);
@@ -643,14 +728,41 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                         symbolManager.setIconTranslate(new Float[]{0f, -20f});
                         symbolManager.setTextVariableAnchor(new String[]{TEXT_ANCHOR_BOTTOM});
 
-                        /*
-                        // DEBUG ANNOTATION
-                        SymbolOptions symbolOptions2 = new SymbolOptions()
-                                .withLatLng(new LatLng(51.108, 17.072))
-                                .withIconImage("aaa")
-                                .withTextField("Tour\nGuide");
-                        symbolManager.create(symbolOptions2);
-                        */
+                        if (createTourSharedViewModel.getTourGuideLocLiveData().getValue() != null) {
+                            SymbolOptions tourGuidePositionOptions = new SymbolOptions()
+                                    .withLatLng(new LatLng(createTourSharedViewModel.getTourGuideLocLiveData().getValue().latitude,
+                                            createTourSharedViewModel.getTourGuideLocLiveData().getValue().longitude))
+                                    .withIconImage(ID_ICON_MARKER_TOUR_GUIDE_POS)
+                                    .withTextField("Tour\nGuide");
+                            tourGuideSymbol = symbolManager.create(tourGuidePositionOptions);
+                        }
+                        createTourSharedViewModel.getTourGuideLocLiveData().observe(CreateTourFragment.this, new Observer<GetTourGuideLocationResponse>() {
+                            @Override
+                            public void onChanged(GetTourGuideLocationResponse location) {
+                                //Log.d("crashTest", "Observer<GetTourGuideLocationResponse> onChanged");
+                                try {
+                                    if (location == null) {
+                                        if (tourGuideSymbol != null)
+                                            symbolManager.delete(tourGuideSymbol);
+                                        createTourSharedViewModel.getTourGuideLocLiveData().removeObserver(this);
+                                        executor_.shutdown();
+                                    }
+                                    else {
+                                        if (tourGuideSymbol == null) {
+                                            SymbolOptions tourGuidePositionOptions = new SymbolOptions()
+                                                    .withLatLng(new LatLng(location.latitude, location.longitude))
+                                                    .withIconImage(ID_ICON_MARKER_TOUR_GUIDE_POS)
+                                                    .withTextField("Tour\nGuide");
+                                            tourGuideSymbol = symbolManager.create(tourGuidePositionOptions);
+                                        } else {
+                                            easeSymbol(tourGuideSymbol, new LatLng(location.latitude, location.longitude));
+                                        }
+                                    }
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        });
 
                         // Add an annotation on long click on the map
                         CreateTourFragment.this.mapboxMap.addOnMapLongClickListener(new MapboxMap.OnMapLongClickListener() {
@@ -785,6 +897,37 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                 }
             }
         });
+    }
+
+    private void easeSymbol(Symbol symbol, final LatLng location) {
+        final LatLng originalPosition = symbol.getLatLng();
+        final boolean changeLocation = originalPosition.distanceTo(location) > 0;
+        if (!changeLocation) {
+            return;
+        }
+
+        ValueAnimator moveSymbol = ValueAnimator.ofFloat(0, 1).setDuration(EASE_SYMBOL_DURATION_MS);
+        moveSymbol.setInterpolator(new LinearInterpolator());
+        moveSymbol.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                if (symbolManager == null || symbolManager.getAnnotations().indexOfValue(symbol) < 0) {
+                    return;
+                }
+                float fraction = (float) animation.getAnimatedValue();
+
+                if (changeLocation) {
+                    double lat = ((location.getLatitude() - originalPosition.getLatitude()) * fraction) + originalPosition.getLatitude();
+                    double lng = ((location.getLongitude() - originalPosition.getLongitude()) * fraction) + originalPosition.getLongitude();
+                    symbol.setGeometry(Point.fromLngLat(lng, lat));
+                }
+
+                symbolManager.update(symbol);
+            }
+        });
+
+        moveSymbol.start();
+        animators.add(moveSymbol);
     }
 
     private void addWaypoint(@NonNull LatLng point) {
@@ -944,6 +1087,9 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
     @Override
     public void onStop() {
         super.onStop();
+        for (ValueAnimator animator : animators) {
+            animator.cancel();
+        }
         if (navigationMapRoute != null)
             navigationMapRoute.onStop();
         navigationMapRoute = null;
@@ -956,22 +1102,33 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
         int annotationsSize = annotations.size();
         int tourWpWithPicPathsLinkedListInitialSize = tourWpWithPicPathsLinkedList.size();
         tourWpWithPicPathsLinkedList.ensureCapacity(annotationsSize);
+        boolean hadTourGuideSymbol = false;
         for (int i = 0; i < tourWpWithPicPathsLinkedListInitialSize && i < annotationsSize; i++) {
             Symbol symbol = annotations.valueAt(i);
-            LatLng latLng = symbol.getLatLng();
+            if (symbol != tourGuideSymbol) {
+                LatLng latLng = symbol.getLatLng();
 
-            TourWpWithPicPaths tourWpWithPicPaths = tourWpWithPicPathsLinkedList.get(i);
-            tourWpWithPicPaths.tourWaypoint.setLatitude(latLng.getLatitude());
-            tourWpWithPicPaths.tourWaypoint.setLongitude(latLng.getLongitude());
-            tourWpWithPicPaths.tourWaypoint.setTitle(symbol.getTextField());
+                TourWpWithPicPaths tourWpWithPicPaths;
+                if (hadTourGuideSymbol)
+                    tourWpWithPicPaths = tourWpWithPicPathsLinkedList.get(i - 1);
+                else
+                    tourWpWithPicPaths = tourWpWithPicPathsLinkedList.get(i);
+                tourWpWithPicPaths.tourWaypoint.setLatitude(latLng.getLatitude());
+                tourWpWithPicPaths.tourWaypoint.setLongitude(latLng.getLongitude());
+                tourWpWithPicPaths.tourWaypoint.setTitle(symbol.getTextField());
+            }
+            else
+                hadTourGuideSymbol = true;
         }
         for (int i = tourWpWithPicPathsLinkedList.size(); i < annotationsSize; i++) {
             Symbol symbol = annotations.valueAt(i);
-            LatLng latLng = symbol.getLatLng();
+            if (symbol != tourGuideSymbol) {
+                LatLng latLng = symbol.getLatLng();
 
-            TourWpWithPicPaths tourWpWithPicPaths = new TourWpWithPicPaths();
-            tourWpWithPicPaths.tourWaypoint = new TourWaypoint(latLng.getLatitude(), latLng.getLongitude(), symbol.getTextField(), null);
-            tourWpWithPicPathsLinkedList.add(tourWpWithPicPaths);
+                TourWpWithPicPaths tourWpWithPicPaths = new TourWpWithPicPaths();
+                tourWpWithPicPaths.tourWaypoint = new TourWaypoint(latLng.getLatitude(), latLng.getLongitude(), symbol.getTextField(), null);
+                tourWpWithPicPathsLinkedList.add(tourWpWithPicPaths);
+            }
         }
     }
 
@@ -998,7 +1155,13 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
     public void onDestroyView() {
         resetAnnotationViewStatus();
         super.onDestroyView();
+        if (symbolManager != null) {
+            symbolManager.onDestroy();
+        }
         mapView.onDestroy();
+        if (executor_ != null) {
+            executor_.shutdown();
+        }
     }
 
 }

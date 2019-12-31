@@ -12,6 +12,9 @@ public class LoginResponseData {
     @SerializedName("prefs") @Expose @Nullable
     public LoginResponsePrefs loginResponsePrefs;
 
+    @SerializedName("subTo") @Expose @Nullable
+    public LoginResponseSubTo loginResponseSubTo;
+
     @SerializedName("error_msg") @Expose @Nullable
     public String errorMsg;
 }

@@ -35,10 +35,14 @@ import com.hal9000.tourmania.model.User;
 import com.hal9000.tourmania.rest_api.login.LoginResponse;
 import com.hal9000.tourmania.rest_api.RestClient;
 import com.hal9000.tourmania.rest_api.login.LoginResponsePrefs;
+import com.hal9000.tourmania.rest_api.login.LoginResponseSubTo;
 import com.hal9000.tourmania.rest_api.login.UserLogin;
 
+import static com.hal9000.tourmania.ui.join_tour.JoinTourFragment.LOCATION_SHARING_TOKEN_KEY;
+import static com.hal9000.tourmania.ui.join_tour.JoinTourFragment.LOCATION_SHARING_TOKEN_TOUR_ID_KEY;
 import static com.hal9000.tourmania.ui.user_settings.UserSettingsFragment.PHONE_NUM_KEY;
 import static com.hal9000.tourmania.ui.user_settings.UserSettingsFragment.SHARE_LOCATION_KEY;
+import static com.hal9000.tourmania.ui.user_settings.UserSettingsFragment.SHARE_LOCATION_TOKEN_TTL_KEY;
 import static com.hal9000.tourmania.ui.user_settings.UserSettingsFragment.TOUR_GUIDE_STATUS_KEY;
 
 public class SignInFragment extends Fragment {
@@ -75,15 +79,31 @@ public class SignInFragment extends Fragment {
                                 SharedPrefUtils.putEncryptedString(ctx, MainActivity.getLoginTokenKey(), loginResponse.data.token);
                                 SharedPrefUtils.putEncryptedString(ctx, MainActivity.getUsernameKey(), username.toString());
                                 LoginResponsePrefs loginResponsePrefs = loginResponse.data.loginResponsePrefs;
+                                SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(ctx);
+                                SharedPreferences.Editor editor = prefs.edit();
                                 if (loginResponsePrefs != null) {
-                                    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(ctx);
-                                    SharedPreferences.Editor editor = prefs.edit();
                                     if (loginResponsePrefs.isGuide != null)
                                         editor.putBoolean(TOUR_GUIDE_STATUS_KEY, loginResponsePrefs.isGuide);
                                     if (loginResponsePrefs.phoneNum != null)
                                         editor.putString(PHONE_NUM_KEY, loginResponsePrefs.phoneNum);
-                                    if (loginResponsePrefs.shareLoc != null)
+                                    if (loginResponsePrefs.shareLoc != null) {
                                         editor.putBoolean(SHARE_LOCATION_KEY, loginResponsePrefs.shareLoc);
+                                        if (fragmentActivity instanceof MainActivity) {
+                                            if (loginResponsePrefs.shareLoc) {
+                                                ((MainActivity) fragmentActivity).requestLocationUpdates();
+                                            } else {
+                                                ((MainActivity) fragmentActivity).removeLocationUpdates();
+                                            }
+                                        }
+                                    }
+                                    if (loginResponsePrefs.shareLocTokenLifetime != null)
+                                        editor.putInt(SHARE_LOCATION_TOKEN_TTL_KEY, loginResponsePrefs.shareLocTokenLifetime);
+                                    editor.apply();
+                                }
+                                LoginResponseSubTo loginResponseSubTo = loginResponse.data.loginResponseSubTo;
+                                if (loginResponseSubTo != null) {
+                                    editor.putString(LOCATION_SHARING_TOKEN_TOUR_ID_KEY, loginResponseSubTo.tourId);
+                                    editor.putString(LOCATION_SHARING_TOKEN_KEY, loginResponseSubTo.token);
                                     editor.apply();
                                 }
                                 AppDatabase.databaseWriteExecutor.submit(

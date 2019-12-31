@@ -50,7 +50,8 @@ public class SharedPrefUtils {
 
     public static void clearSettings(Context context) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-        prefs.edit().remove(TOUR_GUIDE_STATUS_KEY).remove(PHONE_NUM_KEY).remove(SHARE_LOCATION_KEY).apply();
+        //prefs.edit().remove(TOUR_GUIDE_STATUS_KEY).remove(PHONE_NUM_KEY).remove(SHARE_LOCATION_KEY).apply();
+        prefs.edit().clear().apply();
     }
 
     public static void putEncryptedString(Context context, String key, String value) {

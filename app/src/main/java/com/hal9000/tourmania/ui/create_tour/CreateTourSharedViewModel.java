@@ -1,14 +1,19 @@
 package com.hal9000.tourmania.ui.create_tour;
 
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.location.Location;
 import android.net.Uri;
+import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.hal9000.tourmania.AppUtils;
 import com.hal9000.tourmania.BuildConfig;
 import com.hal9000.tourmania.FileUtil;
 import com.hal9000.tourmania.MainActivity;
+import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.SharedPrefUtils;
 import com.hal9000.tourmania.database.AppDatabase;
 import com.hal9000.tourmania.database.FavouriteTourDAO;
@@ -25,6 +30,8 @@ import com.hal9000.tourmania.rest_api.RestClient;
 import com.hal9000.tourmania.rest_api.files_upload_download.FileDownloadImageObj;
 import com.hal9000.tourmania.rest_api.files_upload_download.FileDownloadResponse;
 import com.hal9000.tourmania.rest_api.files_upload_download.FileUploadDownloadService;
+import com.hal9000.tourmania.rest_api.tour_guides.GetTourGuideLocationResponse;
+import com.hal9000.tourmania.rest_api.tour_guides.TourGuidesService;
 import com.hal9000.tourmania.rest_api.tours.ToursService;
 import com.hal9000.tourmania.rest_api.tours.TourUpsertResponse;
 
@@ -36,9 +43,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
 
+import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
+import androidx.navigation.Navigation;
 import id.zelory.compressor.Compressor;
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
@@ -48,9 +57,12 @@ import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.internal.EverythingIsNonNull;
 
+import static com.hal9000.tourmania.ui.join_tour.JoinTourFragment.LOCATION_SHARING_TOKEN_TOUR_ID_KEY;
+
 public class CreateTourSharedViewModel extends ViewModel {
 
     private MutableLiveData<Tour> tour = new MutableLiveData<Tour>();
+    private MutableLiveData<GetTourGuideLocationResponse> tourGuideLoc = new MutableLiveData<GetTourGuideLocationResponse>();
     private ArrayList<TourWpWithPicPaths> tourWaypointList = new ArrayList<>();
     private ArrayList<TourTag> tourTagsList = new ArrayList<>();
     private int choosenLocateWaypointIndex = -1;
@@ -92,6 +104,10 @@ public class CreateTourSharedViewModel extends ViewModel {
 
     public LiveData<Tour> getTourLiveData() {
         return tour;
+    }
+
+    public LiveData<GetTourGuideLocationResponse> getTourGuideLocLiveData() {
+        return tourGuideLoc;
     }
 
     public Future saveTourToDb(final Context context, final int saveAsType) {
@@ -405,6 +421,7 @@ public class CreateTourSharedViewModel extends ViewModel {
                         TourWithWpWithPaths tourWithTourWps = response.body();
                         if (tourWithTourWps != null) {
                             tour.setValue(tourWithTourWps.tour);
+                            loadedFromServerDb = true;
                             tourTagsList.addAll(tourWithTourWps.tourTags);
                             tourWaypointList.addAll(tourWithTourWps.getSortedTourWpsWithPicPaths());
 
@@ -420,7 +437,6 @@ public class CreateTourSharedViewModel extends ViewModel {
                     //Log.d("crashTest", "loadToursFromServerDb onFailure");
                 }
             });
-            loadedFromServerDb = true;
         }
     }
 
@@ -545,6 +561,33 @@ public class CreateTourSharedViewModel extends ViewModel {
         saveTourRatingToLocalDb(context);
     }
 
+    public void handleTourGuideLocation(@NonNull final Context context, String token) {
+        TourGuidesService client = RestClient.createService(TourGuidesService.class,
+                SharedPrefUtils.getDecryptedString(context, MainActivity.getLoginTokenKey()));
+        Call<GetTourGuideLocationResponse> call = client.getTourGuideLocation(token);
+        call.enqueue(new Callback<GetTourGuideLocationResponse>() {
+            @Override
+            public void onResponse(Call<GetTourGuideLocationResponse> call, Response<GetTourGuideLocationResponse> response) {
+                Log.d("crashTest", "handleTourGuideLocation onResponse");
+                if (response.isSuccessful()) {
+                    GetTourGuideLocationResponse responseBody = response.body();
+                    tourGuideLoc.setValue(responseBody);  // notify observers
+                }
+                else if (response.code()==401) {
+                    tourGuideLoc.setValue(null);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<GetTourGuideLocationResponse> call, Throwable t) {
+                t.printStackTrace();
+                if (context != null)
+                    Toast.makeText(context,"A connection error has occurred",Toast.LENGTH_SHORT).show();
+                Log.d("crashTest", "handleTourGuideLocation onFailure");
+            }
+        });
+    }
+
     public boolean isEditingEnabled() {
         return editingEnabled;
     }
@@ -574,6 +617,14 @@ public class CreateTourSharedViewModel extends ViewModel {
 
     public boolean isCheckedForCacheLink() {
         return checkedForCacheLink;
+    }
+
+    public boolean isLoadedFromDb() {
+        return loadedFromDb;
+    }
+
+    public boolean isLoadedFromServerDb() {
+        return loadedFromServerDb;
     }
 
     /*

@@ -27,4 +27,19 @@ public interface TourGuidesService {
 
     @GET("tour_guide/search/{phrase}")
     Call<List<User>> searchTourGuidesByPhrase(@Path("phrase") String phrase, @Query("page_num") int pageNumber);
+
+    @POST("tour_guide/loc/update") @FormUrlEncoded
+    Call<Void> updateTourGuideLocation(@Field("long") double longitude, @Field("lat") double latitude);
+
+    @POST("tour_guide/loc/token") @FormUrlEncoded
+    Call<LocationShareTokenResponse> getTourGuideLocationSharingToken(@Field("tour_id") String tourId);
+
+    @POST("tour_guide/loc/token/revoke")
+    Call<Void> revokeTourGuideLocationSharingToken();
+
+    @POST("tour_guide/loc/sub") @FormUrlEncoded
+    Call<SubscribeToLocationShareResponse> subscribeToTourGuideLocationSharing(@Field("token") String token);
+
+    @POST("tour_guide/loc/get") @FormUrlEncoded
+    Call<GetTourGuideLocationResponse> getTourGuideLocation(@Field("token") String token);
 }

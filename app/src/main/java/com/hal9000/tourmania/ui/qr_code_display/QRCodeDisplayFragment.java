@@ -61,7 +61,7 @@ public class QRCodeDisplayFragment extends Fragment {
         createTourSharedViewModel = new ViewModelProvider(owner, factory).get(CreateTourSharedViewModel.class);
 
         String inputText = QRCodeDisplayFragmentArgs.fromBundle(getArguments()).getInputText();
-        //Log.d("crashTest", "QRCodeDisplayFragment inputText: " + inputText);
+        Log.d("crashTest", "QRCodeDisplayFragment inputText: " + inputText);
 
         generateQRCode(inputText, view);
     }

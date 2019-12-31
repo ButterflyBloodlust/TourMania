@@ -109,10 +109,11 @@ public class MainActivity extends AppCompatActivity {
         navigationView.getMenu().findItem(R.id.sign_out).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
+                removeLocationUpdates();
                 Context context = getBaseContext();
                 SharedPrefUtils.clearSettings(context);
-                SharedPrefUtils.removeItem(context, getLoginTokenKey());
-                SharedPrefUtils.removeItem(context, getUsernameKey());
+                //SharedPrefUtils.removeItem(context, getLoginTokenKey());
+                //SharedPrefUtils.removeItem(context, getUsernameKey());
                 RestClient.clearAuth();
                 AppDatabase.databaseWriteExecutor.submit(
                         new Runnable() {
@@ -161,7 +162,7 @@ public class MainActivity extends AppCompatActivity {
         return PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
     }
 
-    public void requestLocationUpdates(View view) {
+    public void requestLocationUpdates() {
         try {
             Log.d("crashTest", "Starting location updates");
             LocationServiceUtils.setRequestingLocationUpdates(this, true);
@@ -173,7 +174,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void removeLocationUpdates(View view) {
+    public void removeLocationUpdates() {
         Log.d("crashTest", "Removing location updates");
         LocationServiceUtils.setRequestingLocationUpdates(this, false);
         Task<Void> task = mFusedLocationClient.removeLocationUpdates(getPendingIntent());
@@ -181,6 +182,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onSuccess(Void aVoid) {
                 LocationServiceUtils.removeNotification(getBaseContext());
+                LocationUpdatesBroadcastReceiver.shutdown();
             }
         });
     }
@@ -224,7 +226,7 @@ public class MainActivity extends AppCompatActivity {
             } else if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 //Log.d("crashTest", "PERMISSION_GRANTED : " + permissions[0]);
                 if (PreferenceManager.getDefaultSharedPreferences(getBaseContext()).getBoolean(SHARE_LOCATION_KEY, false))
-                    requestLocationUpdates(null);
+                    requestLocationUpdates();
             } else {
                 // Permission denied.
                 Snackbar.make(

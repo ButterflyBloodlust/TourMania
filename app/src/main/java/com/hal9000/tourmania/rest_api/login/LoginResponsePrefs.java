@@ -14,4 +14,7 @@ public class LoginResponsePrefs {
 
     @SerializedName("share_loc") @Expose @Nullable
     public Boolean shareLoc;
+
+    @SerializedName("loc_ttl") @Expose @Nullable
+    public Integer shareLocTokenLifetime;
 }
