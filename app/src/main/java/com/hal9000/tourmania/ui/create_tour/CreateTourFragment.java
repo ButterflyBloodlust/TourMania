@@ -11,9 +11,6 @@ import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
 import android.Manifest;
-import android.animation.Animator;
-import android.animation.ObjectAnimator;
-import android.animation.TypeEvaluator;
 import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.Context;
@@ -35,21 +32,21 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProviders;
 import androidx.lifecycle.ViewModelStoreOwner;
+import androidx.navigation.NavDirections;
 import androidx.navigation.Navigation;
-import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
 import android.preference.PreferenceManager;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
@@ -78,6 +75,8 @@ import com.hal9000.tourmania.rest_api.tour_guides.GetTourGuideLocationResponse;
 import com.hal9000.tourmania.rest_api.tour_guides.LocationShareTokenResponse;
 import com.hal9000.tourmania.rest_api.tour_guides.TourGuidesService;
 import com.hal9000.tourmania.ui.qr_code_display.QRCodeDisplayFragmentArgs;
+import com.hal9000.tourmania.ui.tour_guide_details.TourGuideDetailsFragmentDirections;
+import com.hal9000.tourmania.ui.tour_guides.TourGuidesFragmentDirections;
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
 import com.mapbox.api.directions.v5.DirectionsCriteria;
@@ -191,6 +190,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
             inflater.inflate(R.menu.create_tour_toolbar_menu_edit_mode, menu);
         }
         else {
+            inflater.inflate(R.menu.create_tour_toolbar_menu_not_editing, menu);
             if (createTourSharedViewModel.isEditingPossible()) {
                 inflater.inflate(R.menu.create_tour_toolbar_menu_my_tour, menu);
             }
@@ -408,6 +408,25 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                         //Log.d("crashTest", "onSharedPreferenceChanged onFailure");
                     }
                 });
+                return true;
+            case R.id.action_about_tour:
+                final View dialogViewAboutTour = getLayoutInflater().inflate(R.layout.dialog_about_tour, null);
+                ((TextView)dialogViewAboutTour.findViewById(R.id.tour_author_textview)).setText(createTourSharedViewModel.getUser().getUsername());
+                final AlertDialog.Builder builderAboutTour = new AlertDialog.Builder(requireContext())
+                        .setTitle("About tour")
+                        .setView(dialogViewAboutTour)
+                        .setCancelable(true)
+                        .setNegativeButton("Cancel", null);
+                if (createTourSharedViewModel.getUser().isTourGuide())
+                    builderAboutTour.setPositiveButton("Tour guide profile", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            NavDirections navDirections = CreateTourFragmentDirections
+                                    .actionCreateTourFragmentToTourGuideDetails(createTourSharedViewModel.getUser().getUsername());
+                            Navigation.findNavController(requireView()).navigate(navDirections);
+                        }
+                    });
+                builderAboutTour.create().show();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);

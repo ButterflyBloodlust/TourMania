@@ -44,8 +44,14 @@ public class User {
     @ColumnInfo(name = "phone_num")
     private String phoneNumber = "";
 
+    @SerializedName("email")
     @ColumnInfo(name = "email")
     private String email;
+
+    @SerializedName("is_guide")
+    @ColumnInfo(name = "is_guide")
+    private boolean isTourGuide;
+
 
     public User() {}
 
@@ -124,5 +130,13 @@ public class User {
 
     public void setMyRating(float myRating) {
         this.myRating = myRating;
+    }
+
+    public boolean isTourGuide() {
+        return isTourGuide;
+    }
+
+    public void setTourGuide(boolean tourGuide) {
+        isTourGuide = tourGuide;
     }
 }

@@ -70,6 +70,15 @@
             android:text="0.0"
             android:textSize="18sp"/>
 
+        <ImageView
+            android:id="@+id/tour_guide_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:src="@drawable/ic_tour_guide_icon_40dp"
+            android:visibility="gone"/>
+
         <!-- android:layout_centerVertical="true" -->
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.cardview.widget.CardView>

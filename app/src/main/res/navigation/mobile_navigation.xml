@@ -83,6 +83,9 @@
                 app:argType="string"
                 app:nullable="true"
                 android:defaultValue="@null" />
+            <action
+                android:id="@+id/action_createTourFragment_to_tour_guide_details"
+                app:destination="@id/nav_tour_guide_details" />
         </fragment>
         <fragment
             android:id="@+id/tourWaypointsListFragment"

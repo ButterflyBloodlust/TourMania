@@ -3,6 +3,7 @@ package com.hal9000.tourmania.ui;
 import android.content.Context;
 import android.net.Uri;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -56,6 +57,7 @@ public class InfiniteTourAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         public ImageButton deleteImageButton;
         public TextView tourRatingTextView;
         public RatingBar ratingBar;
+        public ImageView tourGuideIcon;
         public MyViewHolder(View v) {
             super(v);
             textView = v.findViewById(R.id.tour_title);
@@ -63,6 +65,7 @@ public class InfiniteTourAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             deleteImageButton = v.findViewById(R.id.buttonDeleteTour);
             tourRatingTextView = v.findViewById(R.id.tour_rating);
             ratingBar = v.findViewById(R.id.tour_rating_bar);
+            tourGuideIcon = v.findViewById(R.id.tour_guide_icon);
         }
     }
 
@@ -162,6 +165,11 @@ public class InfiniteTourAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         // - get element from your dataset at this position
         // - replace the contents of the view with that element
         if (holder instanceof MyViewHolder) {
+            if (mDataset.get(position).user != null && mDataset.get(position).user.isTourGuide())
+                ((MyViewHolder) holder).tourGuideIcon.setVisibility(View.VISIBLE);
+            else
+                ((MyViewHolder) holder).tourGuideIcon.setVisibility(View.GONE);
+
             ((MyViewHolder) holder).textView.setText(mDataset.get(position).tour.getTitle());
 
             String mainImgPath = mDataset.get(position).tour.getTourImgPath();

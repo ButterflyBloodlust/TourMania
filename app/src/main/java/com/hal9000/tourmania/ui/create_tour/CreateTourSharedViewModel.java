@@ -26,6 +26,7 @@ import com.hal9000.tourmania.model.TourTag;
 import com.hal9000.tourmania.model.TourWaypoint;
 import com.hal9000.tourmania.model.TourWithWpWithPaths;
 import com.hal9000.tourmania.model.TourWpWithPicPaths;
+import com.hal9000.tourmania.model.User;
 import com.hal9000.tourmania.rest_api.RestClient;
 import com.hal9000.tourmania.rest_api.files_upload_download.FileDownloadImageObj;
 import com.hal9000.tourmania.rest_api.files_upload_download.FileDownloadResponse;
@@ -65,6 +66,7 @@ public class CreateTourSharedViewModel extends ViewModel {
     private MutableLiveData<GetTourGuideLocationResponse> tourGuideLoc = new MutableLiveData<GetTourGuideLocationResponse>();
     private ArrayList<TourWpWithPicPaths> tourWaypointList = new ArrayList<>();
     private ArrayList<TourTag> tourTagsList = new ArrayList<>();
+    private User user;
     private int choosenLocateWaypointIndex = -1;
     private boolean loadedFromDb = false;
     private boolean loadedFromServerDb = false;
@@ -392,6 +394,7 @@ public class CreateTourSharedViewModel extends ViewModel {
                     tour.postValue(tourWpWithPicPaths.tour);
                     tourWaypointList.addAll(tourWpWithPicPaths.getSortedTourWpsWithPicPaths());
                     tourTagsList.addAll(tourWpWithPicPaths.tourTags);
+                    user = tourWpWithPicPaths.user;
                     loadedFromDb = true;
                     detectViewType(context, tourWpWithPicPaths.tour.getTourId());
                 }
@@ -420,6 +423,7 @@ public class CreateTourSharedViewModel extends ViewModel {
                         //Log.d("crashTest", "loadToursFromServerDb onResponse");
                         TourWithWpWithPaths tourWithTourWps = response.body();
                         if (tourWithTourWps != null) {
+                            user = tourWithTourWps.user;
                             tour.setValue(tourWithTourWps.tour);
                             loadedFromServerDb = true;
                             tourTagsList.addAll(tourWithTourWps.tourTags);
@@ -625,6 +629,10 @@ public class CreateTourSharedViewModel extends ViewModel {
 
     public boolean isLoadedFromServerDb() {
         return loadedFromServerDb;
+    }
+
+    public User getUser() {
+        return user;
     }
 
     /*
