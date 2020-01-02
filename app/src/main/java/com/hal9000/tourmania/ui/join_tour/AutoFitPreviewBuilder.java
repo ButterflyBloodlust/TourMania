@@ -118,8 +118,8 @@ class AutoFitPreviewBuilder {
                 if (viewFinder == null)
                     return;
 
-                Log.d(TAG, "Preview output changed. " +
-                        "Size: ${it.textureSize}. Rotation: ${it.rotationDegrees}");
+                //Log.d(TAG, String.format("Preview output changed. " +
+                //        "Size: %s}. Rotation: %s", output.getTextureSize(), output.getRotationDegrees()));
 
                 // To update the SurfaceTexture, we have to remove it and re-add it
                 ViewGroup parent = (ViewGroup)viewFinder.getParent();
@@ -142,7 +142,7 @@ class AutoFitPreviewBuilder {
             public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
                 TextureView viewFinder = (TextureView)v;
                 Size newViewFinderDimens = new Size(right - left, bottom - top);
-                Log.d(TAG, "View finder layout changed. Size: $newViewFinderDimens");
+                //Log.d(TAG, String.format("View finder layout changed. Size: %s", newViewFinderDimens));
                 Integer rotation = getDisplaySurfaceRotation(viewFinder.getDisplay());
                 updateTransform(viewFinder, rotation, bufferDimens, newViewFinderDimens);
             }
@@ -180,8 +180,6 @@ class AutoFitPreviewBuilder {
 
     /** Helper function that fits a camera preview into the given [TextureView] */
     private void updateTransform(TextureView textureView, Integer rotation, Size newBufferDimens, Size newViewFinderDimens) {
-        Log.d("crashTest", "rotation = " + rotation + " ; newBufferDimens = " + newBufferDimens + " ; newViewFinderDimens = " + newViewFinderDimens);
-
         // This should not happen anyway, but now the linter knows
         if (textureView == null)
             return;
@@ -218,12 +216,13 @@ class AutoFitPreviewBuilder {
         }
 
         Matrix matrix = new Matrix();
-        Log.d("crashTest", "Applying output transformation.\n" +
-                "View finder size: $viewFinderDimens.\n" +
-                "Preview output size: $bufferDimens\n" +
-                "View finder rotation: $viewFinderRotation\n" +
-                "Preview output rotation: $bufferRotation");
-
+        /*
+        Log.d(TAG, String.format("Applying output transformation.\n" +
+                "View finder size: %s.\n" +
+                "Preview output size: %s\n" +
+                "View finder rotation: %s\n" +
+                "Preview output rotation: %d", viewFinderDimens, bufferDimens, viewFinderRotation, bufferRotation));
+        */
         // Compute the center of the view finder
         float centerX = viewFinderDimens.getWidth() / 2f;
         float centerY = viewFinderDimens.getHeight() / 2f;
