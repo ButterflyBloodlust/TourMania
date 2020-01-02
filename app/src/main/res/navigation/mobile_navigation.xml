@@ -41,7 +41,13 @@
         android:id="@+id/nav_join_tour"
         android:name="com.hal9000.tourmania.ui.join_tour.JoinTourFragment"
         android:label="@string/menu_join_tour"
-        tools:layout="@layout/fragment_join_tour" />
+        tools:layout="@layout/fragment_join_tour" >
+        <action
+            android:id="@+id/action_nav_join_tour_to_nav_nested_create_tour"
+            app:destination="@id/nav_nested_create_tour"
+            app:popUpTo="@+id/nav_home"
+            app:popUpToInclusive="false" />
+    </fragment>
 
     <fragment
         android:id="@+id/nav_user_settings"

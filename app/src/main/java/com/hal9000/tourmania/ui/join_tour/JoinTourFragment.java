@@ -38,13 +38,17 @@ import com.hal9000.tourmania.rest_api.tour_guides.SubscribeToLocationShareRespon
 import com.hal9000.tourmania.rest_api.tour_guides.TourGuidesService;
 import com.hal9000.tourmania.ui.create_tour.CreateTourFragmentArgs;
 
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 public class JoinTourFragment extends Fragment {
 
     private JoinTourViewModel joinTourViewModel;
     private TextureView textureView;
     private HandlerThread handlerThread;
+    private Set<String> processedQrCodes = new HashSet<>();
 
     private static final int REQUEST_CAMERA_PERMISSION_ID = 110;
     public static final String LOCATION_SHARING_TOKEN_TOUR_ID_KEY = "loc_token_tour_id";
@@ -68,18 +72,6 @@ public class JoinTourFragment extends Fragment {
         } else {
             requestPermissions(new String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION_ID);
         }
-
-        /*
-        Button joinTourButton = root.findViewById(R.id.button_join_tour);
-        joinTourButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Navigation.findNavController(requireView()).navigate(R.id.nav_nested_create_tour,
-                        new CreateTourFragmentArgs.Builder().setTourServerId(
-                                "5dee3c74121532341089d2dc").build().toBundle());
-            }
-        });
-        */
 
         return root;
     }
@@ -105,13 +97,22 @@ public class JoinTourFragment extends Fragment {
         QrCodeAnalyzer qrCodeAnalyzer = new QrCodeAnalyzer() {
             @Override
             void onQrCodesDetected(List<FirebaseVisionBarcode> qrCodes) {
-                for (FirebaseVisionBarcode firebaseVisionBarcode : qrCodes) {
-                    Log.d("crashTest", "QR Code detected: " + firebaseVisionBarcode.getRawValue());
-                }
                 if (!qrCodes.isEmpty()) {
-                    CameraX.unbindAll();
-                    requireView().findViewById(R.id.texture_view_qr_camera).setVisibility(View.GONE);
-                    requireView().findViewById(R.id.group_waiting_for_server_response).setVisibility(View.VISIBLE);
+                    String qrCode = null;
+                    // Check if any of the qr codes was not processed yet.
+                    Iterator<FirebaseVisionBarcode> it = qrCodes.iterator();
+                    while (it.hasNext() && qrCode == null) {
+                        qrCode = it.next().getRawValue();
+                        if (processedQrCodes.contains(qrCode))
+                            qrCode = null;
+                    }
+                    if (qrCode == null) // all qr codes were already processed
+                        return;
+
+                    //CameraX.unbindAll();
+                    //handlerThread.quitSafely();
+                    showLoadingView();
+                    processedQrCodes.add(qrCodes.get(0).getRawValue());
 
                     TourGuidesService client = RestClient.createService(TourGuidesService.class,
                             SharedPrefUtils.getDecryptedString(getContext(), MainActivity.getLoginTokenKey()));
@@ -130,10 +131,18 @@ public class JoinTourFragment extends Fragment {
                                     editor.putString(LOCATION_SHARING_TOKEN_TOUR_ID_KEY, responseBody.tourId);
                                     editor.putString(LOCATION_SHARING_TOKEN_KEY, qrCodes.get(0).getRawValue());
                                     editor.apply();
-                                    Navigation.findNavController(requireView()).navigate(R.id.nav_nested_create_tour,
+
+                                    // R.id.nav_nested_create_tour
+                                    Navigation.findNavController(requireView()).navigate(R.id.action_nav_join_tour_to_nav_nested_create_tour,
                                             new CreateTourFragmentArgs.Builder().setTourServerId(
                                                     responseBody.tourId).build().toBundle());
                                 }
+                            }
+                            else {
+                                Context context = getContext();
+                                if (context != null)
+                                    Toast.makeText(context,"QR code not recognized",Toast.LENGTH_SHORT).show();
+                                showCameraView();
                             }
                         }
 
@@ -150,6 +159,16 @@ public class JoinTourFragment extends Fragment {
         };
         imageAnalysis.setAnalyzer(qrCodeAnalyzer);
         CameraX.bindToLifecycle(this, preview, imageAnalysis);
+    }
+
+    private void showLoadingView() {
+        requireView().findViewById(R.id.texture_view_qr_camera).setVisibility(View.GONE);
+        requireView().findViewById(R.id.group_waiting_for_server_response).setVisibility(View.VISIBLE);
+    }
+
+    private void showCameraView() {
+        requireView().findViewById(R.id.group_waiting_for_server_response).setVisibility(View.GONE);
+        requireView().findViewById(R.id.texture_view_qr_camera).setVisibility(View.VISIBLE);
     }
 
     private boolean isCameraPermissionGranted() {
@@ -176,8 +195,9 @@ public class JoinTourFragment extends Fragment {
     }
 
     @Override
-    public void onDestroy() {
-        super.onDestroy();
+    public void onDestroyView() {
+        super.onDestroyView();
+        CameraX.unbindAll();
         if (handlerThread != null)
             handlerThread.quitSafely();
         handlerThread = null;
