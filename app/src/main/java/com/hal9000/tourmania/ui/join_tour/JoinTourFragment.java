@@ -4,12 +4,16 @@ import android.Manifest;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Matrix;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import android.util.Size;
+import android.view.Display;
 import android.view.LayoutInflater;
+import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
@@ -80,13 +84,9 @@ public class JoinTourFragment extends Fragment {
         PreviewConfig previewConfig = new PreviewConfig.Builder()
                 .setLensFacing(CameraX.LensFacing.BACK)
                 .build();
-        Preview preview = new Preview(previewConfig);
-        preview.setOnPreviewOutputUpdateListener(new Preview.OnPreviewOutputUpdateListener() {
-            @Override
-            public void onUpdated(Preview.PreviewOutput output) {
-                textureView.setSurfaceTexture(output.getSurfaceTexture());
-            }
-        });
+
+        Preview preview = AutoFitPreviewBuilder.build(previewConfig, textureView);
+
         handlerThread = new HandlerThread("QRCodeDetectionThread");
         handlerThread.start();
 
