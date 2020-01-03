@@ -81,6 +81,11 @@ public class TourGuidesFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         activityViewModel = ViewModelProviders.of(requireActivity()).get(MainActivityViewModel.class);
+        String dirPath = requireContext().getExternalCacheDir() + File.separator + USERS_CACHE_DIR_NAME;
+        File projDir = new File(dirPath);
+        if (projDir.exists()) {
+            AppUtils.deleteDir(projDir, -1);
+        }
     }
 
     public View onCreateView(@NonNull LayoutInflater inflater,

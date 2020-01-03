@@ -121,6 +121,7 @@ public class MainActivity extends AppCompatActivity {
                             public void run() {
                                 Context context = getBaseContext();
                                 AppDatabase.getInstance(context).clearAllTables();
+                                AppUtils.clearInternalFilesDir(context);
                                 AppUtils.clearExternalCache(context);
                             }
                         });

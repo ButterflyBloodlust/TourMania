@@ -175,6 +175,17 @@ public class AppUtils {
         return file;
     }
 
+    public static void clearInternalFilesDir(Context context) {
+        try {
+            File dir = context.getFilesDir();
+            if (dir != null && dir.isDirectory()) {
+                deleteDir(dir, 0);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     public static void clearExternalCache(Context context) {
         try {
             File dir = context.getExternalCacheDir();
@@ -186,7 +197,7 @@ public class AppUtils {
         }
     }
 
-    // pass deleteTop = -1 to keep top level directory
+    /** Pass deleteTop = -1 to keep top level directory. */
     public static boolean deleteDir(File dir, int deleteTop) {
         if (dir != null && dir.isDirectory()) {
             String[] children = dir.list();

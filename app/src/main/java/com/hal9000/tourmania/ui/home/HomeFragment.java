@@ -73,13 +73,11 @@ public class HomeFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         activityViewModel = ViewModelProviders.of(requireActivity()).get(MainActivityViewModel.class);
-        if (toursWithTourWps == null) {
-            // should always be null here; TODO move this to ViewModel's onCleared when implemented
-            String dirPath = requireContext().getExternalCacheDir() + File.separator + TOUR_RECOMMENDED_CACHE_DIR_NAME;
-            File projDir = new File(dirPath);
-            if (projDir.exists()) {
-                AppUtils.deleteDir(projDir, -1);
-            }
+        // should always be null here; TODO move this to ViewModel's onCleared when implemented
+        String dirPath = requireContext().getExternalCacheDir() + File.separator + TOUR_RECOMMENDED_CACHE_DIR_NAME;
+        File projDir = new File(dirPath);
+        if (projDir.exists()) {
+            AppUtils.deleteDir(projDir, -1);
         }
     }
 

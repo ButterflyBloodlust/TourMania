@@ -54,7 +54,7 @@ public class UserSettingsFragment extends PreferenceFragmentCompat {
     public static final String SHARE_LOCATION_KEY = "share_location";
     public static final String REVOKE_LOCATION_TOKENS_KEY = "revoke_location_tokens";
     public static final String SHARE_LOCATION_TOKEN_TTL_KEY = "location_token_lifetime";
-    public static final String USERS_CACHE_DIR_NAME = "Users";
+    public static final String USERS_CACHE_DIR_NAME = "users";
     private static int PICK_IMAGE_REQUEST_CODE = 100;
 
     @Override
@@ -82,7 +82,7 @@ public class UserSettingsFragment extends PreferenceFragmentCompat {
                         final FileDownloadImageObj fileDownloadImageObj = response.body();
                         if (fileDownloadImageObj != null) {
                             File file = AppUtils.saveImageFromBase64(requireContext(), fileDownloadImageObj.base64,
-                                    fileDownloadImageObj.mime, USERS_CACHE_DIR_NAME);
+                                    fileDownloadImageObj.mime, null);
                             String filePath = file.toURI().toString();
                             loadImageIntoClickableIconPref(filePath);
                             SharedPreferences prefs = getPreferenceManager().getSharedPreferences();
