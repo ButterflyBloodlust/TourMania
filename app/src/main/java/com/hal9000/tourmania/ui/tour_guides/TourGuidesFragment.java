@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -35,8 +36,13 @@ import com.hal9000.tourmania.AppUtils;
 import com.hal9000.tourmania.MainActivity;
 import com.hal9000.tourmania.MainActivityViewModel;
 import com.hal9000.tourmania.R;
+import com.hal9000.tourmania.model.TourWithWpWithPaths;
 import com.hal9000.tourmania.model.User;
 import com.hal9000.tourmania.rest_api.RestClient;
+import com.hal9000.tourmania.rest_api.files_upload_download.FileDownloadImageObj;
+import com.hal9000.tourmania.rest_api.files_upload_download.FileUploadDownloadService;
+import com.hal9000.tourmania.rest_api.files_upload_download.TourFileDownloadResponse;
+import com.hal9000.tourmania.rest_api.files_upload_download.TourGuideFileDownloadResponse;
 import com.hal9000.tourmania.rest_api.tour_guides.TourGuidesService;
 import com.hal9000.tourmania.ui.InfiniteTourGuideAdapter;
 import com.hal9000.tourmania.ui.OnLoadMoreListener;
@@ -45,7 +51,10 @@ import com.hal9000.tourmania.ui.tour_guide_details.TourGuideDetailsFragment;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+
+import static com.hal9000.tourmania.ui.user_settings.UserSettingsFragment.USERS_CACHE_DIR_NAME;
 
 public class TourGuidesFragment extends Fragment {
 
@@ -173,7 +182,7 @@ public class TourGuidesFragment extends Fragment {
                         mAdapter.mDataset.addAll(tourGuidesList);
                         mAdapter.notifyItemRangeInserted(oldSize, tourGuidesList.size());
                         mAdapter.setLoaded();
-                        //loadToursImagesFromServerDb(tourGuidesList);
+                        loadTourGuidesImagesFromServerDb(tourGuidesList);
                     }
                 }
                 else
@@ -192,6 +201,58 @@ public class TourGuidesFragment extends Fragment {
                 //Log.d("crashTest", "loadTourGuidesFromServerDb onFailure");
             }
         });
+    }
+
+    private void loadTourGuidesImagesFromServerDb(List<User> tourGuidesList) {
+        final List<String> missingTourGuidesNicknames = new ArrayList<>(tourGuidesList.size());
+        for (User tourGuide : tourGuidesList) {
+            missingTourGuidesNicknames.add(tourGuide.getUsername());
+        }
+        FileUploadDownloadService client = RestClient.createService(FileUploadDownloadService.class);
+        Call<List<TourGuideFileDownloadResponse>> call = client.downloadMultipleTourGuidesImagesFiles(missingTourGuidesNicknames);
+        call.enqueue(new Callback<List<TourGuideFileDownloadResponse>>() {
+            @Override
+            public void onResponse(Call<List<TourGuideFileDownloadResponse>> call, Response<List<TourGuideFileDownloadResponse>> response) {
+                //Log.d("crashTest", "loadToursImagesFromServerDb onResponse");
+                final List<TourGuideFileDownloadResponse> res = response.body();
+                if (res != null && res.size() > 0) {
+                    try {
+                        loadTourGuidesImagesFromServerDbProcessResponse(res);
+                    } catch (Exception e) { // IOException
+                        //Log.d("crashTest", "Unknown expection while reading file download response");
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<TourGuideFileDownloadResponse>> call, Throwable t) {
+                t.printStackTrace();
+                //Log.d("crashTest", "loadToursImagesFromServerDb onFailure");
+            }
+        });
+    }
+
+    private void loadTourGuidesImagesFromServerDbProcessResponse(List<TourGuideFileDownloadResponse> res) {
+        //Log.d("crashTest", "Missing users: " + Integer.toString(res.size()));
+        Context context = getContext();
+        if (context == null)
+            return;
+        for (TourGuideFileDownloadResponse tourGuideFileDownloadResponse : res) {
+            if (tourGuideFileDownloadResponse.image != null) {
+                File file = AppUtils.saveImageFromBase64(context, tourGuideFileDownloadResponse.image.base64,
+                        tourGuideFileDownloadResponse.image.mime, USERS_CACHE_DIR_NAME);
+                for (int i = 0; i < mAdapter.mDataset.size(); i++) {
+                    User t = mAdapter.mDataset.get(i);
+                    if (t.getUsername().equals(tourGuideFileDownloadResponse.username)) {
+                        t.setUserImgPath(file.toURI().toString());
+                        while (recyclerView.isComputingLayout());
+                        mAdapter.notifyItemChanged(i);
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     @Override

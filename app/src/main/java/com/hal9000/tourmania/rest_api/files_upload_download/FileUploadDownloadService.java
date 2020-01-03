@@ -33,4 +33,7 @@ public interface FileUploadDownloadService {
 
     @GET("tour_guide/image/get")
     Call<FileDownloadImageObj> getTourGuideImage();
+
+    @POST("tour_guide/image/by_nickname/")
+    Call<List<TourGuideFileDownloadResponse>> downloadMultipleTourGuidesImagesFiles(@Body List<String> tourGuidesNicknames);
 }
