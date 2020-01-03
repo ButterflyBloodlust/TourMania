@@ -8,7 +8,7 @@ import java.util.Map;
 
 import androidx.annotation.Nullable;
 
-public class FileDownloadResponse {
+public class TourFileDownloadResponse {
     @SerializedName("trSrvrId") @Expose @Nullable
     public String tourServerId;
 

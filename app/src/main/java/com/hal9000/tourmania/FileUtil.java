@@ -16,10 +16,15 @@ package com.hal9000.tourmania;
  * limitations under the License.
  */
 
+/*
+ * Modified for purposes of TourMania application.
+ */
+
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.OpenableColumns;
+import android.text.TextUtils;
 import android.util.Log;
 
 import java.io.File;
@@ -29,12 +34,42 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import id.zelory.compressor.Compressor;
+
 public class FileUtil {
     private static final int EOF = -1;
     private static final int DEFAULT_BUFFER_SIZE = 1024 * 4;
 
     private FileUtil() {
 
+    }
+
+    public static File compressImage(final Context context, String imgPath, String fileFolder) {
+        if (!TextUtils.isEmpty(imgPath)) {
+            File originalImageFile = null;
+            try {
+                originalImageFile = FileUtil.from(context, Uri.parse(imgPath));
+                if (!originalImageFile.exists())
+                    return null;
+                String dirPath = context.getFilesDir().getAbsolutePath() + File.separator + fileFolder;
+                File projDir = new File(dirPath);
+                if (!projDir.exists())
+                    projDir.mkdirs();
+
+                File compressedImageFile = new Compressor(context)
+                        .setDestinationDirectoryPath(projDir.getAbsolutePath())
+                        .compressToFile(originalImageFile);
+                //Log.d("crashTest", "compressImage(): " + compressedImageFile.getName());
+                return compressedImageFile;
+            } catch (IOException e) {
+                e.printStackTrace();
+                //Log.d("crashTest", "compressImage() IOException");
+            } finally {
+                if (originalImageFile != null)
+                    originalImageFile.delete();
+            }
+        }
+        return null;
     }
 
     // NOTE: this function creates new file in app's cache directory

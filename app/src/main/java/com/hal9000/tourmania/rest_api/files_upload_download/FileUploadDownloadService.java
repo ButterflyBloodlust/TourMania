@@ -17,13 +17,20 @@ import retrofit2.http.Query;
 public interface FileUploadDownloadService {
     @Multipart
     @POST("tour/images/upsert/")
-    Call<ResponseBody> uploadMultipleFilesDynamic(
+    Call<ResponseBody> uploadMultipleTourImagesFilesDynamic(
             @Part("trSrvrId") RequestBody description,
             @Part List<MultipartBody.Part> files);
 
     @POST("tour/images/by_id/")
-    Call<List<FileDownloadResponse>> downloadMultipleFiles(@Body List<String> tourIds, @Query("incl_wps") boolean includeWaypoints);
+    Call<List<TourFileDownloadResponse>> downloadMultipleToursImagesFiles(@Body List<String> tourIds, @Query("incl_wps") boolean includeWaypoints);
 
     @GET("tour/i/id/{tourId}/")
-    Call<FileDownloadResponse> getTourImages(@Path("tourId") String tourId);
+    Call<TourFileDownloadResponse> getTourImages(@Path("tourId") String tourId);
+
+    @Multipart
+    @POST("tour_guide/image/upsert")
+    Call<ResponseBody> uploadTourGuideImageFile(@Part MultipartBody.Part file);
+
+    @GET("tour_guide/image/get")
+    Call<FileDownloadImageObj> getTourGuideImage();
 }

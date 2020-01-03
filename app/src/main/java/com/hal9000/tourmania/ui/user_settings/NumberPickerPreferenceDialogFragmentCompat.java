@@ -3,13 +3,12 @@ package com.hal9000.tourmania.ui.user_settings;
 import android.content.Context;
 import android.view.View;
 import android.widget.NumberPicker;
-import android.widget.TimePicker;
 
 import androidx.preference.DialogPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceDialogFragmentCompat;
 
-public class TimePreferenceDialogFragmentCompat extends PreferenceDialogFragmentCompat implements DialogPreference.TargetFragment
+public class NumberPickerPreferenceDialogFragmentCompat extends PreferenceDialogFragmentCompat implements DialogPreference.TargetFragment
 {
     private NumberPicker numberPicker = null;
     private static final int MAX_VAL = 24;
@@ -28,7 +27,7 @@ public class TimePreferenceDialogFragmentCompat extends PreferenceDialogFragment
     protected void onBindDialogView(View v)
     {
         super.onBindDialogView(v);
-        TimePreference pref = (TimePreference) getPreference();
+        NumberPickerPreference pref = (NumberPickerPreference) getPreference();
         numberPicker.setValue(pref.hours);
     }
 
@@ -37,7 +36,7 @@ public class TimePreferenceDialogFragmentCompat extends PreferenceDialogFragment
     {
         if (positiveResult)
         {
-            TimePreference pref = (TimePreference) getPreference();
+            NumberPickerPreference pref = (NumberPickerPreference) getPreference();
             pref.hours = numberPicker.getValue();
 
             int value = pref.hours;

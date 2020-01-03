@@ -37,7 +37,7 @@ import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.model.TourWithWpWithPaths;
 import com.hal9000.tourmania.rest_api.RestClient;
 import com.hal9000.tourmania.rest_api.files_upload_download.FileDownloadImageObj;
-import com.hal9000.tourmania.rest_api.files_upload_download.FileDownloadResponse;
+import com.hal9000.tourmania.rest_api.files_upload_download.TourFileDownloadResponse;
 import com.hal9000.tourmania.rest_api.files_upload_download.FileUploadDownloadService;
 import com.hal9000.tourmania.rest_api.tours.ToursService;
 import com.hal9000.tourmania.ui.InfiniteTourAdapter;
@@ -249,12 +249,12 @@ public class HomeFragment extends Fragment {
         }
         FileUploadDownloadService client = RestClient.createService(FileUploadDownloadService.class);
         //Log.d("crashTest", "Missing tour: " + Integer.toString(missingTourIds.size()));
-        Call<List<FileDownloadResponse>> call = client.downloadMultipleFiles(missingTourIds, false);
-        call.enqueue(new Callback<List<FileDownloadResponse>>() {
+        Call<List<TourFileDownloadResponse>> call = client.downloadMultipleToursImagesFiles(missingTourIds, false);
+        call.enqueue(new Callback<List<TourFileDownloadResponse>>() {
             @Override
-            public void onResponse(Call<List<FileDownloadResponse>> call, Response<List<FileDownloadResponse>> response) {
+            public void onResponse(Call<List<TourFileDownloadResponse>> call, Response<List<TourFileDownloadResponse>> response) {
                 //Log.d("crashTest", "loadToursImagesFromServerDb onResponse");
-                final List<FileDownloadResponse> res = response.body();
+                final List<TourFileDownloadResponse> res = response.body();
                 if (res != null && res.size() > 0) {
                     try {
                         loadToursImagesFromServerDbProcessResponse(res);
@@ -266,24 +266,24 @@ public class HomeFragment extends Fragment {
             }
 
             @Override
-            public void onFailure(Call<List<FileDownloadResponse>> call, Throwable t) {
+            public void onFailure(Call<List<TourFileDownloadResponse>> call, Throwable t) {
                 t.printStackTrace();
                 //Log.d("crashTest", "loadToursImagesFromServerDb onFailure");
             }
         });
     }
 
-    private void loadToursImagesFromServerDbProcessResponse(List<FileDownloadResponse> res) {
+    private void loadToursImagesFromServerDbProcessResponse(List<TourFileDownloadResponse> res) {
         //Log.d("crashTest", "Missing tour: " + Integer.toString(res.size()));
         // for each tour
         Context context = getContext();
         if (context == null)
             return;
-        for (FileDownloadResponse fileDownloadResponse : res) {
-            //Log.d("crashTest", fileDownloadResponse.tourServerId);
-            if (fileDownloadResponse.images != null) {
+        for (TourFileDownloadResponse tourFileDownloadResponse : res) {
+            //Log.d("crashTest", tourFileDownloadResponse.tourServerId);
+            if (tourFileDownloadResponse.images != null) {
                 // for each image in tour
-                for (Map.Entry<String, FileDownloadImageObj> entry : fileDownloadResponse.images.entrySet()) {
+                for (Map.Entry<String, FileDownloadImageObj> entry : tourFileDownloadResponse.images.entrySet()) {
                     FileDownloadImageObj fileDownloadImageObj = entry.getValue();
                     //Log.d("crashTest", entry.getKey() + " / " + entry.getValue());
                     if (fileDownloadImageObj.base64 != null && fileDownloadImageObj.mime != null) {
@@ -295,7 +295,7 @@ public class HomeFragment extends Fragment {
                             for (int i = 0; i < mAdapter.mDataset.size(); i++) {
                                 TourWithWpWithPaths t = mAdapter.mDataset.get(i);
                                 //Log.d("crashTest", t.tour.getServerTourId());
-                                if (t.tour.getServerTourId().equals(fileDownloadResponse.tourServerId)) {
+                                if (t.tour.getServerTourId().equals(tourFileDownloadResponse.tourServerId)) {
                                     t.tour.setTourImgPath(file.toURI().toString());
                                     while (recyclerView.isComputingLayout());
                                     mAdapter.notifyItemChanged(i);

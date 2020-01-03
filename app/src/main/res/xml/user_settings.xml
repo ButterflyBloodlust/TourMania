@@ -19,6 +19,14 @@
             app:useSimpleSummaryProvider="true"
             android:dialogTitle="Edit your phone number"
             app:iconSpaceReserved="false" />
+
+        <com.hal9000.tourmania.ui.user_settings.ClickableIconPreference
+            android:key="tour_guide_image"
+            android:dependency="tour_guide_status"
+            android:title="Select your tour guide profile picture"
+            android:summary="Picture will only be used when tour guide status is set to enabled."
+            app:iconSpaceReserved="true"
+            app:icon="@drawable/ic_menu_gallery_white"/>
     </PreferenceCategory>
 
     <PreferenceCategory
@@ -38,7 +46,7 @@
             android:summary="Removes tracking of your location from all users you shared your location tracking QR code with."
             app:iconSpaceReserved="false"/>
 
-        <com.hal9000.tourmania.ui.user_settings.TimePreference
+        <com.hal9000.tourmania.ui.user_settings.NumberPickerPreference
             android:key="location_token_lifetime"
             android:title="Set location sharing token's hours of lifetime"
             android:defaultValue="@integer/location_token_lifetime_default_value"

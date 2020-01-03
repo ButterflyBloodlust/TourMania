@@ -6,11 +6,11 @@ import android.util.AttributeSet;
 
 import androidx.preference.DialogPreference;
 
-public class TimePreference extends DialogPreference
+public class NumberPickerPreference extends DialogPreference
 {
     int hours = 0;
 
-    public TimePreference(Context context, AttributeSet attrs)
+    public NumberPickerPreference(Context context, AttributeSet attrs)
     {
         super(context, attrs);
     }

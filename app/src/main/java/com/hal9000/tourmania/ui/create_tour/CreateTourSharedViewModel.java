@@ -1,10 +1,6 @@
 package com.hal9000.tourmania.ui.create_tour;
 
 import android.content.Context;
-import android.content.SharedPreferences;
-import android.location.Location;
-import android.net.Uri;
-import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
@@ -13,7 +9,6 @@ import com.hal9000.tourmania.AppUtils;
 import com.hal9000.tourmania.BuildConfig;
 import com.hal9000.tourmania.FileUtil;
 import com.hal9000.tourmania.MainActivity;
-import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.SharedPrefUtils;
 import com.hal9000.tourmania.database.AppDatabase;
 import com.hal9000.tourmania.database.FavouriteTourDAO;
@@ -29,7 +24,7 @@ import com.hal9000.tourmania.model.TourWpWithPicPaths;
 import com.hal9000.tourmania.model.User;
 import com.hal9000.tourmania.rest_api.RestClient;
 import com.hal9000.tourmania.rest_api.files_upload_download.FileDownloadImageObj;
-import com.hal9000.tourmania.rest_api.files_upload_download.FileDownloadResponse;
+import com.hal9000.tourmania.rest_api.files_upload_download.TourFileDownloadResponse;
 import com.hal9000.tourmania.rest_api.files_upload_download.FileUploadDownloadService;
 import com.hal9000.tourmania.rest_api.tour_guides.GetTourGuideLocationResponse;
 import com.hal9000.tourmania.rest_api.tour_guides.TourGuidesService;
@@ -37,7 +32,6 @@ import com.hal9000.tourmania.rest_api.tours.ToursService;
 import com.hal9000.tourmania.rest_api.tours.TourUpsertResponse;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -48,8 +42,6 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
-import androidx.navigation.Navigation;
-import id.zelory.compressor.Compressor;
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
@@ -57,8 +49,6 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.internal.EverythingIsNonNull;
-
-import static com.hal9000.tourmania.ui.join_tour.JoinTourFragment.LOCATION_SHARING_TOKEN_TOUR_ID_KEY;
 
 public class CreateTourSharedViewModel extends ViewModel {
 
@@ -293,12 +283,12 @@ public class CreateTourSharedViewModel extends ViewModel {
             public void run() {
                 // Compress and send tour images
                 LinkedList<File> imageFiles = new LinkedList<>();
-                File imgFile = compressMainTourImg(context, getTour().getTourImgPath());
+                File imgFile = FileUtil.compressImage(context, getTour().getTourImgPath(), "TourPictures");
                 //if (imgFile != null)
                     imageFiles.addLast(imgFile);
 
                 for (TourWpWithPicPaths tourWpWithPicPaths : tourWaypointList) {
-                    imgFile = compressMainTourImg(context, tourWpWithPicPaths.tourWaypoint.getMainImgPath());
+                    imgFile = FileUtil.compressImage(context, tourWpWithPicPaths.tourWaypoint.getMainImgPath(), "TourPictures");
                     //if (imgFile != null)
                         imageFiles.addLast(imgFile);
                 }
@@ -318,7 +308,7 @@ public class CreateTourSharedViewModel extends ViewModel {
             String label;
             label = Integer.toString(i++);
             //label = imgFile.getName();
-            parts.add(RestClient.prepareFilePart(label, imgFile, context));
+            parts.add(RestClient.prepareFilePart(label, imgFile));
         }
 
         // add the description part within the multipart request
@@ -328,7 +318,7 @@ public class CreateTourSharedViewModel extends ViewModel {
         FileUploadDownloadService service = RestClient.createService(FileUploadDownloadService.class, SharedPrefUtils.getDecryptedString(context, MainActivity.getLoginTokenKey()));
 
         // execute the request
-        Call<ResponseBody> call = service.uploadMultipleFilesDynamic(description, parts);
+        Call<ResponseBody> call = service.uploadMultipleTourImagesFilesDynamic(description, parts);
         call.enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -340,34 +330,6 @@ public class CreateTourSharedViewModel extends ViewModel {
                 //Log.d("crashTest", "sendImgFilesToServerHelper.onFailure()");
             }
         });
-    }
-
-    private File compressMainTourImg(final Context context, String imgPath) {
-        if (!TextUtils.isEmpty(imgPath)) {
-            File originalImageFile = null;
-            try {
-                originalImageFile = FileUtil.from(context, Uri.parse(imgPath));
-                if (!originalImageFile.exists())
-                    return null;
-                String dirPath = context.getFilesDir().getAbsolutePath() + File.separator + "TourPictures";
-                File projDir = new File(dirPath);
-                if (!projDir.exists())
-                    projDir.mkdirs();
-
-                File compressedImageFile = new Compressor(context)
-                        .setDestinationDirectoryPath(projDir.getAbsolutePath())
-                        .compressToFile(originalImageFile);
-                //Log.d("crashTest", "compressMainTourImg(): " + compressedImageFile.getName());
-                return compressedImageFile;
-            } catch (IOException e) {
-                e.printStackTrace();
-                //Log.d("crashTest", "compressMainTourImg() IOException");
-            } finally {
-                if (originalImageFile != null)
-                    originalImageFile.delete();
-            }
-        }
-        return null;
     }
 
     // Needs to be called from non-ui thread
@@ -447,11 +409,11 @@ public class CreateTourSharedViewModel extends ViewModel {
     public void loadTourImagesFromServerDb(String tourServerId, final Context context, final String subDirName) {
         FileUploadDownloadService client = RestClient.createService(FileUploadDownloadService.class);
         //Log.d("crashTest", "Missing tour: " + Integer.toString(missingTourIds.size()));
-        Call<FileDownloadResponse> call = client.getTourImages(tourServerId);
-        call.enqueue(new Callback<FileDownloadResponse>() {
+        Call<TourFileDownloadResponse> call = client.getTourImages(tourServerId);
+        call.enqueue(new Callback<TourFileDownloadResponse>() {
             @Override
-            public void onResponse(Call<FileDownloadResponse> call, Response<FileDownloadResponse> response) {
-                FileDownloadResponse res = response.body();
+            public void onResponse(Call<TourFileDownloadResponse> call, Response<TourFileDownloadResponse> response) {
+                TourFileDownloadResponse res = response.body();
                 if (res != null) {
                     try {
                         loadToursImagesFromServerDbProcessResponse(res, context, subDirName);
@@ -465,18 +427,18 @@ public class CreateTourSharedViewModel extends ViewModel {
             }
 
             @Override
-            public void onFailure(Call<FileDownloadResponse> call, Throwable t) {
+            public void onFailure(Call<TourFileDownloadResponse> call, Throwable t) {
                 t.printStackTrace();
                 //Log.d("crashTest", "loadToursImagesFromServerDb onFailure");
             }
         });
     }
 
-    private void loadToursImagesFromServerDbProcessResponse(FileDownloadResponse fileDownloadResponse, final Context context, final String subDirName) {
+    private void loadToursImagesFromServerDbProcessResponse(TourFileDownloadResponse tourFileDownloadResponse, final Context context, final String subDirName) {
         //Log.d("crashTest", "Missing tour: " + Integer.toString(res.size()));
-        if (fileDownloadResponse.images != null) {
+        if (tourFileDownloadResponse.images != null) {
             // for each image in tour
-            for (Map.Entry<String, FileDownloadImageObj> entry : fileDownloadResponse.images.entrySet()) {
+            for (Map.Entry<String, FileDownloadImageObj> entry : tourFileDownloadResponse.images.entrySet()) {
                 FileDownloadImageObj fileDownloadImageObj = entry.getValue();
                 //Log.d("crashTest", entry.getKey() + " / " + entry.getValue());
                 if (fileDownloadImageObj.base64 != null && fileDownloadImageObj.mime != null) {
