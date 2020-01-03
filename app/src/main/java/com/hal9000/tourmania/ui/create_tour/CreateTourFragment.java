@@ -40,6 +40,7 @@ import retrofit2.Response;
 
 import android.preference.PreferenceManager;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -186,6 +187,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        Log.d("crashTest", "onCreateOptionsMenu : " + createTourSharedViewModel.isLoadedFromServerDb() + ", " + createTourSharedViewModel.isLoadedFromDb());
         if(createTourSharedViewModel.isEditingEnabled()) {
             inflater.inflate(R.menu.create_tour_toolbar_menu_edit_mode, menu);
         }
@@ -194,7 +196,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
             if (createTourSharedViewModel.isEditingPossible()) {
                 inflater.inflate(R.menu.create_tour_toolbar_menu_my_tour, menu);
             }
-            else {
+            else if (createTourSharedViewModel.isLoadedFromServerDb() || createTourSharedViewModel.isLoadedFromDb()) {
                 inflater.inflate(R.menu.create_tour_toolbar_menu_not_my_tour, menu);
                 final MenuItem item = menu.findItem(R.id.action_add_tour_to_favourites);
                 if (observerFavIcon != null)
@@ -510,6 +512,20 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
         ViewModelStoreOwner owner = Navigation.findNavController(view).getViewModelStoreOwner(R.id.nav_nested_create_tour);
         CreateTourSharedViewModelFactory factory = new CreateTourSharedViewModelFactory();
         createTourSharedViewModel = new ViewModelProvider(owner, factory).get(CreateTourSharedViewModel.class);
+
+        createTourSharedViewModel.getLoadedFromDb().observe(this, new Observer<Boolean>() {
+            @Override
+            public void onChanged(@Nullable Boolean isLoadedFromDb) {
+                Log.d("crashTest", "onChanged isLoadedFromDb = " + isLoadedFromDb);
+                requireActivity().invalidateOptionsMenu();
+            }
+        });
+        createTourSharedViewModel.getLoadedFromServerDb().observe(this, new Observer<Boolean>() {
+            @Override
+            public void onChanged(@Nullable Boolean isLoadedFromServerDb) {
+                requireActivity().invalidateOptionsMenu();
+            }
+        });
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(requireContext());
         final String token = prefs.getString(LOCATION_SHARING_TOKEN_KEY, "");

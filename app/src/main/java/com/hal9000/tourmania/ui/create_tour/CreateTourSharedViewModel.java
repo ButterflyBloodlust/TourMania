@@ -58,8 +58,8 @@ public class CreateTourSharedViewModel extends ViewModel {
     private ArrayList<TourTag> tourTagsList = new ArrayList<>();
     private User user;
     private int choosenLocateWaypointIndex = -1;
-    private boolean loadedFromDb = false;
-    private boolean loadedFromServerDb = false;
+    private MutableLiveData<Boolean> loadedFromDb = new MutableLiveData<Boolean>(false);
+    private MutableLiveData<Boolean> loadedFromServerDb = new MutableLiveData<Boolean>(false);
     private boolean editingEnabled = true;
     private boolean editingInitialised = false;
     private boolean editingPossible = false;
@@ -350,15 +350,19 @@ public class CreateTourSharedViewModel extends ViewModel {
         return AppDatabase.databaseWriteExecutor.submit(new Runnable() {
             @Override
             public void run() {
-                if (!loadedFromDb) {
-                    AppDatabase appDatabase = AppDatabase.getInstance(context);
-                    TourWithWpWithPaths tourWpWithPicPaths = appDatabase.tourDAO().getTourWithTourWps(tourId);
-                    tour.postValue(tourWpWithPicPaths.tour);
-                    tourWaypointList.addAll(tourWpWithPicPaths.getSortedTourWpsWithPicPaths());
-                    tourTagsList.addAll(tourWpWithPicPaths.tourTags);
-                    user = tourWpWithPicPaths.user;
-                    loadedFromDb = true;
-                    detectViewType(context, tourWpWithPicPaths.tour.getTourId());
+                try {
+                    if (!loadedFromDb.getValue()) {
+                        AppDatabase appDatabase = AppDatabase.getInstance(context);
+                        TourWithWpWithPaths tourWpWithPicPaths = appDatabase.tourDAO().getTourWithTourWps(tourId);
+                        tour.postValue(tourWpWithPicPaths.tour);
+                        tourWaypointList.addAll(tourWpWithPicPaths.getSortedTourWpsWithPicPaths());
+                        tourTagsList.addAll(tourWpWithPicPaths.tourTags);
+                        user = tourWpWithPicPaths.user;
+                        detectViewType(context, tourWpWithPicPaths.tour.getTourId());
+                        loadedFromDb.postValue(true);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
         });
@@ -375,7 +379,7 @@ public class CreateTourSharedViewModel extends ViewModel {
     }
 
     public void loadTourFromServerDb(final String tourServerId, final Context context, final String subDirName) {
-        if (!loadedFromServerDb) {
+        if (!loadedFromServerDb.getValue()) {
             ToursService client = RestClient.createService(ToursService.class, SharedPrefUtils.getDecryptedString(context, MainActivity.getLoginTokenKey()));
             Call<TourWithWpWithPaths> call = client.getTour(tourServerId);
             call.enqueue(new Callback<TourWithWpWithPaths>() {
@@ -386,8 +390,10 @@ public class CreateTourSharedViewModel extends ViewModel {
                         TourWithWpWithPaths tourWithTourWps = response.body();
                         if (tourWithTourWps != null) {
                             user = tourWithTourWps.user;
+                            if (user.getUsername().equals(SharedPrefUtils.getDecryptedString(context, MainActivity.getUsernameKey())))
+                                setEditingPossible(true);
                             tour.setValue(tourWithTourWps.tour);
-                            loadedFromServerDb = true;
+                            loadedFromServerDb.setValue(true);
                             tourTagsList.addAll(tourWithTourWps.tourTags);
                             tourWaypointList.addAll(tourWithTourWps.getSortedTourWpsWithPicPaths());
 
@@ -586,15 +592,23 @@ public class CreateTourSharedViewModel extends ViewModel {
     }
 
     public boolean isLoadedFromDb() {
-        return loadedFromDb;
+        return loadedFromDb.getValue();
     }
 
     public boolean isLoadedFromServerDb() {
-        return loadedFromServerDb;
+        return loadedFromServerDb.getValue();
     }
 
     public User getUser() {
         return user;
+    }
+
+    public LiveData<Boolean> getLoadedFromDb() {
+        return loadedFromDb;
+    }
+
+    public LiveData<Boolean> getLoadedFromServerDb() {
+        return loadedFromServerDb;
     }
 
     /*
