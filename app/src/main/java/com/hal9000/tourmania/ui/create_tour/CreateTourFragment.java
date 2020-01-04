@@ -187,7 +187,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        Log.d("crashTest", "onCreateOptionsMenu : " + createTourSharedViewModel.isLoadedFromServerDb() + ", " + createTourSharedViewModel.isLoadedFromDb());
+        //Log.d("crashTest", "onCreateOptionsMenu : " + createTourSharedViewModel.isLoadedFromServerDb() + ", " + createTourSharedViewModel.isLoadedFromDb());
         if(createTourSharedViewModel.isEditingEnabled()) {
             inflater.inflate(R.menu.create_tour_toolbar_menu_edit_mode, menu);
         }
@@ -220,8 +220,10 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                                         });
                                     }
                                     else if (tour.getTourId() != 0) {
+                                        Log.d("crashTest", "tour.getTourId() != 0");
                                         AppDatabase appDatabase = AppDatabase.getInstance(requireContext());
                                         final FavouriteTour favouriteTour = appDatabase.favouriteTourDAO().getFavouriteTourByTourId(tour.getTourId());
+                                        Log.d("crashTest", "" + favouriteTour);
                                         requireActivity().runOnUiThread(new Runnable() {
                                             @Override
                                             public void run() {
@@ -516,7 +518,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
         createTourSharedViewModel.getLoadedFromDb().observe(this, new Observer<Boolean>() {
             @Override
             public void onChanged(@Nullable Boolean isLoadedFromDb) {
-                Log.d("crashTest", "onChanged isLoadedFromDb = " + isLoadedFromDb);
+                //Log.d("crashTest", "onChanged isLoadedFromDb = " + isLoadedFromDb);
                 requireActivity().invalidateOptionsMenu();
             }
         });
@@ -1132,37 +1134,38 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
         isInTrackingMode = false;
 
         // Store annotations in ViewModel
-        LongSparseArray<Symbol> annotations = symbolManager.getAnnotations();
-        ArrayList<TourWpWithPicPaths> tourWpWithPicPathsLinkedList = createTourSharedViewModel.getTourWaypointList();
-        int annotationsSize = annotations.size();
-        int tourWpWithPicPathsLinkedListInitialSize = tourWpWithPicPathsLinkedList.size();
-        tourWpWithPicPathsLinkedList.ensureCapacity(annotationsSize);
-        boolean hadTourGuideSymbol = false;
-        for (int i = 0; i < tourWpWithPicPathsLinkedListInitialSize && i < annotationsSize; i++) {
-            Symbol symbol = annotations.valueAt(i);
-            if (symbol != tourGuideSymbol) {
-                LatLng latLng = symbol.getLatLng();
+        if (symbolManager != null) {
+            LongSparseArray<Symbol> annotations = symbolManager.getAnnotations();
+            ArrayList<TourWpWithPicPaths> tourWpWithPicPathsLinkedList = createTourSharedViewModel.getTourWaypointList();
+            int annotationsSize = annotations.size();
+            int tourWpWithPicPathsLinkedListInitialSize = tourWpWithPicPathsLinkedList.size();
+            tourWpWithPicPathsLinkedList.ensureCapacity(annotationsSize);
+            boolean hadTourGuideSymbol = false;
+            for (int i = 0; i < tourWpWithPicPathsLinkedListInitialSize && i < annotationsSize; i++) {
+                Symbol symbol = annotations.valueAt(i);
+                if (symbol != tourGuideSymbol) {
+                    LatLng latLng = symbol.getLatLng();
 
-                TourWpWithPicPaths tourWpWithPicPaths;
-                if (hadTourGuideSymbol)
-                    tourWpWithPicPaths = tourWpWithPicPathsLinkedList.get(i - 1);
-                else
-                    tourWpWithPicPaths = tourWpWithPicPathsLinkedList.get(i);
-                tourWpWithPicPaths.tourWaypoint.setLatitude(latLng.getLatitude());
-                tourWpWithPicPaths.tourWaypoint.setLongitude(latLng.getLongitude());
-                tourWpWithPicPaths.tourWaypoint.setTitle(symbol.getTextField());
+                    TourWpWithPicPaths tourWpWithPicPaths;
+                    if (hadTourGuideSymbol)
+                        tourWpWithPicPaths = tourWpWithPicPathsLinkedList.get(i - 1);
+                    else
+                        tourWpWithPicPaths = tourWpWithPicPathsLinkedList.get(i);
+                    tourWpWithPicPaths.tourWaypoint.setLatitude(latLng.getLatitude());
+                    tourWpWithPicPaths.tourWaypoint.setLongitude(latLng.getLongitude());
+                    tourWpWithPicPaths.tourWaypoint.setTitle(symbol.getTextField());
+                } else
+                    hadTourGuideSymbol = true;
             }
-            else
-                hadTourGuideSymbol = true;
-        }
-        for (int i = tourWpWithPicPathsLinkedList.size(); i < annotationsSize; i++) {
-            Symbol symbol = annotations.valueAt(i);
-            if (symbol != tourGuideSymbol) {
-                LatLng latLng = symbol.getLatLng();
+            for (int i = tourWpWithPicPathsLinkedList.size(); i < annotationsSize; i++) {
+                Symbol symbol = annotations.valueAt(i);
+                if (symbol != tourGuideSymbol) {
+                    LatLng latLng = symbol.getLatLng();
 
-                TourWpWithPicPaths tourWpWithPicPaths = new TourWpWithPicPaths();
-                tourWpWithPicPaths.tourWaypoint = new TourWaypoint(latLng.getLatitude(), latLng.getLongitude(), symbol.getTextField(), null);
-                tourWpWithPicPathsLinkedList.add(tourWpWithPicPaths);
+                    TourWpWithPicPaths tourWpWithPicPaths = new TourWpWithPicPaths();
+                    tourWpWithPicPaths.tourWaypoint = new TourWaypoint(latLng.getLatitude(), latLng.getLongitude(), symbol.getTextField(), null);
+                    tourWpWithPicPathsLinkedList.add(tourWpWithPicPaths);
+                }
             }
         }
     }

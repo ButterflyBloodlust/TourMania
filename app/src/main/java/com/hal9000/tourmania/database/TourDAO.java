@@ -1,6 +1,7 @@
 package com.hal9000.tourmania.database;
 
 import com.hal9000.tourmania.model.Tour;
+import com.hal9000.tourmania.model.TourServerIdTimestamp;
 import com.hal9000.tourmania.model.TourWaypoint;
 import com.hal9000.tourmania.model.TourWithWpWithPaths;
 
@@ -58,6 +59,9 @@ public abstract class TourDAO {
     @Delete
     public abstract void deleteTourWp(Tour tour);
 
+    @Query("DELETE FROM Tours WHERE tour_id_pk IN (:tourId)")
+    public abstract void deleteToursByTourIds(int[] tourId);
+
     @Query("DELETE FROM Tours WHERE tour_id_pk = :tourId")
     public abstract void deleteTourWpByTourId(int tourId);
 
@@ -71,11 +75,11 @@ public abstract class TourDAO {
         updateTour(tour);
     }
 
-    @Query("SELECT server_tour_id FROM Tours WHERE tour_id_pk IN (SELECT DISTINCT(tour_id) FROM MyTours) AND (user_id = :userId OR user_id IS NULL)")
-    public abstract List<String> getServerMyTourIds(int userId);
+    @Query("SELECT server_tour_id, modified_at FROM Tours WHERE tour_id_pk IN (SELECT DISTINCT(tour_id) FROM MyTours) AND (user_id = :userId OR user_id IS NULL)")
+    public abstract List<TourServerIdTimestamp> getServerMyTourIds(int userId);
 
-    @Query("SELECT server_tour_id FROM Tours WHERE tour_id_pk IN (SELECT DISTINCT(tour_id) FROM FavouriteTours) AND (user_id = :userId OR user_id IS NULL)")
-    public abstract List<String> getServerFavTourIds(int userId);
+    @Query("SELECT server_tour_id, modified_at FROM Tours WHERE tour_id_pk IN (SELECT DISTINCT(tour_id) FROM FavouriteTours) AND (user_id = :userId OR user_id IS NULL)")
+    public abstract List<TourServerIdTimestamp> getServerFavTourIds(int userId);
 
     @Transaction
     @Query("SELECT * FROM Tours LEFT JOIN Users ON user_id = user_id_pk WHERE server_tour_id = :serverTourId")

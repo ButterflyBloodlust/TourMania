@@ -3,6 +3,7 @@ package com.hal9000.tourmania.ui;
 import android.content.Context;
 import android.net.Uri;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -83,7 +84,7 @@ public class ToursAdapter extends RecyclerView.Adapter<ToursAdapter.MyViewHolder
         holder.textView.setText(mDataset.get(position).tour.getTitle());
 
         String mainImgPath = mDataset.get(position).tour.getTourImgPath();
-        //Log.d("crashTest", mainImgPath == null ? "null" : mainImgPath);
+        //Log.d("crashTest", "mainImgPath : " + (mainImgPath == null ? "null" : mainImgPath));
         if (!TextUtils.isEmpty(mainImgPath)) {
             // asynchronous image loading
             Picasso.get() //

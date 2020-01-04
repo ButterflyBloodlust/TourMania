@@ -13,7 +13,7 @@ import androidx.room.PrimaryKey;
         foreignKeys = @ForeignKey(entity = Tour.class,
                 parentColumns = "tour_id_pk",
                 childColumns = "tour_id",
-                onDelete = ForeignKey.NO_ACTION),
+                onDelete = ForeignKey.CASCADE),
         indices=@Index(value="tour_id", unique=true))
 public class FavouriteTour {
 

@@ -22,6 +22,9 @@ public interface MyTourDAO {
     @Query("SELECT * FROM MyTours WHERE tour_id = :tourId")
     MyTour getMyTourByTourId(int tourId);
 
+    @Query("SELECT tour_id FROM MyTours")
+    int[] getMyTourForeignIds();
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     void insertMyTour(MyTour myTour);
 
@@ -33,4 +36,7 @@ public interface MyTourDAO {
 
     @Delete
     void deleteMyTour(MyTour myTour);
+
+    @Query("DELETE FROM MyTours")
+    void deleteAllMyTours();
 }

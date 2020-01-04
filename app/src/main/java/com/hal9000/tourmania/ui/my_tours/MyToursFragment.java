@@ -2,6 +2,7 @@ package com.hal9000.tourmania.ui.my_tours;
 
 import android.content.Context;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,6 +23,7 @@ import com.hal9000.tourmania.MainActivity;
 import com.hal9000.tourmania.MainActivityViewModel;
 import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.SharedPrefUtils;
+import com.hal9000.tourmania.model.TourServerIdTimestamp;
 import com.hal9000.tourmania.model.TourWaypoint;
 import com.hal9000.tourmania.rest_api.RestClient;
 import com.hal9000.tourmania.rest_api.files_upload_download.FileDownloadImageObj;
@@ -51,9 +53,14 @@ public class MyToursFragment extends Fragment {
     private RecyclerView recyclerView;
     private ToursAdapter mAdapter;
     private RecyclerView.LayoutManager layoutManager;
-    private List<TourWithWpWithPaths> toursWithTourWps;
+    private List<TourWithWpWithPaths> toursWithTourWps = new ArrayList<>();
     private int currentFragmentId;
     private int checkingDetailsTourIndex = -1;
+    private boolean loadedFromDb = false;
+
+    private static final String SAVED_TOURS_CACHE_DIR_NAME = "tours";
+    private static final String SAVED_MY_TOURS_CACHE_DIR_NAME = "created";
+    private static final String SAVED_FAV_TOURS_CACHE_DIR_NAME = "favs";
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -63,11 +70,12 @@ public class MyToursFragment extends Fragment {
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
+        Log.d("crashTest", "onCreateView");
         myToursViewModel =
                 ViewModelProviders.of(this).get(MyToursViewModel.class);
         View root = inflater.inflate(R.layout.fragment_my_tours, container, false);
-
         currentFragmentId = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment).getCurrentDestination().getId();
+
         //Log.d("crashTest", "currId = " + currId);
         //Log.d("crashTest", "nav_my_tours = " + R.id.nav_my_tours);
         //Log.d("crashTest", "nav_fav_tours = " + R.id.nav_fav_tours);
@@ -97,15 +105,49 @@ public class MyToursFragment extends Fragment {
             }
         }
 
-        Future future = loadToursFromRoomDb();
+        createRecyclerView(root);
+        if (AppUtils.isNetworkAvailable(requireContext()))
+            loadToursFromServerDb();
+        else
+            loadToursFromRoomDb();
+        return root;
+    }
+
+    private void clearLocalCache() {
+        Future future = AppDatabase.databaseWriteExecutor.submit(new Runnable() {
+            public void run() {
+                try {
+                    AppDatabase appDatabase = AppDatabase.getInstance(requireContext());
+                    String dirPath = null;
+                    if (currentFragmentId == R.id.nav_my_tours) {
+                        int[] tourIds = appDatabase.myTourDAO().getMyTourForeignIds();
+                        appDatabase.myTourDAO().deleteAllMyTours();
+                        appDatabase.tourDAO().deleteToursByTourIds(tourIds);
+                        dirPath = requireContext().getExternalCacheDir() + File.separator
+                                + SAVED_TOURS_CACHE_DIR_NAME + File.separator + SAVED_MY_TOURS_CACHE_DIR_NAME;
+                    } else if (currentFragmentId == R.id.nav_fav_tours) {
+                        int[] tourIds = appDatabase.favouriteTourDAO().getFavouriteTourForeignIds();
+                        appDatabase.favouriteTourDAO().deleteAllFavouriteTours();
+                        appDatabase.tourDAO().deleteToursByTourIds(tourIds);
+                        dirPath = requireContext().getExternalCacheDir() + File.separator
+                                + SAVED_TOURS_CACHE_DIR_NAME + File.separator + SAVED_FAV_TOURS_CACHE_DIR_NAME;
+                    }
+                    if (dirPath != null) {
+                        File projDir = new File(dirPath);
+                        if (projDir.exists()) {
+                            AppUtils.deleteDir(projDir, -1);
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
         try {
             future.get();
         } catch (ExecutionException | InterruptedException e) {
             e.printStackTrace();
         }
-        createRecyclerView(root);
-        loadToursFromServerDb();
-        return root;
     }
 
     private Future loadToursFromRoomDb() {
@@ -116,14 +158,17 @@ public class MyToursFragment extends Fragment {
                 //Log.d("crashTest", "run()");
                 AppDatabase appDatabase = AppDatabase.getInstance(requireContext());
                 //List<Tour> toursWithTourWps = AppDatabase.getInstance(requireContext()).tourDAO().getTours();
+                int oldSize = mAdapter.getItemCount();
+                List<TourWithWpWithPaths> loadedToursWithTourWps = null;
                 if (currentFragmentId == R.id.nav_my_tours) {
-                    toursWithTourWps = appDatabase.tourDAO().getMyToursWithTourWps();
+                    loadedToursWithTourWps = appDatabase.tourDAO().getMyToursWithTourWps();
                 }
                 else if (currentFragmentId == R.id.nav_fav_tours){
-                    toursWithTourWps = appDatabase.tourDAO().getFavouriteToursWithTourWps();
+                    loadedToursWithTourWps = appDatabase.tourDAO().getFavouriteToursWithTourWps();
                 }
-
-                //Log.d("crashTest", Integer.toString(toursWithTourWps.size()));
+                mAdapter.mDataset.clear();
+                mAdapter.mDataset.addAll(loadedToursWithTourWps);
+                mAdapter.notifyItemRangeInserted(0, mAdapter.mDataset.size());
             }
         });
     }
@@ -139,13 +184,13 @@ public class MyToursFragment extends Fragment {
                         ToursService client = RestClient.createService(ToursService.class);
                         Call<List<TourWithWpWithPaths>> call = null;
                         if (currentFragmentId == R.id.nav_my_tours) {
-                            List<String> serverMyTourIds = appDatabase.tourDAO().getServerMyTourIds(-1);
+                            List<TourServerIdTimestamp> serverMyTourIds = appDatabase.tourDAO().getServerMyTourIds(-1);
                             call = serverMyTourIds == null || serverMyTourIds.isEmpty() ?
                                     client.getUserTours(SharedPrefUtils.getDecryptedString(requireContext(), MainActivity.getUsernameKey())) :
                                     client.getUserTours(SharedPrefUtils.getDecryptedString(requireContext(), MainActivity.getUsernameKey()), serverMyTourIds);
                         }
                         else if (currentFragmentId == R.id.nav_fav_tours) {
-                            List<String> serverMyTourIds = appDatabase.tourDAO().getServerFavTourIds(-1);
+                            List<TourServerIdTimestamp> serverMyTourIds = appDatabase.tourDAO().getServerFavTourIds(-1);
                             call = serverMyTourIds == null || serverMyTourIds.isEmpty() ?
                                     client.getUserFavTours(SharedPrefUtils.getDecryptedString(requireContext(), MainActivity.getUsernameKey())) :
                                     client.getUserFavTours(SharedPrefUtils.getDecryptedString(requireContext(), MainActivity.getUsernameKey()), serverMyTourIds);
@@ -156,31 +201,37 @@ public class MyToursFragment extends Fragment {
                                 if (response.isSuccessful()) {
                                     //Log.d("crashTest", "loadToursFromServerDb onResponse");
                                     if (response.body() != null) {
+                                        clearLocalCache();
                                         List<TourWithWpWithPaths> missingToursWithTourWps = response.body();
+                                        Log.d("crashTest", "loadToursFromServerDb onResponse size = " + missingToursWithTourWps.size());
                                         if (missingToursWithTourWps.size() > 0) {
 
-                                            HashSet<Long> tourTitlesHashSet = new HashSet<>();
+                                            /*
+                                            HashSet<String> tourTitlesHashSet = new HashSet<>();
                                             for (TourWithWpWithPaths tourWithWpWithPaths : mAdapter.mDataset) {
-                                                tourTitlesHashSet.add(tourWithWpWithPaths.tour.getModifiedAt());
+                                                tourTitlesHashSet.add(tourWithWpWithPaths.tour.getServerTourId());
                                             }
                                             Iterator<TourWithWpWithPaths> it = missingToursWithTourWps.iterator();
                                             while (it.hasNext()) {
-                                                if (tourTitlesHashSet.contains(it.next().tour.getModifiedAt()))
+                                                if (tourTitlesHashSet.contains(it.next().tour.getServerTourId()))
                                                     it.remove();
                                             }
-
+                                            */
+                                            Future future;
                                             if (currentFragmentId == R.id.nav_my_tours)
-                                                AppUtils.saveToursToLocalDb(missingToursWithTourWps, requireContext(), AppUtils.TOUR_TYPE_MY_TOUR);
+                                                future = AppUtils.saveToursToLocalDb(missingToursWithTourWps, requireContext(), AppUtils.TOUR_TYPE_MY_TOUR);
                                             else if (currentFragmentId == R.id.nav_fav_tours)
-                                                AppUtils.saveToursToLocalDb(missingToursWithTourWps, requireContext(), AppUtils.TOUR_TYPE_FAV_TOUR);
+                                                future = AppUtils.saveToursToLocalDb(missingToursWithTourWps, requireContext(), AppUtils.TOUR_TYPE_FAV_TOUR);
                                             else
-                                                AppUtils.saveToursToLocalDb(missingToursWithTourWps, requireContext(), null);
+                                                future = AppUtils.saveToursToLocalDb(missingToursWithTourWps, requireContext(), null);
 
                                             int oldSize = mAdapter.mDataset.size();
+                                            mAdapter.mDataset.clear();
                                             mAdapter.mDataset.addAll(missingToursWithTourWps);
-                                            mAdapter.notifyItemRangeInserted(oldSize, missingToursWithTourWps.size());
+                                            mAdapter.notifyDataSetChanged();
+                                            //mAdapter.notifyItemRangeInserted(0, missingToursWithTourWps.size());
 
-                                            loadToursImagesFromServerDb(missingToursWithTourWps);
+                                            loadToursImagesFromServerDb(missingToursWithTourWps, future);
                                         }
                                     }
                                 }
@@ -190,13 +241,22 @@ public class MyToursFragment extends Fragment {
                             public void onFailure(Call<List<TourWithWpWithPaths>> call, Throwable t) {
                                 t.printStackTrace();
                                 //Log.d("crashTest", "loadToursFromServerDb onFailure");
+                                if (!loadedFromDb) {
+                                    loadedFromDb = true;
+                                    Future future = loadToursFromRoomDb();
+                                    try {
+                                        future.get();
+                                    } catch (ExecutionException | InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
                             }
                         });
                     }
                 });
     }
 
-    private void loadToursImagesFromServerDb(List<TourWithWpWithPaths> missingToursWithTourWps) {
+    private void loadToursImagesFromServerDb(List<TourWithWpWithPaths> missingToursWithTourWps, Future future) {
         List<String> missingTourIds = new ArrayList<>(missingToursWithTourWps.size());
         for (TourWithWpWithPaths tourWithWpWithPaths : missingToursWithTourWps) {
             missingTourIds.add(tourWithWpWithPaths.tour.getServerTourId());
@@ -210,6 +270,11 @@ public class MyToursFragment extends Fragment {
                 final List<TourFileDownloadResponse> res = response.body();
                 if (res != null && res.size() > 0) {
                     try {
+                        try {
+                            future.get();
+                        } catch (InterruptedException | ExecutionException e) {
+                            e.printStackTrace();
+                        }
                         AppDatabase.databaseWriteExecutor.submit(
                             new Runnable() {
                                 @Override
@@ -238,6 +303,13 @@ public class MyToursFragment extends Fragment {
     }
 
     private void loadToursImagesFromServerDbProcessResponse(List<TourFileDownloadResponse> res) {
+        String path = SAVED_TOURS_CACHE_DIR_NAME;
+        if (currentFragmentId == R.id.nav_my_tours) {
+            path += File.separator + SAVED_MY_TOURS_CACHE_DIR_NAME;
+        }
+        else if (currentFragmentId == R.id.nav_fav_tours){
+            path += File.separator + SAVED_FAV_TOURS_CACHE_DIR_NAME;
+        }
         final AppDatabase appDatabase = AppDatabase.getInstance(requireContext());
         //Log.d("crashTest", "Missing tour: " + Integer.toString(res.size()));
         // for each tour
@@ -251,12 +323,14 @@ public class MyToursFragment extends Fragment {
                 for (Map.Entry<String, FileDownloadImageObj> entry : tourFileDownloadResponse.images.entrySet()) {
                     FileDownloadImageObj fileDownloadImageObj = entry.getValue();
                     //Log.d("crashTest", entry.getKey() + " / " + entry.getValue());
+                    //Log.d("crashTest", "tourWithWpWithPaths._tourWpsWithPicPaths.size = " + tourWithWpWithPaths._tourWpsWithPicPaths.size());
                     if (fileDownloadImageObj.base64 != null && fileDownloadImageObj.mime != null) {
-                        File file = AppUtils.saveImageFromBase64(requireContext(), fileDownloadImageObj.base64, fileDownloadImageObj.mime, null);
+                        File file = AppUtils.saveImageFromBase64(requireContext(), fileDownloadImageObj.base64, fileDownloadImageObj.mime, path);
                         // process main tour image
                         if (entry.getKey().equals("0")) {
                             //Log.d("crashTest", "updating main tour image");
                             tourWithWpWithPaths.tour.setTourImgPath(file.toURI().toString());
+
                             appDatabase.tourDAO().updateTour(tourWithWpWithPaths.tour);
                             int i = 0;
                             for (TourWithWpWithPaths t : mAdapter.mDataset) {
@@ -281,6 +355,11 @@ public class MyToursFragment extends Fragment {
                 }
             }
         }
+
+        List<TourWithWpWithPaths> loadedToursWithTourWps = null;
+        loadedToursWithTourWps = appDatabase.tourDAO().getFavouriteToursWithTourWps();
+        for (TourWithWpWithPaths tourWithWpWithPaths1 : loadedToursWithTourWps)
+            Log.d("crashTest", "" + tourWithWpWithPaths1.tour.getTourImgPath());
     }
 
     private void createRecyclerView(final View root) {

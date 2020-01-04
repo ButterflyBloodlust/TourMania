@@ -14,13 +14,16 @@ import androidx.room.Update;
 @Dao
 public interface UserDAO {
     @Query("SELECT * FROM Users")
-    List<User> getTourTags();
+    List<User> getUsers();
 
     @Query("SELECT * FROM Users WHERE user_id_pk = :userId")
-    User getUserTag(int userId);
+    User getUserById(int userId);
+
+    @Query("SELECT * FROM Users WHERE username = :username")
+    User getUserByNickname(String username);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    void insertUser(User user);
+    long insertUser(User user);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     long[] insertUsers(List<User> users);

@@ -3,6 +3,8 @@ package com.hal9000.tourmania;
 import android.app.Activity;
 import android.content.Context;
 import android.location.LocationManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.wifi.WifiManager;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
@@ -20,6 +22,7 @@ import com.hal9000.tourmania.model.TourTag;
 import com.hal9000.tourmania.model.TourWaypoint;
 import com.hal9000.tourmania.model.TourWithWpWithPaths;
 import com.hal9000.tourmania.model.TourWpWithPicPaths;
+import com.hal9000.tourmania.model.User;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -89,6 +92,15 @@ public class AppUtils {
                     AppDatabase appDatabase = AppDatabase.getInstance(context);
                     ArrayList<Tour> tours = new ArrayList<>(tourWithWpWithPathsList.size());
                     for (TourWithWpWithPaths tourWithWpWithPaths : tourWithWpWithPathsList) {
+                        if (tourWithWpWithPaths.user != null) {
+                            User dbUser = appDatabase.userDAO().getUserByNickname(tourWithWpWithPaths.user.getUsername());
+                            if (dbUser != null)
+                                tourWithWpWithPaths.tour.setUserId(dbUser.getUserId());
+                            else {
+                                long userId = appDatabase.userDAO().insertUser(tourWithWpWithPaths.user);
+                                tourWithWpWithPaths.tour.setUserId((int)userId);
+                            }
+                        }
                         tours.add(tourWithWpWithPaths.tour);
                     }
                     long[] tourIds = appDatabase.tourDAO().insertTours(tours);
@@ -217,6 +229,13 @@ public class AppUtils {
     public static boolean isWifiEnabled(final Context context) {
         WifiManager wifiManager = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         return wifiManager.isWifiEnabled();
+    }
+
+    public static boolean isNetworkAvailable(final Context context) {
+        ConnectivityManager connectivityManager
+                = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
     public static boolean isLocationEnabled(final Context context) {

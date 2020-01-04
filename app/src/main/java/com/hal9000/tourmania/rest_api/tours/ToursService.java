@@ -1,5 +1,6 @@
 package com.hal9000.tourmania.rest_api.tours;
 
+import com.hal9000.tourmania.model.TourServerIdTimestamp;
 import com.hal9000.tourmania.model.TourWithWpWithPaths;
 
 import java.util.List;
@@ -22,7 +23,7 @@ public interface ToursService {
     Call<TourUpsertResponse> upsertTour(@Body TourWithWpWithPaths tourWithWpWithPaths);
 
     @POST("tour/u/{username}/") @Multipart
-    Call<List<TourWithWpWithPaths>> getUserTours(@Path("username") String username, @Part("owndToursIds") List<String> tourIds);
+    Call<List<TourWithWpWithPaths>> getUserTours(@Path("username") String username, @Part("owndToursIds") List<TourServerIdTimestamp> tourIds);
 
     @POST("tour/u/{username}/")
     Call<List<TourWithWpWithPaths>> getUserTours(@Path("username") String username);
@@ -54,7 +55,7 @@ public interface ToursService {
     Call<ResponseBody> deleteTourFromFavs(@Path("tourId") String tourId);
 
     @POST("user/{username}/favs/") @Multipart
-    Call<List<TourWithWpWithPaths>> getUserFavTours(@Path("username") String username, @Part("owndToursIds") List<String> tourIds);
+    Call<List<TourWithWpWithPaths>> getUserFavTours(@Path("username") String username, @Part("owndToursIds") List<TourServerIdTimestamp> tourIds);
 
     @POST("user/{username}/favs/")
     Call<List<TourWithWpWithPaths>> getUserFavTours(@Path("username") String username);

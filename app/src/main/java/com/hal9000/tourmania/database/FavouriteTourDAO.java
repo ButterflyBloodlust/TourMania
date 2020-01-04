@@ -24,6 +24,9 @@ public interface FavouriteTourDAO {
     @Query("SELECT * FROM FavouriteTours WHERE tour_id = :tourId")
     FavouriteTour getFavouriteTourByTourId(int tourId);
 
+    @Query("SELECT tour_id FROM FavouriteTours")
+    int[] getFavouriteTourForeignIds();
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     void insertFavouriteTour(FavouriteTour favouriteTour);
 
@@ -35,4 +38,7 @@ public interface FavouriteTourDAO {
 
     @Delete
     void deleteFavouriteTour(FavouriteTour favouriteTour);
+
+    @Query("DELETE FROM FavouriteTours")
+    void deleteAllFavouriteTours();
 }
