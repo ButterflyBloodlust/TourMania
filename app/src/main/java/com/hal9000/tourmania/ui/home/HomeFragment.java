@@ -164,60 +164,65 @@ public class HomeFragment extends Fragment {
 
     public void loadActiveTour(View view) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(requireContext());
+        String _tourServerId = null;
+        int _tourId = -2;
         if (prefs.contains(ACTIVE_TOUR_SERVER_ID_KEY)) {
-            Log.d("crashTest", "contains ACTIVE_TOUR_ID_KEY");
-            String tourServerId = prefs.getString(ACTIVE_TOUR_SERVER_ID_KEY, null);
-            Log.d("crashTest", "tourServerId = " + tourServerId);
-            if (tourServerId != null) {
-                AppDatabase.databaseWriteExecutor.submit(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            AppDatabase appDatabase = AppDatabase.getInstance(getContext());
-                            TourWithWpWithPaths tourWithWpWithPaths = appDatabase.tourDAO().getTourByServerTourIds(tourServerId);
-                            Log.d("crashTest", "tour = " + tourWithWpWithPaths);
-                            if (tourWithWpWithPaths != null) {
-                                TextView tourTitleTextView = view.findViewById(R.id.tour_title);
-                                tourTitleTextView.setText(tourWithWpWithPaths.tour.getTitle());
-                                float rating = tourWithWpWithPaths.tour.getRateVal() / (float)tourWithWpWithPaths.tour.getRateCount();
-                                ((TextView)view.findViewById(R.id.tour_rating)).setText(String.format("%.2f", rating));
-                                ((RatingBar)view.findViewById(R.id.tour_rating_bar)).setRating(rating);
-                                view.findViewById(R.id.group_active_tour).setVisibility(View.VISIBLE);
-                                String mainImgPath = tourWithWpWithPaths.tour.getTourImgPath();
-                                //Log.d("crashTest", "mainImgPath : " + (mainImgPath == null ? "null" : mainImgPath));
-                                if (!TextUtils.isEmpty(mainImgPath)) {
-                                    requireActivity().runOnUiThread(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            // asynchronous image loading
-                                            Picasso.get() //
-                                                    .load(Uri.parse(mainImgPath)) //
-                                                    .fit() //
-                                                    .into(((ImageView)view.findViewById(R.id.tour_list_image)));
-                                        }
-                                    });
-                                }
-                                ((ImageButton)view.findViewById(R.id.buttonDeleteTour)).setOnClickListener(new View.OnClickListener() {
+            _tourServerId = prefs.getString(ACTIVE_TOUR_SERVER_ID_KEY, null);
+        } else if (prefs.contains(ACTIVE_TOUR_ID_KEY)) {
+            _tourId = prefs.getInt(ACTIVE_TOUR_ID_KEY, -2);
+        }
+        final String tourServerId = _tourServerId;
+        final int tourId = _tourId;
+        if (tourServerId != null || prefs.contains(ACTIVE_TOUR_ID_KEY)) {
+            AppDatabase.databaseWriteExecutor.submit(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        AppDatabase appDatabase = AppDatabase.getInstance(getContext());
+                        TourWithWpWithPaths tourWithWpWithPaths = tourServerId != null ? appDatabase.tourDAO().getTourByServerTourIds(tourServerId)
+                                : appDatabase.tourDAO().getTour(tourId);
+                        if (tourWithWpWithPaths != null) {
+                            TextView tourTitleTextView = view.findViewById(R.id.tour_title);
+                            tourTitleTextView.setText(tourWithWpWithPaths.tour.getTitle());
+                            float rating = tourWithWpWithPaths.tour.getRateCount() == 0 ? 0.0f
+                                    : tourWithWpWithPaths.tour.getRateVal() / (float)tourWithWpWithPaths.tour.getRateCount();
+                            ((TextView)view.findViewById(R.id.tour_rating)).setText(String.format("%.2f", rating));
+                            ((RatingBar)view.findViewById(R.id.tour_rating_bar)).setRating(rating);
+                            view.findViewById(R.id.group_active_tour).setVisibility(View.VISIBLE);
+                            String mainImgPath = tourWithWpWithPaths.tour.getTourImgPath();
+                            //Log.d("crashTest", "mainImgPath : " + (mainImgPath == null ? "null" : mainImgPath));
+                            if (!TextUtils.isEmpty(mainImgPath)) {
+                                requireActivity().runOnUiThread(new Runnable() {
                                     @Override
-                                    public void onClick(View v) {
-                                        prefs.edit().remove(ACTIVE_TOUR_ID_KEY).remove(ACTIVE_TOUR_SERVER_ID_KEY).apply();
-                                        view.findViewById(R.id.group_active_tour).setVisibility(View.GONE);
-                                    }
-                                });
-                                view.findViewById(R.id.layout_active_tour).setOnClickListener(new View.OnClickListener() {
-                                    @Override
-                                    public void onClick(View v) {
-                                        Navigation.findNavController(requireView()).navigate(R.id.nav_nested_create_tour,
-                                                new CreateTourFragmentArgs.Builder().setTourServerId(tourServerId).build().toBundle());
+                                    public void run() {
+                                        // asynchronous image loading
+                                        Picasso.get() //
+                                                .load(Uri.parse(mainImgPath)) //
+                                                .fit() //
+                                                .into(((ImageView)view.findViewById(R.id.tour_list_image)));
                                     }
                                 });
                             }
-                        } catch (Exception e) {
-                            e.printStackTrace();
+                            ((ImageButton)view.findViewById(R.id.buttonDeleteTour)).setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    prefs.edit().remove(ACTIVE_TOUR_ID_KEY).remove(ACTIVE_TOUR_SERVER_ID_KEY).apply();
+                                    view.findViewById(R.id.group_active_tour).setVisibility(View.GONE);
+                                }
+                            });
+                            view.findViewById(R.id.layout_active_tour).setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    Navigation.findNavController(requireView()).navigate(R.id.nav_nested_create_tour,
+                                            new CreateTourFragmentArgs.Builder().setTourServerId(tourServerId).build().toBundle());
+                                }
+                            });
                         }
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
-                });
-            }
+                }
+            });
         }
     }
 

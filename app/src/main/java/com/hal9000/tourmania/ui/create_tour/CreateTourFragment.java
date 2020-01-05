@@ -195,12 +195,18 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
         }
         else {
             inflater.inflate(R.menu.create_tour_toolbar_menu_not_editing, menu);
+
             final MenuItem itemToggleActive = menu.findItem(R.id.action_toggle_active);
             SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(requireContext());
-            if (prefs.contains(ACTIVE_TOUR_ID_KEY) || prefs.contains(ACTIVE_TOUR_SERVER_ID_KEY))
+            if ((prefs.contains(ACTIVE_TOUR_ID_KEY) && prefs.getInt(ACTIVE_TOUR_ID_KEY, -2)
+                        == createTourSharedViewModel.getTour().getTourId())
+                    || (prefs.contains(ACTIVE_TOUR_SERVER_ID_KEY)
+                        && prefs.getString(ACTIVE_TOUR_SERVER_ID_KEY, "_")
+                            .equals(createTourSharedViewModel.getTour().getServerTourId())))
                 itemToggleActive.setTitle(getString(R.string.action_unset_active));
             else
                 itemToggleActive.setTitle(getString(R.string.action_set_active));
+
             if (createTourSharedViewModel.isEditingPossible()) {
                 inflater.inflate(R.menu.create_tour_toolbar_menu_my_tour, menu);
             }
@@ -440,16 +446,22 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                 return true;
             case R.id.action_toggle_active:
                 SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(requireContext());
-                if (prefs.contains(ACTIVE_TOUR_ID_KEY) || prefs.contains(ACTIVE_TOUR_SERVER_ID_KEY)) {
-                    prefs.edit().remove(ACTIVE_TOUR_ID_KEY).remove(ACTIVE_TOUR_SERVER_ID_KEY).apply();
+                if (prefs.contains(ACTIVE_TOUR_SERVER_ID_KEY) && prefs.getString(ACTIVE_TOUR_SERVER_ID_KEY, "_")
+                        .equals(createTourSharedViewModel.getTour().getServerTourId())) {
+                    prefs.edit().remove(ACTIVE_TOUR_SERVER_ID_KEY).apply();
+                    item.setTitle(getString(R.string.action_set_active));
+                } else if (prefs.contains(ACTIVE_TOUR_ID_KEY) && prefs.getInt(ACTIVE_TOUR_ID_KEY, -2)
+                        == createTourSharedViewModel.getTour().getTourId()) {
+                    prefs.edit().remove(ACTIVE_TOUR_ID_KEY).apply();
                     item.setTitle(getString(R.string.action_set_active));
                 } else {
                     if (!TextUtils.isEmpty(createTourSharedViewModel.getTour().getServerTourId())) {
-                        Log.d("crashTest", "getServerTourId = " + createTourSharedViewModel.getTour().getServerTourId());
+                        prefs.edit().remove(ACTIVE_TOUR_ID_KEY).apply();
                         prefs.edit().putString(ACTIVE_TOUR_SERVER_ID_KEY, createTourSharedViewModel.getTour().getServerTourId()).apply();
                         item.setTitle(getString(R.string.action_unset_active));
                     }
                     else if (createTourSharedViewModel.getTour().getTourId() != 0) {
+                        prefs.edit().remove(ACTIVE_TOUR_SERVER_ID_KEY).apply();
                         prefs.edit().putInt(ACTIVE_TOUR_ID_KEY, createTourSharedViewModel.getTour().getTourId()).apply();
                         item.setTitle(getString(R.string.action_unset_active));
                     }

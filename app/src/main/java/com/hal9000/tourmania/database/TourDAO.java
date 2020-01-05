@@ -21,8 +21,8 @@ public abstract class TourDAO {
     @Query("SELECT * FROM Tours")
     public abstract List<Tour> getTours();
 
-    @Query("SELECT * FROM Tours WHERE tour_id_pk = :tourId")
-    public abstract Tour getTour(int tourId);
+    @Query("SELECT * FROM Tours LEFT JOIN Users ON user_id = user_id_pk WHERE tour_id_pk = :tourId")
+    public abstract TourWithWpWithPaths getTour(int tourId);
 
     @Transaction
     @Query("SELECT * FROM Tours LEFT JOIN Users ON user_id = user_id_pk WHERE server_synced = :serverSynced")

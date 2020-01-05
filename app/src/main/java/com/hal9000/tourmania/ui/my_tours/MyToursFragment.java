@@ -70,7 +70,7 @@ public class MyToursFragment extends Fragment {
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
-        Log.d("crashTest", "onCreateView");
+        //Log.d("crashTest", "onCreateView");
         myToursViewModel =
                 ViewModelProviders.of(this).get(MyToursViewModel.class);
         View root = inflater.inflate(R.layout.fragment_my_tours, container, false);

@@ -466,6 +466,8 @@ public class CreateTourSharedViewModel extends ViewModel {
     }
 
     public void linkToCacheIfExistsWithSrvId(final Context context) {
+        if (TextUtils.isEmpty(getTour().getServerTourId()))
+            return;
         AppDatabase.databaseWriteExecutor.submit(new Runnable() {
             @Override
             public void run() {
