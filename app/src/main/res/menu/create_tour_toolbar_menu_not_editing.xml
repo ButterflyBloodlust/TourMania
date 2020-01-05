@@ -2,6 +2,11 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
+        android:id="@+id/action_toggle_active"
+        android:orderInCategory="490"
+        android:title=""
+        app:showAsAction="never" />
+    <item
         android:id="@+id/action_about_tour"
         android:orderInCategory="500"
         android:title="@string/action_about_tour"

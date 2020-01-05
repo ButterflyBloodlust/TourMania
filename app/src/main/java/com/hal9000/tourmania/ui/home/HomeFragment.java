@@ -2,9 +2,14 @@ package com.hal9000.tourmania.ui.home;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.net.Uri;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -12,6 +17,10 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.RatingBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -32,8 +41,12 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.hal9000.tourmania.AppUtils;
+import com.hal9000.tourmania.MainActivity;
 import com.hal9000.tourmania.MainActivityViewModel;
 import com.hal9000.tourmania.R;
+import com.hal9000.tourmania.SharedPrefUtils;
+import com.hal9000.tourmania.database.AppDatabase;
+import com.hal9000.tourmania.model.Tour;
 import com.hal9000.tourmania.model.TourWithWpWithPaths;
 import com.hal9000.tourmania.rest_api.RestClient;
 import com.hal9000.tourmania.rest_api.files_upload_download.FileDownloadImageObj;
@@ -44,11 +57,15 @@ import com.hal9000.tourmania.ui.InfiniteTourAdapter;
 import com.hal9000.tourmania.ui.create_tour.CreateTourFragment;
 import com.hal9000.tourmania.ui.create_tour.CreateTourFragmentArgs;
 import com.hal9000.tourmania.ui.OnLoadMoreListener;
+import com.squareup.picasso.Picasso;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import static com.hal9000.tourmania.ui.create_tour.CreateTourFragment.ACTIVE_TOUR_ID_KEY;
+import static com.hal9000.tourmania.ui.create_tour.CreateTourFragment.ACTIVE_TOUR_SERVER_ID_KEY;
 
 public class HomeFragment extends Fragment {
 
@@ -119,6 +136,8 @@ public class HomeFragment extends Fragment {
             singUpButton.setVisibility(View.VISIBLE);
         }
 
+        loadActiveTour(root);
+
         if (!toursWithTourWps.isEmpty() && checkingDetailsTourIndex != -1) {
             Bundle bundle = activityViewModel.getAndClearBundle(CreateTourFragment.class);
             if (bundle != null) {
@@ -141,6 +160,65 @@ public class HomeFragment extends Fragment {
             root.findViewById(R.id.text_enable_wifi_loc_msg).setVisibility(View.VISIBLE);
         }
         return root;
+    }
+
+    public void loadActiveTour(View view) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(requireContext());
+        if (prefs.contains(ACTIVE_TOUR_SERVER_ID_KEY)) {
+            Log.d("crashTest", "contains ACTIVE_TOUR_ID_KEY");
+            String tourServerId = prefs.getString(ACTIVE_TOUR_SERVER_ID_KEY, null);
+            Log.d("crashTest", "tourServerId = " + tourServerId);
+            if (tourServerId != null) {
+                AppDatabase.databaseWriteExecutor.submit(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            AppDatabase appDatabase = AppDatabase.getInstance(getContext());
+                            TourWithWpWithPaths tourWithWpWithPaths = appDatabase.tourDAO().getTourByServerTourIds(tourServerId);
+                            Log.d("crashTest", "tour = " + tourWithWpWithPaths);
+                            if (tourWithWpWithPaths != null) {
+                                TextView tourTitleTextView = view.findViewById(R.id.tour_title);
+                                tourTitleTextView.setText(tourWithWpWithPaths.tour.getTitle());
+                                float rating = tourWithWpWithPaths.tour.getRateVal() / (float)tourWithWpWithPaths.tour.getRateCount();
+                                ((TextView)view.findViewById(R.id.tour_rating)).setText(String.format("%.2f", rating));
+                                ((RatingBar)view.findViewById(R.id.tour_rating_bar)).setRating(rating);
+                                view.findViewById(R.id.group_active_tour).setVisibility(View.VISIBLE);
+                                String mainImgPath = tourWithWpWithPaths.tour.getTourImgPath();
+                                //Log.d("crashTest", "mainImgPath : " + (mainImgPath == null ? "null" : mainImgPath));
+                                if (!TextUtils.isEmpty(mainImgPath)) {
+                                    requireActivity().runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            // asynchronous image loading
+                                            Picasso.get() //
+                                                    .load(Uri.parse(mainImgPath)) //
+                                                    .fit() //
+                                                    .into(((ImageView)view.findViewById(R.id.tour_list_image)));
+                                        }
+                                    });
+                                }
+                                ((ImageButton)view.findViewById(R.id.buttonDeleteTour)).setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        prefs.edit().remove(ACTIVE_TOUR_ID_KEY).remove(ACTIVE_TOUR_SERVER_ID_KEY).apply();
+                                        view.findViewById(R.id.group_active_tour).setVisibility(View.GONE);
+                                    }
+                                });
+                                view.findViewById(R.id.layout_active_tour).setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        Navigation.findNavController(requireView()).navigate(R.id.nav_nested_create_tour,
+                                                new CreateTourFragmentArgs.Builder().setTourServerId(tourServerId).build().toBundle());
+                                    }
+                                });
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+            }
+        }
     }
 
     @Override

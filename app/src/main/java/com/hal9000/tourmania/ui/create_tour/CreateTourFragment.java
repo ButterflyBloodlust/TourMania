@@ -162,6 +162,8 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
     public static final String NEW_TOUR_RATING_BUNDLE_KEY = "new_tour_rating";
     public static final String NEW_TOUR_RATING_VAL_BUNDLE_KEY = "new_tour_val_rating";
     public static final String NEW_TOUR_RATING_COUNT_BUNDLE_KEY = "new_tour_count_rating";
+    public static final String ACTIVE_TOUR_ID_KEY = "active_tour_id";
+    public static final String ACTIVE_TOUR_SERVER_ID_KEY = "active_tour_server_id";
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -193,6 +195,12 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
         }
         else {
             inflater.inflate(R.menu.create_tour_toolbar_menu_not_editing, menu);
+            final MenuItem itemToggleActive = menu.findItem(R.id.action_toggle_active);
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(requireContext());
+            if (prefs.contains(ACTIVE_TOUR_ID_KEY) || prefs.contains(ACTIVE_TOUR_SERVER_ID_KEY))
+                itemToggleActive.setTitle(getString(R.string.action_unset_active));
+            else
+                itemToggleActive.setTitle(getString(R.string.action_set_active));
             if (createTourSharedViewModel.isEditingPossible()) {
                 inflater.inflate(R.menu.create_tour_toolbar_menu_my_tour, menu);
             }
@@ -220,10 +228,8 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                                         });
                                     }
                                     else if (tour.getTourId() != 0) {
-                                        Log.d("crashTest", "tour.getTourId() != 0");
                                         AppDatabase appDatabase = AppDatabase.getInstance(requireContext());
                                         final FavouriteTour favouriteTour = appDatabase.favouriteTourDAO().getFavouriteTourByTourId(tour.getTourId());
-                                        Log.d("crashTest", "" + favouriteTour);
                                         requireActivity().runOnUiThread(new Runnable() {
                                             @Override
                                             public void run() {
@@ -431,6 +437,23 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                         }
                     });
                 builderAboutTour.create().show();
+                return true;
+            case R.id.action_toggle_active:
+                SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(requireContext());
+                if (prefs.contains(ACTIVE_TOUR_ID_KEY) || prefs.contains(ACTIVE_TOUR_SERVER_ID_KEY)) {
+                    prefs.edit().remove(ACTIVE_TOUR_ID_KEY).remove(ACTIVE_TOUR_SERVER_ID_KEY).apply();
+                    item.setTitle(getString(R.string.action_set_active));
+                } else {
+                    if (!TextUtils.isEmpty(createTourSharedViewModel.getTour().getServerTourId())) {
+                        Log.d("crashTest", "getServerTourId = " + createTourSharedViewModel.getTour().getServerTourId());
+                        prefs.edit().putString(ACTIVE_TOUR_SERVER_ID_KEY, createTourSharedViewModel.getTour().getServerTourId()).apply();
+                        item.setTitle(getString(R.string.action_unset_active));
+                    }
+                    else if (createTourSharedViewModel.getTour().getTourId() != 0) {
+                        prefs.edit().putInt(ACTIVE_TOUR_ID_KEY, createTourSharedViewModel.getTour().getTourId()).apply();
+                        item.setTitle(getString(R.string.action_unset_active));
+                    }
+                }
                 return true;
             default:
                 return super.onOptionsItemSelected(item);

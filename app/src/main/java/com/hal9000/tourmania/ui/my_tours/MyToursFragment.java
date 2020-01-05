@@ -200,10 +200,10 @@ public class MyToursFragment extends Fragment {
                             public void onResponse(Call<List<TourWithWpWithPaths>> call, final Response<List<TourWithWpWithPaths>> response) {
                                 if (response.isSuccessful()) {
                                     //Log.d("crashTest", "loadToursFromServerDb onResponse");
-                                    if (response.body() != null) {
+                                    List<TourWithWpWithPaths> missingToursWithTourWps = response.body();
+                                    if (missingToursWithTourWps != null) {
                                         clearLocalCache();
-                                        List<TourWithWpWithPaths> missingToursWithTourWps = response.body();
-                                        Log.d("crashTest", "loadToursFromServerDb onResponse size = " + missingToursWithTourWps.size());
+                                        //Log.d("crashTest", "loadToursFromServerDb onResponse size = " + missingToursWithTourWps.size());
                                         if (missingToursWithTourWps.size() > 0) {
 
                                             /*
