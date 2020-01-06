@@ -21,6 +21,7 @@ public abstract class TourDAO {
     @Query("SELECT * FROM Tours")
     public abstract List<Tour> getTours();
 
+    @Transaction
     @Query("SELECT * FROM Tours LEFT JOIN Users ON user_id = user_id_pk WHERE tour_id_pk = :tourId")
     public abstract TourWithWpWithPaths getTour(int tourId);
 
@@ -68,6 +69,13 @@ public abstract class TourDAO {
     public long insertWithTimestamp(Tour tour) {
         tour.setModifiedAt(System.currentTimeMillis());
         return insertTour(tour);
+    }
+
+    public long[] insertWithTimestamps(List<Tour> tours) {
+        long timestamp = System.currentTimeMillis();
+        for (Tour tour : tours)
+            tour.setModifiedAt(timestamp);
+        return insertTours(tours);
     }
 
     public void updateWithTimestamp(Tour tour) {

@@ -1,6 +1,8 @@
 package com.hal9000.tourmania.ui.create_tour;
 
+import android.app.Application;
 import android.content.Context;
+import android.net.Uri;
 import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
@@ -39,6 +41,7 @@ import java.util.Map;
 import java.util.concurrent.Future;
 
 import androidx.annotation.NonNull;
+import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
@@ -50,7 +53,9 @@ import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.internal.EverythingIsNonNull;
 
-public class CreateTourSharedViewModel extends ViewModel {
+import static com.hal9000.tourmania.ui.search_tours.SearchToursFragment.TOUR_SEARCH_CACHE_DIR_NAME;
+
+public class CreateTourSharedViewModel extends AndroidViewModel {
 
     private MutableLiveData<Tour> tour = new MutableLiveData<Tour>();
     private MutableLiveData<GetTourGuideLocationResponse> tourGuideLoc = new MutableLiveData<GetTourGuideLocationResponse>();
@@ -58,20 +63,32 @@ public class CreateTourSharedViewModel extends ViewModel {
     private ArrayList<TourTag> tourTagsList = new ArrayList<>();
     private User user;
     private int choosenLocateWaypointIndex = -1;
-    private MutableLiveData<Boolean> loadedFromDb = new MutableLiveData<Boolean>(false);
+    private MutableLiveData<Boolean> loadedFromLocalDb = new MutableLiveData<Boolean>(false);
     private MutableLiveData<Boolean> loadedFromServerDb = new MutableLiveData<Boolean>(false);
     private boolean editingEnabled = true;
     private boolean editingInitialised = false;
     private boolean editingPossible = false;
     private int viewType = -1;
     private boolean checkedForCacheLink = false;
+    boolean savedToLocalDb = false;
 
+    static int VIEW_TYPE_NONE = 0;
     static int VIEW_TYPE_MY_TOUR = 1;
     static int VIEW_TYPE_FAV_TOUR = 2;
 
-    public CreateTourSharedViewModel() {
+    public CreateTourSharedViewModel(@NonNull Application application) {
+        super(application);
         //Log.d("crashTest", "CreateTourSharedViewModel.CreateTourSharedViewModel()");
         tour.setValue(new Tour());
+    }
+
+    public TourWithWpWithPaths getTourWithWpWithPaths() {
+        TourWithWpWithPaths tourWithWpWithPaths = new TourWithWpWithPaths();
+        tourWithWpWithPaths.tour = getTour();
+        tourWithWpWithPaths.user = getUser();
+        tourWithWpWithPaths._tourWpsWithPicPaths = getTourWaypointList();
+        tourWithWpWithPaths.tourTags = getTourTagsList();
+        return tourWithWpWithPaths;
     }
 
     public ArrayList<TourWpWithPicPaths> getTourWaypointList() {
@@ -113,7 +130,7 @@ public class CreateTourSharedViewModel extends ViewModel {
         return future;
     }
 
-    private Future<?> saveTourToLocalDb(final Context context, final int saveAsType) {
+    public Future<?> saveTourToLocalDb(final Context context, final int saveAsType) {
         return AppDatabase.databaseWriteExecutor.submit(new Runnable() {
             @Override
             public void run() {
@@ -150,6 +167,7 @@ public class CreateTourSharedViewModel extends ViewModel {
                         tourId = tourWithWpWithPaths.tour.getTourId();
                     }
 
+                    savedToLocalDb = true;
                     if (saveAsType == VIEW_TYPE_MY_TOUR) {
                         MyTourDAO myTourDAO = appDatabase.myTourDAO();
                         MyTour myTour = myTourDAO.getMyTourByTourId(tourId);
@@ -351,7 +369,7 @@ public class CreateTourSharedViewModel extends ViewModel {
             @Override
             public void run() {
                 try {
-                    if (!loadedFromDb.getValue()) {
+                    if (!loadedFromLocalDb.getValue()) {
                         AppDatabase appDatabase = AppDatabase.getInstance(context);
                         TourWithWpWithPaths tourWpWithPicPaths = appDatabase.tourDAO().getTourWithTourWps(tourId);
                         tour.postValue(tourWpWithPicPaths.tour);
@@ -359,7 +377,7 @@ public class CreateTourSharedViewModel extends ViewModel {
                         tourTagsList.addAll(tourWpWithPicPaths.tourTags);
                         user = tourWpWithPicPaths.user;
                         detectViewType(context, tourWpWithPicPaths.tour.getTourId());
-                        loadedFromDb.postValue(true);
+                        loadedFromLocalDb.postValue(true);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -593,8 +611,8 @@ public class CreateTourSharedViewModel extends ViewModel {
         return checkedForCacheLink;
     }
 
-    public boolean isLoadedFromDb() {
-        return loadedFromDb.getValue();
+    public boolean getLoadedFromLocalDb() {
+        return loadedFromLocalDb.getValue();
     }
 
     public boolean isLoadedFromServerDb() {
@@ -606,7 +624,7 @@ public class CreateTourSharedViewModel extends ViewModel {
     }
 
     public LiveData<Boolean> getLoadedFromDb() {
-        return loadedFromDb;
+        return loadedFromLocalDb;
     }
 
     public LiveData<Boolean> getLoadedFromServerDb() {
@@ -620,12 +638,26 @@ public class CreateTourSharedViewModel extends ViewModel {
     }
     */
 
-    /*
     @Override
     public void onCleared() {
         super.onCleared();
         Log.d("crashTest", "CreateTourSharedViewModel.onCleared()");
+        try {
+            if (!loadedFromLocalDb.getValue() && !savedToLocalDb) {
+                // delete files related to tour, stored in app's dirs
+                String mainImgPath = getTour().getTourImgPath();
+                if (mainImgPath != null) {
+                    new File(Uri.parse(mainImgPath).getPath()).delete();
+                }
+                for (TourWpWithPicPaths tourWpWithPicPaths : tourWaypointList) {
+                    mainImgPath = tourWpWithPicPaths.tourWaypoint.getMainImgPath();
+                    if (mainImgPath != null)
+                        new File(Uri.parse(mainImgPath).getPath()).delete();
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
-    */
 
 }

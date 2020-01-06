@@ -29,7 +29,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Future;
@@ -38,6 +40,7 @@ import androidx.fragment.app.FragmentActivity;
 
 public class AppUtils {
 
+    public static int TOUR_TYPE_NONE = 0;
     public static int TOUR_TYPE_MY_TOUR = 1;
     public static int TOUR_TYPE_FAV_TOUR = 2;
 
@@ -83,6 +86,10 @@ public class AppUtils {
         return type;
     }
 
+    public static Future<?> saveTourToLocalDb(final TourWithWpWithPaths tourWithWpWithPathsList, final Context context, final Integer saveAsType) {
+        return saveToursToLocalDb(Collections.singletonList(tourWithWpWithPathsList), context, saveAsType);
+    }
+
     public static Future<?> saveToursToLocalDb(final List<TourWithWpWithPaths> tourWithWpWithPathsList, final Context context, final Integer saveAsType) {
         return AppDatabase.databaseWriteExecutor.submit(new Runnable() {
             @Override
@@ -103,7 +110,7 @@ public class AppUtils {
                         }
                         tours.add(tourWithWpWithPaths.tour);
                     }
-                    long[] tourIds = appDatabase.tourDAO().insertTours(tours);
+                    long[] tourIds = appDatabase.tourDAO().insertWithTimestamps(tours);
 
                     LinkedList<TourTag> tourTags = new LinkedList<>();
                     LinkedList<TourWaypoint> tourWaypoints = new LinkedList<>();

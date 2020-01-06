@@ -63,7 +63,11 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
+import static com.hal9000.tourmania.AppUtils.TOUR_TYPE_NONE;
 import static com.hal9000.tourmania.ui.create_tour.CreateTourFragment.ACTIVE_TOUR_ID_KEY;
 import static com.hal9000.tourmania.ui.create_tour.CreateTourFragment.ACTIVE_TOUR_SERVER_ID_KEY;
 
@@ -182,39 +186,34 @@ public class HomeFragment extends Fragment {
                         TourWithWpWithPaths tourWithWpWithPaths = tourServerId != null ? appDatabase.tourDAO().getTourByServerTourIds(tourServerId)
                                 : appDatabase.tourDAO().getTour(tourId);
                         if (tourWithWpWithPaths != null) {
-                            TextView tourTitleTextView = view.findViewById(R.id.tour_title);
-                            tourTitleTextView.setText(tourWithWpWithPaths.tour.getTitle());
-                            float rating = tourWithWpWithPaths.tour.getRateCount() == 0 ? 0.0f
-                                    : tourWithWpWithPaths.tour.getRateVal() / (float)tourWithWpWithPaths.tour.getRateCount();
-                            ((TextView)view.findViewById(R.id.tour_rating)).setText(String.format("%.2f", rating));
-                            ((RatingBar)view.findViewById(R.id.tour_rating_bar)).setRating(rating);
-                            view.findViewById(R.id.group_active_tour).setVisibility(View.VISIBLE);
-                            String mainImgPath = tourWithWpWithPaths.tour.getTourImgPath();
-                            //Log.d("crashTest", "mainImgPath : " + (mainImgPath == null ? "null" : mainImgPath));
-                            if (!TextUtils.isEmpty(mainImgPath)) {
-                                requireActivity().runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        // asynchronous image loading
-                                        Picasso.get() //
-                                                .load(Uri.parse(mainImgPath)) //
-                                                .fit() //
-                                                .into(((ImageView)view.findViewById(R.id.tour_list_image)));
-                                    }
-                                });
-                            }
-                            ((ImageButton)view.findViewById(R.id.buttonDeleteTour)).setOnClickListener(new View.OnClickListener() {
+                            requireActivity().runOnUiThread(new Runnable() {
                                 @Override
-                                public void onClick(View v) {
-                                    prefs.edit().remove(ACTIVE_TOUR_ID_KEY).remove(ACTIVE_TOUR_SERVER_ID_KEY).apply();
-                                    view.findViewById(R.id.group_active_tour).setVisibility(View.GONE);
+                                public void run() {
+                                    loadActiveTourView(view, tourWithWpWithPaths, tourServerId);
                                 }
                             });
-                            view.findViewById(R.id.layout_active_tour).setOnClickListener(new View.OnClickListener() {
+                        }
+                        else {
+                            ToursService client = RestClient.createService(ToursService.class,
+                                    SharedPrefUtils.getDecryptedString(requireContext(), MainActivity.getLoginTokenKey()));
+                            Call<TourWithWpWithPaths> call = client.getTour(tourServerId);
+                            call.enqueue(new Callback<TourWithWpWithPaths>() {
                                 @Override
-                                public void onClick(View v) {
-                                    Navigation.findNavController(requireView()).navigate(R.id.nav_nested_create_tour,
-                                            new CreateTourFragmentArgs.Builder().setTourServerId(tourServerId).build().toBundle());
+                                public void onResponse(Call<TourWithWpWithPaths> call, final Response<TourWithWpWithPaths> response) {
+                                    if (response.isSuccessful()) {
+                                        //Log.d("crashTest", "loadToursFromServerDb onResponse");
+                                        TourWithWpWithPaths tourWithWpWithPaths = response.body();
+                                        if (tourWithWpWithPaths != null) {
+                                            AppUtils.saveTourToLocalDb(tourWithWpWithPaths, requireContext(), TOUR_TYPE_NONE);
+                                            loadActiveTourView(view, tourWithWpWithPaths, tourServerId);
+                                        }
+                                    }
+                                }
+
+                                @Override
+                                public void onFailure(Call<TourWithWpWithPaths> call, Throwable t) {
+                                    t.printStackTrace();
+                                    //Log.d("crashTest", "loadToursFromServerDb onFailure");
                                 }
                             });
                         }
@@ -223,6 +222,43 @@ public class HomeFragment extends Fragment {
                     }
                 }
             });
+        }
+    }
+
+    private void loadActiveTourView(View view, TourWithWpWithPaths tourWithWpWithPaths, String tourServerId) {
+        try {
+            TextView tourTitleTextView = view.findViewById(R.id.tour_title);
+            tourTitleTextView.setText(tourWithWpWithPaths.tour.getTitle());
+            float rating = tourWithWpWithPaths.tour.getRateCount() == 0 ? 0.0f
+                    : tourWithWpWithPaths.tour.getRateVal() / (float)tourWithWpWithPaths.tour.getRateCount();
+            String mainImgPath = tourWithWpWithPaths.tour.getTourImgPath();
+            ((TextView) view.findViewById(R.id.tour_rating)).setText(String.format("%.2f", rating));
+            ((RatingBar) view.findViewById(R.id.tour_rating_bar)).setRating(rating);
+            view.findViewById(R.id.group_active_tour).setVisibility(View.VISIBLE);
+            // asynchronous image loading
+            if (!TextUtils.isEmpty(mainImgPath)) {
+                Picasso.get() //
+                        .load(Uri.parse(mainImgPath)) //
+                        .fit() //
+                        .into(((ImageView) view.findViewById(R.id.tour_list_image)));
+            }
+            ((ImageButton)view.findViewById(R.id.buttonDeleteTour)).setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(requireContext());
+                    prefs.edit().remove(ACTIVE_TOUR_ID_KEY).remove(ACTIVE_TOUR_SERVER_ID_KEY).apply();
+                    view.findViewById(R.id.group_active_tour).setVisibility(View.GONE);
+                }
+            });
+            view.findViewById(R.id.layout_active_tour).setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Navigation.findNavController(requireView()).navigate(R.id.nav_nested_create_tour,
+                            new CreateTourFragmentArgs.Builder().setTourServerId(tourServerId).build().toBundle());
+                }
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

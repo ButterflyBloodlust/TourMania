@@ -40,14 +40,12 @@ import retrofit2.Response;
 
 import android.preference.PreferenceManager;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
@@ -70,14 +68,13 @@ import com.hal9000.tourmania.database.AppDatabase;
 import com.hal9000.tourmania.model.FavouriteTour;
 import com.hal9000.tourmania.model.Tour;
 import com.hal9000.tourmania.model.TourWaypoint;
+import com.hal9000.tourmania.model.TourWithWpWithPaths;
 import com.hal9000.tourmania.model.TourWpWithPicPaths;
 import com.hal9000.tourmania.rest_api.RestClient;
 import com.hal9000.tourmania.rest_api.tour_guides.GetTourGuideLocationResponse;
 import com.hal9000.tourmania.rest_api.tour_guides.LocationShareTokenResponse;
 import com.hal9000.tourmania.rest_api.tour_guides.TourGuidesService;
 import com.hal9000.tourmania.ui.qr_code_display.QRCodeDisplayFragmentArgs;
-import com.hal9000.tourmania.ui.tour_guide_details.TourGuideDetailsFragmentDirections;
-import com.hal9000.tourmania.ui.tour_guides.TourGuidesFragmentDirections;
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
 import com.mapbox.api.directions.v5.DirectionsCriteria;
@@ -119,6 +116,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import static android.content.Context.LOCATION_SERVICE;
+import static com.hal9000.tourmania.AppUtils.TOUR_TYPE_NONE;
 import static com.hal9000.tourmania.ui.create_tour.CreateTourSharedViewModel.VIEW_TYPE_FAV_TOUR;
 import static com.hal9000.tourmania.ui.create_tour.CreateTourSharedViewModel.VIEW_TYPE_MY_TOUR;
 import static com.hal9000.tourmania.ui.join_tour.JoinTourFragment.LOCATION_SHARING_TOKEN_KEY;
@@ -189,7 +187,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        //Log.d("crashTest", "onCreateOptionsMenu : " + createTourSharedViewModel.isLoadedFromServerDb() + ", " + createTourSharedViewModel.isLoadedFromDb());
+        //Log.d("crashTest", "onCreateOptionsMenu : " + createTourSharedViewModel.isLoadedFromServerDb() + ", " + createTourSharedViewModel.getLoadedFromLocalDb());
         if(createTourSharedViewModel.isEditingEnabled()) {
             inflater.inflate(R.menu.create_tour_toolbar_menu_edit_mode, menu);
         }
@@ -210,7 +208,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
             if (createTourSharedViewModel.isEditingPossible()) {
                 inflater.inflate(R.menu.create_tour_toolbar_menu_my_tour, menu);
             }
-            else if (createTourSharedViewModel.isLoadedFromServerDb() || createTourSharedViewModel.isLoadedFromDb()) {
+            else if (createTourSharedViewModel.isLoadedFromServerDb() || createTourSharedViewModel.getLoadedFromLocalDb()) {
                 inflater.inflate(R.menu.create_tour_toolbar_menu_not_my_tour, menu);
                 final MenuItem item = menu.findItem(R.id.action_add_tour_to_favourites);
                 if (observerFavIcon != null)
@@ -455,14 +453,54 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                     prefs.edit().remove(ACTIVE_TOUR_ID_KEY).apply();
                     item.setTitle(getString(R.string.action_set_active));
                 } else {
+                    // Set tour as active by storing it's tourServerId or tourId in SharedPreferences.
+                    // Add tour to local cache (Room) if it's not there already.
                     if (!TextUtils.isEmpty(createTourSharedViewModel.getTour().getServerTourId())) {
-                        prefs.edit().remove(ACTIVE_TOUR_ID_KEY).apply();
-                        prefs.edit().putString(ACTIVE_TOUR_SERVER_ID_KEY, createTourSharedViewModel.getTour().getServerTourId()).apply();
+                        AppDatabase.databaseWriteExecutor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    TourWithWpWithPaths tourWithWpWithPaths = AppDatabase.getInstance(getContext())
+                                            .tourDAO()
+                                            .getTourByServerTourIds(createTourSharedViewModel.getTour().getServerTourId());
+                                    if (tourWithWpWithPaths == null) {
+                                        tourWithWpWithPaths = createTourSharedViewModel.getTourWithWpWithPaths();
+                                        AppUtils.saveTourToLocalDb(tourWithWpWithPaths, requireContext(), TOUR_TYPE_NONE);
+                                        createTourSharedViewModel.savedToLocalDb = true;
+                                    }
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        });
+                        SharedPreferences.Editor editor = prefs.edit();
+                        editor.remove(ACTIVE_TOUR_ID_KEY);
+                        editor.putString(ACTIVE_TOUR_SERVER_ID_KEY, createTourSharedViewModel.getTour().getServerTourId());
+                        editor.apply();
                         item.setTitle(getString(R.string.action_unset_active));
                     }
                     else if (createTourSharedViewModel.getTour().getTourId() != 0) {
-                        prefs.edit().remove(ACTIVE_TOUR_SERVER_ID_KEY).apply();
-                        prefs.edit().putInt(ACTIVE_TOUR_ID_KEY, createTourSharedViewModel.getTour().getTourId()).apply();
+                        AppDatabase.databaseWriteExecutor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    TourWithWpWithPaths tourWithWpWithPaths = AppDatabase.getInstance(getContext())
+                                            .tourDAO()
+                                            .getTour(createTourSharedViewModel.getTour().getTourId());
+                                    if (tourWithWpWithPaths == null) {
+                                        tourWithWpWithPaths = createTourSharedViewModel.getTourWithWpWithPaths();
+                                        AppUtils.saveTourToLocalDb(tourWithWpWithPaths, requireContext(), TOUR_TYPE_NONE);
+                                        createTourSharedViewModel.savedToLocalDb = true;
+                                    }
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        });
+                        SharedPreferences.Editor editor = prefs.edit();
+                        editor.remove(ACTIVE_TOUR_SERVER_ID_KEY);
+                        editor.putInt(ACTIVE_TOUR_ID_KEY, createTourSharedViewModel.getTour().getTourId());
+                        editor.apply();
                         item.setTitle(getString(R.string.action_unset_active));
                     }
                 }
@@ -547,13 +585,14 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
 
         // Scope ViewModel to nested nav graph.
         ViewModelStoreOwner owner = Navigation.findNavController(view).getViewModelStoreOwner(R.id.nav_nested_create_tour);
-        CreateTourSharedViewModelFactory factory = new CreateTourSharedViewModelFactory();
+        //CreateTourSharedViewModelFactory factory = new CreateTourSharedViewModelFactory();
+        ViewModelProvider.AndroidViewModelFactory factory = ViewModelProvider.AndroidViewModelFactory.getInstance(requireActivity().getApplication());
         createTourSharedViewModel = new ViewModelProvider(owner, factory).get(CreateTourSharedViewModel.class);
 
         createTourSharedViewModel.getLoadedFromDb().observe(this, new Observer<Boolean>() {
             @Override
             public void onChanged(@Nullable Boolean isLoadedFromDb) {
-                //Log.d("crashTest", "onChanged isLoadedFromDb = " + isLoadedFromDb);
+                //Log.d("crashTest", "onChanged getLoadedFromLocalDb = " + getLoadedFromLocalDb);
                 requireActivity().invalidateOptionsMenu();
             }
         });

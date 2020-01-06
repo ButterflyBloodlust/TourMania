@@ -63,7 +63,8 @@ public class TourTagsListFragment extends Fragment {
     public void onViewCreated (@NonNull View view, Bundle savedInstanceState) {
         // Scope ViewModel to nested nav graph.
         ViewModelStoreOwner owner = Navigation.findNavController(view).getViewModelStoreOwner(R.id.nav_nested_create_tour);
-        CreateTourSharedViewModelFactory factory = new CreateTourSharedViewModelFactory();
+        //CreateTourSharedViewModelFactory factory = new CreateTourSharedViewModelFactory();
+        ViewModelProvider.AndroidViewModelFactory factory = ViewModelProvider.AndroidViewModelFactory.getInstance(requireActivity().getApplication());
         mViewModel = new ViewModelProvider(owner, factory).get(CreateTourSharedViewModel.class);
 
         FloatingActionButton fab = view.findViewById(R.id.fab_add_tour_tag);

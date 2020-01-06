@@ -57,7 +57,8 @@ public class QRCodeDisplayFragment extends Fragment {
 
         // Scope ViewModel to nested nav graph.
         ViewModelStoreOwner owner = Navigation.findNavController(view).getViewModelStoreOwner(R.id.nav_nested_create_tour);
-        CreateTourSharedViewModelFactory factory = new CreateTourSharedViewModelFactory();
+        //CreateTourSharedViewModelFactory factory = new CreateTourSharedViewModelFactory();
+        ViewModelProvider.AndroidViewModelFactory factory = ViewModelProvider.AndroidViewModelFactory.getInstance(requireActivity().getApplication());
         createTourSharedViewModel = new ViewModelProvider(owner, factory).get(CreateTourSharedViewModel.class);
 
         String inputText = QRCodeDisplayFragmentArgs.fromBundle(getArguments()).getInputText();

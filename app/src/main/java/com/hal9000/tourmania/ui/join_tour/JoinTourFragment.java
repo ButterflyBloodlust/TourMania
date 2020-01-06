@@ -47,6 +47,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import static com.hal9000.tourmania.ui.create_tour.CreateTourFragment.ACTIVE_TOUR_ID_KEY;
+import static com.hal9000.tourmania.ui.create_tour.CreateTourFragment.ACTIVE_TOUR_SERVER_ID_KEY;
+
 public class JoinTourFragment extends Fragment {
 
     private JoinTourViewModel joinTourViewModel;
@@ -130,9 +133,10 @@ public class JoinTourFragment extends Fragment {
                                     SharedPreferences.Editor editor = prefs.edit();
                                     editor.putString(LOCATION_SHARING_TOKEN_TOUR_ID_KEY, responseBody.tourId);
                                     editor.putString(LOCATION_SHARING_TOKEN_KEY, qrCodes.get(0).getRawValue());
+                                    editor.remove(ACTIVE_TOUR_ID_KEY);
+                                    editor.putString(ACTIVE_TOUR_SERVER_ID_KEY, responseBody.tourId);
                                     editor.apply();
 
-                                    // R.id.nav_nested_create_tour
                                     Navigation.findNavController(requireView()).navigate(R.id.action_nav_join_tour_to_nav_nested_create_tour,
                                             new CreateTourFragmentArgs.Builder().setTourServerId(
                                                     responseBody.tourId).build().toBundle());
