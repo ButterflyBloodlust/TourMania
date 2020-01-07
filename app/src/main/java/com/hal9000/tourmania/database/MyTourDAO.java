@@ -25,6 +25,12 @@ public interface MyTourDAO {
     @Query("SELECT tour_id FROM MyTours")
     int[] getMyTourForeignIds();
 
+    @Query("SELECT MyTours.tour_id FROM MyTours INNER JOIN Tours ON MyTours.tour_id = Tours.tour_id_pk WHERE server_tour_id != '' AND server_tour_id IS NOT NULL")
+    int[] getMyTourForeignIdsWithTourServerIds();
+
+    @Query("SELECT MyTours.tour_id FROM MyTours INNER JOIN Tours ON MyTours.tour_id = Tours.tour_id_pk WHERE server_synced = :serverSynced")
+    int[] getMyTourForeignIdsByServerSynced(boolean serverSynced);
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     void insertMyTour(MyTour myTour);
 

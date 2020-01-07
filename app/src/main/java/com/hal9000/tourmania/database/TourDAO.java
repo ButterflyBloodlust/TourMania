@@ -83,15 +83,23 @@ public abstract class TourDAO {
         updateTour(tour);
     }
 
-    @Query("SELECT server_tour_id, modified_at FROM Tours WHERE tour_id_pk IN (SELECT DISTINCT(tour_id) FROM MyTours) AND (user_id = :userId OR user_id IS NULL)")
-    public abstract List<TourServerIdTimestamp> getServerMyTourIds(int userId);
+    @Query("SELECT server_tour_id, modified_at FROM Tours WHERE tour_id_pk IN (SELECT DISTINCT(tour_id) FROM MyTours)")
+    public abstract List<TourServerIdTimestamp> getServerMyTourIds();
 
-    @Query("SELECT server_tour_id, modified_at FROM Tours WHERE tour_id_pk IN (SELECT DISTINCT(tour_id) FROM FavouriteTours) AND (user_id = :userId OR user_id IS NULL)")
-    public abstract List<TourServerIdTimestamp> getServerFavTourIds(int userId);
+    @Query("SELECT server_tour_id, modified_at FROM Tours WHERE tour_id_pk IN (SELECT DISTINCT(tour_id) FROM FavouriteTours)")
+    public abstract List<TourServerIdTimestamp> getServerFavTourIds();
 
     @Transaction
     @Query("SELECT * FROM Tours LEFT JOIN Users ON user_id = user_id_pk WHERE server_tour_id = :serverTourId")
     public abstract TourWithWpWithPaths getTourByServerTourIds(String serverTourId);
+
+    @Transaction
+    @Query("SELECT * FROM Tours LEFT JOIN Users ON user_id = user_id_pk WHERE server_tour_id = '' OR server_tour_id IS NULL")
+    public abstract List<TourWithWpWithPaths> getToursWithNoServerTourIds();
+
+    @Transaction
+    @Query("SELECT * FROM Tours LEFT JOIN Users ON user_id = user_id_pk WHERE server_synced = :serverSynced")
+    public abstract List<TourWithWpWithPaths> getToursByServerSynced(boolean serverSynced);
 
     @Transaction
     @Query("SELECT * FROM Tours LEFT JOIN Users ON Tours.user_id = Users.user_id_pk WHERE tour_id_pk IN (SELECT DISTINCT(tour_id) FROM FavouriteTours)")

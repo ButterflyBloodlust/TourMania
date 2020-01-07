@@ -38,13 +38,13 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.ViewModel;
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
@@ -52,8 +52,6 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.internal.EverythingIsNonNull;
-
-import static com.hal9000.tourmania.ui.search_tours.SearchToursFragment.TOUR_SEARCH_CACHE_DIR_NAME;
 
 public class CreateTourSharedViewModel extends AndroidViewModel {
 
@@ -71,6 +69,7 @@ public class CreateTourSharedViewModel extends AndroidViewModel {
     private int viewType = -1;
     private boolean checkedForCacheLink = false;
     boolean savedToLocalDb = false;
+    private MutableLiveData<Boolean> savingToServerDb = new MutableLiveData<Boolean>();
 
     static int VIEW_TYPE_NONE = 0;
     static int VIEW_TYPE_MY_TOUR = 1;
@@ -123,10 +122,13 @@ public class CreateTourSharedViewModel extends AndroidViewModel {
         // Currently does NOT handle additional waypoint pics (PicturePath / TourWpWithPicPaths)
         //Log.d("crashTest", "saveTourToDb()");
         final Future future = saveTourToLocalDb(context, saveAsType);
-        if (AppUtils.isUserLoggedIn(context) && editingPossible && saveAsType == VIEW_TYPE_MY_TOUR)
+        if (AppUtils.isUserLoggedIn(context) && editingPossible && saveAsType == VIEW_TYPE_MY_TOUR) {
+            savingToServerDb.setValue(true);
             saveTourToServerDb(context);
-        else if (saveAsType == VIEW_TYPE_FAV_TOUR)
+        }
+        else if (saveAsType == VIEW_TYPE_FAV_TOUR) {
             addTourToServerFavs(context);
+        }
         return future;
     }
 
@@ -145,6 +147,7 @@ public class CreateTourSharedViewModel extends AndroidViewModel {
                             ((tourWithWpWithPaths == null || TextUtils.isEmpty(getTour().getServerTourId()))
                                     && saveAsType == VIEW_TYPE_FAV_TOUR)) {
                         // Insert the tour into Room db
+                        getTour().setServerSynced(false);
                         tourId = (int) tourDAO.insertWithTimestamp(getTour());
                         getTour().setTourId(tourId);
                         LinkedList<TourWaypoint> tourWps = new LinkedList<>();
@@ -263,6 +266,21 @@ public class CreateTourSharedViewModel extends AndroidViewModel {
     private void saveTourToServerDb(final Context context) {
         ToursService client = RestClient.createService(ToursService.class, SharedPrefUtils.getDecryptedString(context, MainActivity.getLoginTokenKey()));
         Call<TourUpsertResponse> call = client.upsertTour(new TourWithWpWithPaths(getTour(), tourTagsList, tourWaypointList));
+
+        getTour().setServerSynced(true);
+        Future future = AppDatabase.databaseWriteExecutor.submit(new Runnable() {
+            @Override
+            public void run() {
+                AppDatabase appDatabase = AppDatabase.getInstance(context);
+                appDatabase.tourDAO().updateTour(getTour());  // purposely without timestamp
+            }
+        });
+        try {
+            future.get();
+        } catch (ExecutionException | InterruptedException e) {
+            e.printStackTrace();
+        }
+
         call.enqueue(new Callback<TourUpsertResponse>() {
             @Override
             @EverythingIsNonNull
@@ -284,6 +302,20 @@ public class CreateTourSharedViewModel extends AndroidViewModel {
                     sendImgFilesToServer(context);
                 } else {
                     System.out.println(response.errorBody());
+                    getTour().setServerSynced(false);
+                    Future future = AppDatabase.databaseWriteExecutor.submit(new Runnable() {
+                        @Override
+                        public void run() {
+                            AppDatabase appDatabase = AppDatabase.getInstance(context);
+                            appDatabase.tourDAO().updateTour(getTour());  // purposely without timestamp
+                        }
+                    });
+                    try {
+                        future.get();
+                    } catch (ExecutionException | InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    savingToServerDb.setValue(false);
                 }
             }
 
@@ -291,6 +323,20 @@ public class CreateTourSharedViewModel extends AndroidViewModel {
             @EverythingIsNonNull
             public void onFailure(Call<TourUpsertResponse> call, Throwable t) {
                 t.printStackTrace();
+                getTour().setServerSynced(false);
+                Future future = AppDatabase.databaseWriteExecutor.submit(new Runnable() {
+                    @Override
+                    public void run() {
+                        AppDatabase appDatabase = AppDatabase.getInstance(context);
+                        appDatabase.tourDAO().updateTour(getTour());  // purposely without timestamp
+                    }
+                });
+                try {
+                    future.get();
+                } catch (ExecutionException | InterruptedException e) {
+                    e.printStackTrace();
+                }
+                savingToServerDb.setValue(false);
             }
         });
     }
@@ -299,19 +345,23 @@ public class CreateTourSharedViewModel extends AndroidViewModel {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                // Compress and send tour images
-                LinkedList<File> imageFiles = new LinkedList<>();
-                File imgFile = FileUtil.compressImage(context, getTour().getTourImgPath(), "TourPictures");
-                //if (imgFile != null)
+                try {
+                    // Compress and send tour images
+                    LinkedList<File> imageFiles = new LinkedList<>();
+                    File imgFile = FileUtil.compressImage(context, getTour().getTourImgPath(), "TourPictures");
+                    //if (imgFile != null)
                     imageFiles.addLast(imgFile);
 
-                for (TourWpWithPicPaths tourWpWithPicPaths : tourWaypointList) {
-                    imgFile = FileUtil.compressImage(context, tourWpWithPicPaths.tourWaypoint.getMainImgPath(), "TourPictures");
-                    //if (imgFile != null)
+                    for (TourWpWithPicPaths tourWpWithPicPaths : tourWaypointList) {
+                        imgFile = FileUtil.compressImage(context, tourWpWithPicPaths.tourWaypoint.getMainImgPath(), "TourPictures");
+                        //if (imgFile != null)
                         imageFiles.addLast(imgFile);
-                }
+                    }
 
-                sendImgFilesToServerHelper(imageFiles, context);
+                    sendImgFilesToServerHelper(imageFiles, context);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         }).start();
     }
@@ -341,11 +391,14 @@ public class CreateTourSharedViewModel extends AndroidViewModel {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                 //Log.d("crashTest", "sendImgFilesToServerHelper.onResponse()");
+                savingToServerDb.setValue(false);
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
+                t.printStackTrace();
                 //Log.d("crashTest", "sendImgFilesToServerHelper.onFailure()");
+                savingToServerDb.setValue(false);
             }
         });
     }
@@ -372,6 +425,7 @@ public class CreateTourSharedViewModel extends AndroidViewModel {
                     if (!loadedFromLocalDb.getValue()) {
                         AppDatabase appDatabase = AppDatabase.getInstance(context);
                         TourWithWpWithPaths tourWpWithPicPaths = appDatabase.tourDAO().getTourWithTourWps(tourId);
+                        Log.d("crashTest", "right after load tourImgPath == null : " + (tourWpWithPicPaths.tour.getTourImgPath() == null));
                         tour.postValue(tourWpWithPicPaths.tour);
                         tourWaypointList.addAll(tourWpWithPicPaths.getSortedTourWpsWithPicPaths());
                         tourTagsList.addAll(tourWpWithPicPaths.tourTags);
@@ -631,6 +685,10 @@ public class CreateTourSharedViewModel extends AndroidViewModel {
         return loadedFromServerDb;
     }
 
+    public LiveData<Boolean> getSavingToServerDb() {
+        return savingToServerDb;
+    }
+
     /*
     public void notifyTourWpsChanged() {
         // In case of advanced operations on observed lists in the future, replace with dedicated methods to work on list within ViewModel.
@@ -659,5 +717,4 @@ public class CreateTourSharedViewModel extends AndroidViewModel {
             e.printStackTrace();
         }
     }
-
 }

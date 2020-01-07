@@ -6,6 +6,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -14,21 +15,27 @@ import androidx.lifecycle.ViewModelProviders;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
 import com.hal9000.tourmania.AppUtils;
+import com.hal9000.tourmania.FileUtil;
 import com.hal9000.tourmania.MainActivity;
 import com.hal9000.tourmania.MainActivityViewModel;
 import com.hal9000.tourmania.R;
 import com.hal9000.tourmania.SharedPrefUtils;
 import com.hal9000.tourmania.model.TourServerIdTimestamp;
 import com.hal9000.tourmania.model.TourWaypoint;
+import com.hal9000.tourmania.model.TourWpWithPicPaths;
 import com.hal9000.tourmania.rest_api.RestClient;
 import com.hal9000.tourmania.rest_api.files_upload_download.FileDownloadImageObj;
 import com.hal9000.tourmania.rest_api.files_upload_download.TourFileDownloadResponse;
 import com.hal9000.tourmania.rest_api.files_upload_download.FileUploadDownloadService;
+import com.hal9000.tourmania.rest_api.tours.TourUpsertResponse;
 import com.hal9000.tourmania.rest_api.tours.ToursService;
 import com.hal9000.tourmania.ui.ToursAdapter;
 import com.hal9000.tourmania.database.AppDatabase;
@@ -40,6 +47,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -57,6 +65,7 @@ public class MyToursFragment extends Fragment {
     private int currentFragmentId;
     private int checkingDetailsTourIndex = -1;
     private boolean loadedFromDb = false;
+    private int tourToSync = 0;
 
     private static final String SAVED_TOURS_CACHE_DIR_NAME = "tours";
     private static final String SAVED_MY_TOURS_CACHE_DIR_NAME = "created";
@@ -106,11 +115,141 @@ public class MyToursFragment extends Fragment {
         }
 
         createRecyclerView(root);
-        if (AppUtils.isNetworkAvailable(requireContext()))
-            loadToursFromServerDb();
+        if (AppUtils.isNetworkAvailable(requireContext()) && AppUtils.isUserLoggedIn(requireContext())) {
+            saveOfflineCreatedToursToServerDb();
+        }
         else
             loadToursFromRoomDb();
         return root;
+    }
+
+    private void saveOfflineCreatedToursToServerDb() {
+        Future future = AppDatabase.databaseWriteExecutor.submit(new Runnable() {
+            public void run() {
+                try {
+                    AppDatabase appDatabase = AppDatabase.getInstance(requireContext());
+                    List<TourWithWpWithPaths> toursWithWpWithPaths = appDatabase.tourDAO().getToursByServerSynced(false);
+                    Log.d("crashTest", "offline created tourWithWpWithPaths size = " + toursWithWpWithPaths.size());
+                    Context context = getContext();
+                    if (context != null && !toursWithWpWithPaths.isEmpty()) {
+                        requireActivity().runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                Toast.makeText(context, "Syncing tours...", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                        tourToSync = toursWithWpWithPaths.size();
+                        for (TourWithWpWithPaths tourWithWpWithPaths : toursWithWpWithPaths) {
+                            Log.d("crashTest", "offline created tourWithWpWithPaths title = " + tourWithWpWithPaths.tour.getTitle());
+                            saveTourToServerDb(tourWithWpWithPaths, context);
+                        }
+                    }
+                    else {
+                        loadToursFromServerDb();
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
+    private void saveTourToServerDb(TourWithWpWithPaths tourWithWpWithPaths, final Context context) {
+        ToursService client = RestClient.createService(ToursService.class, SharedPrefUtils.getDecryptedString(context, MainActivity.getLoginTokenKey()));
+        Call<TourUpsertResponse> call = client.upsertTour(tourWithWpWithPaths);
+        call.enqueue(new Callback<TourUpsertResponse>() {
+            @Override
+            public void onResponse(Call<TourUpsertResponse> call, final Response<TourUpsertResponse> response) {
+                if (response.isSuccessful()) {
+                    tourWithWpWithPaths.tour.setServerSynced(true);
+                    TourUpsertResponse resp = response.body();
+                    if (resp != null && resp.tourServerId != null)
+                        tourWithWpWithPaths.tour.setServerTourId(resp.tourServerId);
+
+                    AppDatabase.databaseWriteExecutor.submit(new Runnable() {
+                        @Override
+                        public void run() {
+                            AppDatabase appDatabase = AppDatabase.getInstance(context);
+                            appDatabase.tourDAO().updateTour(tourWithWpWithPaths.tour);  // purposely without timestamp
+                        }
+                    });
+
+                    sendImgFilesToServer(tourWithWpWithPaths, context);
+                } else {
+                    System.out.println(response.errorBody());
+                }
+            }
+
+            @Override
+            public void onFailure(Call<TourUpsertResponse> call, Throwable t) {
+                t.printStackTrace();
+                tourWithWpWithPaths.tour.setServerSynced(false);
+                AppDatabase.databaseWriteExecutor.submit(new Runnable() {
+                    @Override
+                    public void run() {
+                        AppDatabase appDatabase = AppDatabase.getInstance(context);
+                        appDatabase.tourDAO().updateTour(tourWithWpWithPaths.tour);  // purposely without timestamp
+                    }
+                });
+            }
+        });
+    }
+
+    public void sendImgFilesToServer(TourWithWpWithPaths tourWithWpWithPaths, final Context context) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                // Compress and send tour images
+                LinkedList<File> imageFiles = new LinkedList<>();
+                File imgFile = FileUtil.compressImage(context, tourWithWpWithPaths.tour.getTourImgPath(), "TourPictures");
+                //if (imgFile != null)
+                imageFiles.addLast(imgFile);
+
+                for (TourWpWithPicPaths tourWpWithPicPaths : tourWithWpWithPaths.getSortedTourWpsWithPicPaths()) {
+                    imgFile = FileUtil.compressImage(context, tourWpWithPicPaths.tourWaypoint.getMainImgPath(), "TourPictures");
+                    //if (imgFile != null)
+                    imageFiles.addLast(imgFile);
+                }
+
+                sendImgFilesToServerHelper(tourWithWpWithPaths, imageFiles, context);
+            }
+        }).start();
+    }
+
+    public void sendImgFilesToServerHelper(TourWithWpWithPaths tourWithWpWithPaths, LinkedList<File> imageFiles, final Context context) {
+        // create list of file parts
+        List<MultipartBody.Part> parts = new ArrayList<>(imageFiles.size());
+
+        // add dynamic amount
+        int i = 0;
+        for (File imgFile : imageFiles) {
+            String label;
+            label = Integer.toString(i++);
+            //label = imgFile.getName();
+            parts.add(RestClient.prepareFilePart(label, imgFile));
+        }
+
+        // add the description part within the multipart request
+        RequestBody description = RestClient.createPartFromString(tourWithWpWithPaths.tour.getServerTourId());
+
+        // create upload service client
+        FileUploadDownloadService service = RestClient.createService(FileUploadDownloadService.class, SharedPrefUtils.getDecryptedString(context, MainActivity.getLoginTokenKey()));
+
+        // execute the request
+        Call<ResponseBody> call = service.uploadMultipleTourImagesFilesDynamic(description, parts);
+        call.enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                //Log.d("crashTest", "sendImgFilesToServerHelper.onResponse()");
+                if (--tourToSync <= 0)
+                    loadToursFromServerDb();
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                //Log.d("crashTest", "sendImgFilesToServerHelper.onFailure()");
+            }
+        });
     }
 
     private void clearLocalCache() {
@@ -119,20 +258,21 @@ public class MyToursFragment extends Fragment {
                 try {
                     AppDatabase appDatabase = AppDatabase.getInstance(requireContext());
                     String dirPath = null;
+                    List<TourWithWpWithPaths> toursWithWpWithPaths = appDatabase.tourDAO().getToursByServerSynced(false);
                     if (currentFragmentId == R.id.nav_my_tours) {
-                        int[] tourIds = appDatabase.myTourDAO().getMyTourForeignIds();
+                        int[] tourIds = appDatabase.myTourDAO().getMyTourForeignIdsByServerSynced(true);
                         appDatabase.myTourDAO().deleteAllMyTours();
                         appDatabase.tourDAO().deleteToursByTourIds(tourIds);
                         dirPath = requireContext().getExternalCacheDir() + File.separator
                                 + SAVED_TOURS_CACHE_DIR_NAME + File.separator + SAVED_MY_TOURS_CACHE_DIR_NAME;
                     } else if (currentFragmentId == R.id.nav_fav_tours) {
-                        int[] tourIds = appDatabase.favouriteTourDAO().getFavouriteTourForeignIds();
+                        int[] tourIds = appDatabase.favouriteTourDAO().getFavTourForeignIdsByServerSynced(true);
                         appDatabase.favouriteTourDAO().deleteAllFavouriteTours();
                         appDatabase.tourDAO().deleteToursByTourIds(tourIds);
                         dirPath = requireContext().getExternalCacheDir() + File.separator
                                 + SAVED_TOURS_CACHE_DIR_NAME + File.separator + SAVED_FAV_TOURS_CACHE_DIR_NAME;
                     }
-                    if (dirPath != null) {
+                    if (dirPath != null && (toursWithWpWithPaths == null || toursWithWpWithPaths.isEmpty())) {
                         File projDir = new File(dirPath);
                         if (projDir.exists()) {
                             AppUtils.deleteDir(projDir, -1);
@@ -152,8 +292,9 @@ public class MyToursFragment extends Fragment {
 
     private Future loadToursFromRoomDb() {
         // Currently does NOT handle additional waypoint pics (PicturePath / TourWpWithPicPaths)
-        //Log.d("crashTest", "loadToursFromRoomDb()");
+        Log.d("crashTest", "loadToursFromRoomDb()");
         return AppDatabase.databaseWriteExecutor.submit(new Runnable() {
+            @Override
             public void run() {
                 //Log.d("crashTest", "run()");
                 AppDatabase appDatabase = AppDatabase.getInstance(requireContext());
@@ -174,86 +315,85 @@ public class MyToursFragment extends Fragment {
     }
 
     private void loadToursFromServerDb() {
-        AppDatabase.databaseWriteExecutor.submit(
-                new Runnable() {
+        AppDatabase.databaseWriteExecutor.submit(new Runnable() {
+            @Override
+            public void run() {
+                final AppDatabase appDatabase = AppDatabase.getInstance(requireContext());
+                //Log.d("crashTest", "loadToursFromServerDb serverMyTourIds in db : " + serverMyTourIds.size());
+                //Log.d("crashTest", "loadToursFromServerDb serverMyTourIds in db : " + serverMyTourIds.toString());
+                ToursService client = RestClient.createService(ToursService.class);
+                Call<List<TourWithWpWithPaths>> call = null;
+                if (currentFragmentId == R.id.nav_my_tours) {
+                    List<TourServerIdTimestamp> serverMyTourIds = appDatabase.tourDAO().getServerMyTourIds();
+                    call = serverMyTourIds == null || serverMyTourIds.isEmpty() ?
+                            client.getUserTours(SharedPrefUtils.getDecryptedString(requireContext(), MainActivity.getUsernameKey())) :
+                            client.getUserTours(SharedPrefUtils.getDecryptedString(requireContext(), MainActivity.getUsernameKey()), serverMyTourIds);
+                }
+                else if (currentFragmentId == R.id.nav_fav_tours) {
+                    List<TourServerIdTimestamp> serverMyTourIds = appDatabase.tourDAO().getServerFavTourIds();
+                    call = serverMyTourIds == null || serverMyTourIds.isEmpty() ?
+                            client.getUserFavTours(SharedPrefUtils.getDecryptedString(requireContext(), MainActivity.getUsernameKey())) :
+                            client.getUserFavTours(SharedPrefUtils.getDecryptedString(requireContext(), MainActivity.getUsernameKey()), serverMyTourIds);
+                }
+                call.enqueue(new Callback<List<TourWithWpWithPaths>>() {
                     @Override
-                    public void run() {
-                        final AppDatabase appDatabase = AppDatabase.getInstance(requireContext());
-                        //Log.d("crashTest", "loadToursFromServerDb serverMyTourIds in db : " + serverMyTourIds.size());
-                        //Log.d("crashTest", "loadToursFromServerDb serverMyTourIds in db : " + serverMyTourIds.toString());
-                        ToursService client = RestClient.createService(ToursService.class);
-                        Call<List<TourWithWpWithPaths>> call = null;
-                        if (currentFragmentId == R.id.nav_my_tours) {
-                            List<TourServerIdTimestamp> serverMyTourIds = appDatabase.tourDAO().getServerMyTourIds(-1);
-                            call = serverMyTourIds == null || serverMyTourIds.isEmpty() ?
-                                    client.getUserTours(SharedPrefUtils.getDecryptedString(requireContext(), MainActivity.getUsernameKey())) :
-                                    client.getUserTours(SharedPrefUtils.getDecryptedString(requireContext(), MainActivity.getUsernameKey()), serverMyTourIds);
-                        }
-                        else if (currentFragmentId == R.id.nav_fav_tours) {
-                            List<TourServerIdTimestamp> serverMyTourIds = appDatabase.tourDAO().getServerFavTourIds(-1);
-                            call = serverMyTourIds == null || serverMyTourIds.isEmpty() ?
-                                    client.getUserFavTours(SharedPrefUtils.getDecryptedString(requireContext(), MainActivity.getUsernameKey())) :
-                                    client.getUserFavTours(SharedPrefUtils.getDecryptedString(requireContext(), MainActivity.getUsernameKey()), serverMyTourIds);
-                        }
-                        call.enqueue(new Callback<List<TourWithWpWithPaths>>() {
-                            @Override
-                            public void onResponse(Call<List<TourWithWpWithPaths>> call, final Response<List<TourWithWpWithPaths>> response) {
-                                if (response.isSuccessful()) {
-                                    //Log.d("crashTest", "loadToursFromServerDb onResponse");
-                                    List<TourWithWpWithPaths> missingToursWithTourWps = response.body();
-                                    if (missingToursWithTourWps != null) {
-                                        clearLocalCache();
-                                        //Log.d("crashTest", "loadToursFromServerDb onResponse size = " + missingToursWithTourWps.size());
-                                        if (missingToursWithTourWps.size() > 0) {
+                    public void onResponse(Call<List<TourWithWpWithPaths>> call, final Response<List<TourWithWpWithPaths>> response) {
+                        if (response.isSuccessful()) {
+                            //Log.d("crashTest", "loadToursFromServerDb onResponse");
+                            List<TourWithWpWithPaths> missingToursWithTourWps = response.body();
+                            if (missingToursWithTourWps != null && !missingToursWithTourWps.isEmpty()) {
+                                clearLocalCache();
+                                //Log.d("crashTest", "loadToursFromServerDb onResponse size = " + missingToursWithTourWps.size());
+                                if (missingToursWithTourWps.size() > 0) {
 
-                                            /*
-                                            HashSet<String> tourTitlesHashSet = new HashSet<>();
-                                            for (TourWithWpWithPaths tourWithWpWithPaths : mAdapter.mDataset) {
-                                                tourTitlesHashSet.add(tourWithWpWithPaths.tour.getServerTourId());
-                                            }
-                                            Iterator<TourWithWpWithPaths> it = missingToursWithTourWps.iterator();
-                                            while (it.hasNext()) {
-                                                if (tourTitlesHashSet.contains(it.next().tour.getServerTourId()))
-                                                    it.remove();
-                                            }
-                                            */
-                                            Future future;
-                                            if (currentFragmentId == R.id.nav_my_tours)
-                                                future = AppUtils.saveToursToLocalDb(missingToursWithTourWps, requireContext(), AppUtils.TOUR_TYPE_MY_TOUR);
-                                            else if (currentFragmentId == R.id.nav_fav_tours)
-                                                future = AppUtils.saveToursToLocalDb(missingToursWithTourWps, requireContext(), AppUtils.TOUR_TYPE_FAV_TOUR);
-                                            else
-                                                future = AppUtils.saveToursToLocalDb(missingToursWithTourWps, requireContext(), null);
-
-                                            int oldSize = mAdapter.mDataset.size();
-                                            mAdapter.mDataset.clear();
-                                            mAdapter.mDataset.addAll(missingToursWithTourWps);
-                                            mAdapter.notifyDataSetChanged();
-                                            //mAdapter.notifyItemRangeInserted(0, missingToursWithTourWps.size());
-
-                                            loadToursImagesFromServerDb(missingToursWithTourWps, future);
+                                        /*
+                                        HashSet<String> tourTitlesHashSet = new HashSet<>();
+                                        for (TourWithWpWithPaths tourWithWpWithPaths : mAdapter.mDataset) {
+                                            tourTitlesHashSet.add(tourWithWpWithPaths.tour.getServerTourId());
                                         }
-                                    }
-                                }
-                            }
+                                        Iterator<TourWithWpWithPaths> it = missingToursWithTourWps.iterator();
+                                        while (it.hasNext()) {
+                                            if (tourTitlesHashSet.contains(it.next().tour.getServerTourId()))
+                                                it.remove();
+                                        }
+                                        */
+                                    Future future;
+                                    if (currentFragmentId == R.id.nav_my_tours)
+                                        future = AppUtils.saveToursToLocalDb(missingToursWithTourWps, true, requireContext(), AppUtils.TOUR_TYPE_MY_TOUR);
+                                    else if (currentFragmentId == R.id.nav_fav_tours)
+                                        future = AppUtils.saveToursToLocalDb(missingToursWithTourWps, true, requireContext(), AppUtils.TOUR_TYPE_FAV_TOUR);
+                                    else
+                                        future = AppUtils.saveToursToLocalDb(missingToursWithTourWps, true, requireContext(), null);
 
-                            @Override
-                            public void onFailure(Call<List<TourWithWpWithPaths>> call, Throwable t) {
-                                t.printStackTrace();
-                                //Log.d("crashTest", "loadToursFromServerDb onFailure");
-                                if (!loadedFromDb) {
-                                    loadedFromDb = true;
-                                    Future future = loadToursFromRoomDb();
-                                    try {
-                                        future.get();
-                                    } catch (ExecutionException | InterruptedException e) {
-                                        e.printStackTrace();
-                                    }
+                                    int oldSize = mAdapter.mDataset.size();
+                                    mAdapter.mDataset.clear();
+                                    mAdapter.mDataset.addAll(missingToursWithTourWps);
+                                    mAdapter.notifyDataSetChanged();
+                                    //mAdapter.notifyItemRangeInserted(0, missingToursWithTourWps.size());
+
+                                    loadToursImagesFromServerDb(missingToursWithTourWps, future);
                                 }
                             }
-                        });
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<List<TourWithWpWithPaths>> call, Throwable t) {
+                        t.printStackTrace();
+                        //Log.d("crashTest", "loadToursFromServerDb onFailure");
+                        if (!loadedFromDb) {
+                            loadedFromDb = true;
+                            Future future = loadToursFromRoomDb();
+                            try {
+                                future.get();
+                            } catch (ExecutionException | InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
                     }
                 });
+            }
+        });
     }
 
     private void loadToursImagesFromServerDb(List<TourWithWpWithPaths> missingToursWithTourWps, Future future) {

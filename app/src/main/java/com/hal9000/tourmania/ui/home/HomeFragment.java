@@ -204,7 +204,7 @@ public class HomeFragment extends Fragment {
                                         //Log.d("crashTest", "loadToursFromServerDb onResponse");
                                         TourWithWpWithPaths tourWithWpWithPaths = response.body();
                                         if (tourWithWpWithPaths != null) {
-                                            AppUtils.saveTourToLocalDb(tourWithWpWithPaths, requireContext(), TOUR_TYPE_NONE);
+                                            AppUtils.saveTourToLocalDb(tourWithWpWithPaths, true, requireContext(), TOUR_TYPE_NONE);
                                             loadActiveTourView(view, tourWithWpWithPaths, tourServerId);
                                         }
                                     }

@@ -86,11 +86,11 @@ public class AppUtils {
         return type;
     }
 
-    public static Future<?> saveTourToLocalDb(final TourWithWpWithPaths tourWithWpWithPathsList, final Context context, final Integer saveAsType) {
-        return saveToursToLocalDb(Collections.singletonList(tourWithWpWithPathsList), context, saveAsType);
+    public static Future<?> saveTourToLocalDb(final TourWithWpWithPaths tourWithWpWithPathsList, boolean serverSynced, final Context context, final Integer saveAsType) {
+        return saveToursToLocalDb(Collections.singletonList(tourWithWpWithPathsList), serverSynced, context, saveAsType);
     }
 
-    public static Future<?> saveToursToLocalDb(final List<TourWithWpWithPaths> tourWithWpWithPathsList, final Context context, final Integer saveAsType) {
+    public static Future<?> saveToursToLocalDb(final List<TourWithWpWithPaths> tourWithWpWithPathsList, boolean serverSynced, final Context context, final Integer saveAsType) {
         return AppDatabase.databaseWriteExecutor.submit(new Runnable() {
             @Override
             public void run() {
@@ -108,6 +108,7 @@ public class AppUtils {
                                 tourWithWpWithPaths.tour.setUserId((int)userId);
                             }
                         }
+                        tourWithWpWithPaths.tour.setServerSynced(serverSynced);
                         tours.add(tourWithWpWithPaths.tour);
                     }
                     long[] tourIds = appDatabase.tourDAO().insertWithTimestamps(tours);
@@ -218,7 +219,7 @@ public class AppUtils {
 
     /** Pass deleteTop = -1 to keep top level directory. */
     public static boolean deleteDir(File dir, int deleteTop) {
-        if (dir != null && dir.isDirectory()) {
+        if (dir != null && dir.exists() && dir.isDirectory()) {
             String[] children = dir.list();
             for (int i = 0; i < children.length; i++) {
                 boolean success = deleteDir(new File(dir, children[i]), deleteTop + 1);

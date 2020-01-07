@@ -40,6 +40,7 @@ import retrofit2.Response;
 
 import android.preference.PreferenceManager;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -287,15 +288,22 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                             public void onClick(DialogInterface dialog, int which) {
                                 Toast savinToast = Toast.makeText(requireContext(),"Saving ...",Toast.LENGTH_SHORT);
                                 savinToast.show();
+                                createTourSharedViewModel.getSavingToServerDb().observe(CreateTourFragment.this, new Observer<Boolean>() {
+                                    @Override
+                                    public void onChanged(Boolean savingToServerDb) {
+                                        if (!savingToServerDb) {
+                                            savinToast.cancel();
+                                            Toast.makeText(requireContext(), "Tour saved", Toast.LENGTH_SHORT).show();
+                                            Navigation.findNavController(requireView()).popBackStack();
+                                        }
+                                    }
+                                });
                                 Future future = createTourSharedViewModel.saveTourToDb(requireContext(), VIEW_TYPE_MY_TOUR);
                                 try {
                                     future.get();
                                 } catch (ExecutionException | InterruptedException e) {
                                     //e.printStackTrace();
                                 }
-                                savinToast.cancel();
-                                Toast.makeText(requireContext(),"Tour saved",Toast.LENGTH_SHORT).show();
-                                Navigation.findNavController(requireView()).popBackStack();
                             }
                         })
                         .setNegativeButton("No", null)
@@ -465,7 +473,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                                             .getTourByServerTourIds(createTourSharedViewModel.getTour().getServerTourId());
                                     if (tourWithWpWithPaths == null) {
                                         tourWithWpWithPaths = createTourSharedViewModel.getTourWithWpWithPaths();
-                                        AppUtils.saveTourToLocalDb(tourWithWpWithPaths, requireContext(), TOUR_TYPE_NONE);
+                                        AppUtils.saveTourToLocalDb(tourWithWpWithPaths, true, requireContext(), TOUR_TYPE_NONE);
                                         createTourSharedViewModel.savedToLocalDb = true;
                                     }
                                 } catch (Exception e) {
@@ -489,7 +497,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                                             .getTour(createTourSharedViewModel.getTour().getTourId());
                                     if (tourWithWpWithPaths == null) {
                                         tourWithWpWithPaths = createTourSharedViewModel.getTourWithWpWithPaths();
-                                        AppUtils.saveTourToLocalDb(tourWithWpWithPaths, requireContext(), TOUR_TYPE_NONE);
+                                        AppUtils.saveTourToLocalDb(tourWithWpWithPaths, true, requireContext(), TOUR_TYPE_NONE);
                                         createTourSharedViewModel.savedToLocalDb = true;
                                     }
                                 } catch (Exception e) {
@@ -644,6 +652,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
             } catch (ExecutionException | InterruptedException e) {
                 e.printStackTrace();
             }
+            Log.d("crashTest", "after load tourImgPath == null : " + (createTourSharedViewModel.getTour().getTourImgPath() == null));
             if (createTourSharedViewModel.getViewType() == VIEW_TYPE_MY_TOUR)
                 createTourSharedViewModel.setEditingPossible(true);
             else
@@ -978,6 +987,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
 
                     // Delay loading tour image (if present) until it's ImageView has non zero height / width
                     final String tourImgPath = createTourSharedViewModel.getTour().getTourImgPath();
+                    Log.d("crashTest", "tourImgPath == null : " + (tourImgPath == null));
                     if (tourImgPath != null) {
                         tourImageView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
                             @Override

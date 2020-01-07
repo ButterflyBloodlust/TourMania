@@ -27,6 +27,12 @@ public interface FavouriteTourDAO {
     @Query("SELECT tour_id FROM FavouriteTours")
     int[] getFavouriteTourForeignIds();
 
+    @Query("SELECT FavouriteTours.tour_id FROM FavouriteTours INNER JOIN Tours ON FavouriteTours.tour_id = Tours.tour_id_pk WHERE server_tour_id != '' AND server_tour_id IS NOT NULL")
+    int[] getFavTourForeignIdsWithTourServerIds();
+
+    @Query("SELECT FavouriteTours.tour_id FROM FavouriteTours INNER JOIN Tours ON FavouriteTours.tour_id = Tours.tour_id_pk WHERE server_synced = :serverSynced")
+    int[] getFavTourForeignIdsByServerSynced(boolean serverSynced);
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     void insertFavouriteTour(FavouriteTour favouriteTour);
 
