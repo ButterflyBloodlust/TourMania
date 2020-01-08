@@ -465,9 +465,9 @@ public class CreateTourSharedViewModel extends AndroidViewModel {
                             if (user.getUsername().equals(SharedPrefUtils.getDecryptedString(context, MainActivity.getUsernameKey())))
                                 setEditingPossible(true);
                             tour.setValue(tourWithTourWps.tour);
-                            loadedFromServerDb.setValue(true);
                             tourTagsList.addAll(tourWithTourWps.tourTags);
                             tourWaypointList.addAll(tourWithTourWps.getSortedTourWpsWithPicPaths());
+                            loadedFromServerDb.setValue(true);
 
                             linkToCacheIfExistsWithSrvId(context);
                             loadTourImagesFromServerDb(tourServerId, context, subDirName);
@@ -699,7 +699,7 @@ public class CreateTourSharedViewModel extends AndroidViewModel {
     @Override
     public void onCleared() {
         super.onCleared();
-        Log.d("crashTest", "CreateTourSharedViewModel.onCleared()");
+        //Log.d("crashTest", "CreateTourSharedViewModel.onCleared()");
         try {
             if (!loadedFromLocalDb.getValue() && !savedToLocalDb) {
                 // delete files related to tour, stored in app's dirs

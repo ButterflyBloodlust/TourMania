@@ -27,7 +27,7 @@ import retrofit2.converter.scalars.ScalarsConverterFactory;
 
 public abstract class RestClient {
 
-    private static final String API_BASE_URL = "http://192.168.1.20:8000";
+    private static final String API_BASE_URL = "https://tour-mania.herokuapp.com/";  // https://tour-mania.herokuapp.com/ ; http://192.168.1.20:8000
 
     private static OkHttpClient.Builder httpClient = new OkHttpClient.Builder();
 

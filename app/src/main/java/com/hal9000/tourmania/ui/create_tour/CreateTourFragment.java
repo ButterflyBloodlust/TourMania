@@ -540,10 +540,15 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
     }
 
     private void setTourImage(Uri tourImgUri) throws FileNotFoundException {
+        View v = getView();
+        if (v == null)
+            return;
+        ImageView tourImageView = (ImageView)v.findViewById(R.id.tour_image);
+        int viewHeight = tourImageView.getHeight();
+        if (viewHeight == 0)
+            return;
         InputStream inStream = requireContext().getContentResolver().openInputStream(tourImgUri);
         Bitmap bmp = BitmapFactory.decodeStream(inStream);
-        ImageView tourImageView = (ImageView)requireView().findViewById(R.id.tour_image);
-        int viewHeight = tourImageView.getHeight();
         tourImageView.setAdjustViewBounds(true);
         tourImageView.setImageBitmap(bmp);
         tourImageView.setMaxWidth(bmp.getWidth() * viewHeight / bmp.getHeight());
@@ -608,6 +613,29 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
             @Override
             public void onChanged(@Nullable Boolean isLoadedFromServerDb) {
                 requireActivity().invalidateOptionsMenu();
+
+                if (symbolManager != null && symbolManager.getAnnotations().isEmpty()) {
+                    // Restore annotations from ViewModel
+                    ArrayList<TourWpWithPicPaths> tourWpWithPicPathsArrayList = createTourSharedViewModel.getTourWaypointList();
+                    List<SymbolOptions> symbolOptionsList = new LinkedList<>();
+                    for (TourWpWithPicPaths tourWpWithPicPaths : tourWpWithPicPathsArrayList) {
+                        SymbolOptions symbolOptions = new SymbolOptions()
+                                .withLatLng(new LatLng(tourWpWithPicPaths.tourWaypoint.getLatitude(), tourWpWithPicPaths.tourWaypoint.getLongitude()))
+                                .withIconImage(ID_ICON_MARKER)
+                                .withTextField(tourWpWithPicPaths.tourWaypoint.getTitle())
+                                .withTextJustify(TEXT_JUSTIFY_AUTO);
+                        symbolOptionsList.add(symbolOptions);
+                    }
+                    // Mark selected annotation if aplicable
+                    final int choosenLocateWaypointIndex = createTourSharedViewModel.getChoosenLocateWaypointIndex();
+                    if (choosenLocateWaypointIndex != -1) {
+                        symbolOptionsList.get(choosenLocateWaypointIndex).withIconImage(ID_ICON_MARKER_SELECTED);
+                        createTourSharedViewModel.removeChoosenLocateWaypointIndex();
+                    }
+                    // Register restored annotations
+                    if (symbolOptionsList.size() > 0)
+                        symbolManager.create(symbolOptionsList);
+                }
             }
         });
 
@@ -652,7 +680,6 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
             } catch (ExecutionException | InterruptedException e) {
                 e.printStackTrace();
             }
-            Log.d("crashTest", "after load tourImgPath == null : " + (createTourSharedViewModel.getTour().getTourImgPath() == null));
             if (createTourSharedViewModel.getViewType() == VIEW_TYPE_MY_TOUR)
                 createTourSharedViewModel.setEditingPossible(true);
             else
@@ -987,8 +1014,9 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
 
                     // Delay loading tour image (if present) until it's ImageView has non zero height / width
                     final String tourImgPath = createTourSharedViewModel.getTour().getTourImgPath();
-                    Log.d("crashTest", "tourImgPath == null : " + (tourImgPath == null));
+                    //Log.d("crashTest", "tourImgPath == null : " + (tourImgPath == null));
                     if (tourImgPath != null) {
+                        setTourImage(Uri.parse(tourImgPath));
                         tourImageView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
                             @Override
                             public void onGlobalLayout() {

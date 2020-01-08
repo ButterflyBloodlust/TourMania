@@ -23,6 +23,7 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 import com.hal9000.tourmania.AppUtils;
+import com.hal9000.tourmania.BuildConfig;
 import com.hal9000.tourmania.FileUtil;
 import com.hal9000.tourmania.MainActivity;
 import com.hal9000.tourmania.MainActivityViewModel;
@@ -129,7 +130,7 @@ public class MyToursFragment extends Fragment {
                 try {
                     AppDatabase appDatabase = AppDatabase.getInstance(requireContext());
                     List<TourWithWpWithPaths> toursWithWpWithPaths = appDatabase.tourDAO().getToursByServerSynced(false);
-                    Log.d("crashTest", "offline created tourWithWpWithPaths size = " + toursWithWpWithPaths.size());
+                    //Log.d("crashTest", "offline created tourWithWpWithPaths size = " + toursWithWpWithPaths.size());
                     Context context = getContext();
                     if (context != null && !toursWithWpWithPaths.isEmpty()) {
                         requireActivity().runOnUiThread(new Runnable() {
@@ -292,7 +293,7 @@ public class MyToursFragment extends Fragment {
 
     private Future loadToursFromRoomDb() {
         // Currently does NOT handle additional waypoint pics (PicturePath / TourWpWithPicPaths)
-        Log.d("crashTest", "loadToursFromRoomDb()");
+        //Log.d("crashTest", "loadToursFromRoomDb()");
         return AppDatabase.databaseWriteExecutor.submit(new Runnable() {
             @Override
             public void run() {
@@ -495,11 +496,15 @@ public class MyToursFragment extends Fragment {
                 }
             }
         }
-
-        List<TourWithWpWithPaths> loadedToursWithTourWps = null;
-        loadedToursWithTourWps = appDatabase.tourDAO().getFavouriteToursWithTourWps();
-        for (TourWithWpWithPaths tourWithWpWithPaths1 : loadedToursWithTourWps)
-            Log.d("crashTest", "" + tourWithWpWithPaths1.tour.getTourImgPath());
+        /*
+        // for debug purposes
+        if (BuildConfig.DEBUG) {
+            List<TourWithWpWithPaths> loadedToursWithTourWps = null;
+            loadedToursWithTourWps = appDatabase.tourDAO().getFavouriteToursWithTourWps();
+            for (TourWithWpWithPaths tourWithWpWithPaths1 : loadedToursWithTourWps)
+                Log.d("crashTest", "" + tourWithWpWithPaths1.tour.getTourImgPath());
+        }
+        */
     }
 
     private void createRecyclerView(final View root) {
