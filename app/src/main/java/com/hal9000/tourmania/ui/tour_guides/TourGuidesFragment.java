@@ -110,8 +110,8 @@ public class TourGuidesFragment extends Fragment {
         }
 
         Context context = requireContext();
+        createRecyclerView(root);
         if (AppUtils.isWifiEnabled(context) && AppUtils.isLocationEnabled(context)) {
-            createRecyclerView(root);
             getTourGuidesOnLastLocation();
         }
         else {
