@@ -184,7 +184,7 @@ public class HomeFragment extends Fragment {
                     try {
                         AppDatabase appDatabase = AppDatabase.getInstance(getContext());
                         TourWithWpWithPaths tourWithWpWithPaths = tourServerId != null ? appDatabase.tourDAO().getTourByServerTourIds(tourServerId)
-                                : appDatabase.tourDAO().getTour(tourId);
+                                : appDatabase.tourDAO().getTourWithTourWps(tourId);
                         if (tourWithWpWithPaths != null) {
                             requireActivity().runOnUiThread(new Runnable() {
                                 @Override

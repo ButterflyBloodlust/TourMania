@@ -494,7 +494,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                                 try {
                                     TourWithWpWithPaths tourWithWpWithPaths = AppDatabase.getInstance(getContext())
                                             .tourDAO()
-                                            .getTour(createTourSharedViewModel.getTour().getTourId());
+                                            .getTourWithTourWps(createTourSharedViewModel.getTour().getTourId());
                                     if (tourWithWpWithPaths == null) {
                                         tourWithWpWithPaths = createTourSharedViewModel.getTourWithWpWithPaths();
                                         AppUtils.saveTourToLocalDb(tourWithWpWithPaths, true, requireContext(), TOUR_TYPE_NONE);
