@@ -33,7 +33,7 @@ public abstract class QrCodeAnalyzer implements ImageAnalysis.Analyzer {
         }
     };
 
-    private OnFailureListener onSuccessListener1 = new OnFailureListener() {
+    private OnFailureListener onFailureListener = new OnFailureListener() {
         @Override
         public void onFailure(@NonNull Exception e) {
             e.printStackTrace();
@@ -53,7 +53,7 @@ public abstract class QrCodeAnalyzer implements ImageAnalysis.Analyzer {
 
         detector.detectInImage(visionImage)
                 .addOnSuccessListener(onSuccessListener)
-                .addOnFailureListener(onSuccessListener1);
+                .addOnFailureListener(onFailureListener);
     }
 
     private int rotationDegreesToFirebaseRotation(int rotationDegrees) {
