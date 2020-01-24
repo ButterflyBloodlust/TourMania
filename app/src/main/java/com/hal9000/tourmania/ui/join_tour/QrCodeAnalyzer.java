@@ -72,8 +72,4 @@ public abstract class QrCodeAnalyzer implements ImageAnalysis.Analyzer {
     }
 
     abstract void onQrCodesDetected(List<FirebaseVisionBarcode> qrCodes);
-
-    interface OnQrCodesDetectedListener {
-        void onQrCodesDetected(List<FirebaseVisionBarcode> qrCodes);
-    }
 }
