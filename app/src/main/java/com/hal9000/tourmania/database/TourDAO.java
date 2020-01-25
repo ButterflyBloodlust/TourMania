@@ -22,7 +22,7 @@ public abstract class TourDAO {
     public abstract List<Tour> getTours();
 
     @Transaction
-    @Query("SELECT * FROM Tours LEFT JOIN Users ON user_id = user_id_pk WHERE tour_id_pk = :tourId")
+    @Query("SELECT * FROM Tours WHERE tour_id_pk = :tourId")
     public abstract Tour getTour(int tourId);
 
     @Transaction
@@ -33,16 +33,9 @@ public abstract class TourDAO {
         return getToursBySynced(false);
     }
 
-    //@Query("SELECT * FROM Tours WHERE id IN (SELECT DISTINCT(tour_id) FROM TourWaypoints)")
     @Transaction
     @Query("SELECT * FROM Tours LEFT JOIN Users ON user_id = user_id_pk")
     public abstract List<TourWithWpWithPaths> getToursWithTourWps();
-
-    /*
-    @Transaction
-    @Query("SELECT * FROM Tours WHERE user_id = 0")
-    public abstract List<TourWithWpWithPaths> getMyToursWithTourWps();
-     */
 
     @Transaction
     @Query("SELECT * FROM Tours LEFT JOIN Users ON user_id = user_id_pk WHERE tour_id_pk = :tourId")
