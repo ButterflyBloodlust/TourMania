@@ -46,8 +46,8 @@ public class SignUpFragment extends Fragment {
                              @Nullable Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_sign_up, container, false);
 
-        Button singInButton = root.findViewById(R.id.button_sign_up);
-        singInButton.setOnClickListener(new View.OnClickListener() {
+        Button singUpButton = root.findViewById(R.id.button_sign_up);
+        singUpButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 UserSignUp client = RestClient.createService(UserSignUp.class);

@@ -72,7 +72,7 @@ public class SignInFragment extends Fragment {
                         @Override
                         @EverythingIsNonNull
                         public void onResponse(Call<LoginResponse> call, Response<LoginResponse> response) {
-                            if (response.isSuccessful()) {
+                            if (response.isSuccessful() && response.body() != null) {
                                 Context ctx = requireContext();
                                 FragmentActivity fragmentActivity = requireActivity();
                                 LoginResponse loginResponse = response.body();
