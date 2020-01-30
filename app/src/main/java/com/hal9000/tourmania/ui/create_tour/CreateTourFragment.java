@@ -692,7 +692,7 @@ public class CreateTourFragment extends Fragment implements PermissionsListener,
                 actionBar.setTitle("Tour");
             }
             createTourSharedViewModel.setInitialEditingEnabled(false);
-            createTourSharedViewModel.setEditingPossible(false);
+            //createTourSharedViewModel.setEditingPossible(false);
             createTourSharedViewModel.loadTourFromServerDb(tourServerId, requireContext(), TOUR_SEARCH_CACHE_DIR_NAME);
         }
         else {
